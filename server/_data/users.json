@@ -1,0 +1,43 @@
+[
+  {
+    "_id": "60d0fe4f5311236168a109ca",
+    "name": "Admin Usuario",
+    "email": "admin@example.com",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS",
+    "role": "admin",
+    "createdAt": "2023-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "60d0fe4f5311236168a109cb",
+    "name": "Distribuidor Ejemplo",
+    "email": "distribuidor@example.com",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS",
+    "role": "distributor",
+    "companyName": "Repuestos ABC",
+    "address": {
+      "street": "Av. Ejemplo 123",
+      "city": "Santiago",
+      "state": "RM",
+      "postalCode": "1000000",
+      "country": "Chile"
+    },
+    "phone": "+56912345678",
+    "createdAt": "2023-01-02T00:00:00.000Z"
+  },
+  {
+    "_id": "60d0fe4f5311236168a109cc",
+    "name": "Cliente Ejemplo",
+    "email": "cliente@example.com",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS",
+    "role": "client",
+    "address": {
+      "street": "Calle Cliente 456",
+      "city": "Santiago",
+      "state": "RM",
+      "postalCode": "1000000",
+      "country": "Chile"
+    },
+    "phone": "+56912345679",
+    "createdAt": "2023-01-03T00:00:00.000Z"
+  }
+]
