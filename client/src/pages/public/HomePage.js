@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { productService, statsService, categoryService } from '../../services/api';
 import ProductCard from '../../components/catalog/ProductCard';
-import { ChevronRightIcon, TruckIcon, IdentificationIcon, ShieldCheckIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
+import { ChevronRightIcon, TruckIcon, IdentificationIcon, ShieldCheckIcon, BuildingStorefrontIcon, TagIcon } from '@heroicons/react/24/outline';
 
 const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [newProducts, setNewProducts] = useState([]);
+  const [onSaleProducts, setOnSaleProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [stats, setStats] = useState({
     productCount: 0,
@@ -31,6 +32,13 @@ const HomePage = () => {
           limit: 8 
         });
         setNewProducts(newProductsResponse.data.data);
+        
+        // Cargar productos en oferta
+        const onSaleResponse = await productService.getProductsOnSale({ 
+          limit: 8,
+          sort: '-discountPercentage' // Ordenar por mayor descuento primero
+        });
+        setOnSaleProducts(onSaleResponse.data.data);
         
         // Cargar categorías principales
         const categoriesResponse = await categoryService.getCategories();
@@ -123,6 +131,30 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* Ofertas Especiales */}
+      {onSaleProducts.length > 0 && (
+        <section className="bg-red-50 rounded-xl p-8 shadow-sm">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+              <TagIcon className="h-6 w-6 mr-2 text-red-500" />
+              Ofertas Especiales
+            </h2>
+            <Link
+              to="/catalog?onSale=true"
+              className="flex items-center text-red-600 hover:text-red-800 transition"
+            >
+              Ver todas las ofertas
+              <ChevronRightIcon className="h-5 w-5 ml-1" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {onSaleProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Categorías Populares */}
       <section>

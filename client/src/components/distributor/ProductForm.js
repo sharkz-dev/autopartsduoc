@@ -21,6 +21,10 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
     sku: '',
     partNumber: '',
     featured: false,
+    // Campos para descuentos
+    onSale: false,
+    discountPercentage: '',
+    saleEndDate: '',
     // Otros campos
     compatibleModels: [],
     images: []
@@ -32,6 +36,25 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
   const [uploadedImages, setUploadedImages] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
   const [tempCompatibleModel, setTempCompatibleModel] = useState({ make: '', model: '', year: '' });
+  
+  // Calcular precio de oferta
+  const [calculatedSalePrice, setCalculatedSalePrice] = useState(0);
+  
+  // Recalcular precio de oferta cuando cambia el precio o el descuento
+  useEffect(() => {
+    if (formData.price && formData.discountPercentage) {
+      const price = parseFloat(formData.price);
+      const discount = parseFloat(formData.discountPercentage);
+      if (!isNaN(price) && !isNaN(discount) && discount > 0) {
+        const salePrice = price - (price * (discount / 100));
+        setCalculatedSalePrice(salePrice);
+      } else {
+        setCalculatedSalePrice(0);
+      }
+    } else {
+      setCalculatedSalePrice(0);
+    }
+  }, [formData.price, formData.discountPercentage]);
   
   // Cargar categorías
   useEffect(() => {
@@ -52,7 +75,8 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
     if (isEditing && product) {
       const { 
         name, description, price, wholesalePrice, stockQuantity, 
-        category, brand, sku, partNumber, featured, compatibleModels, images 
+        category, brand, sku, partNumber, featured, compatibleModels, images,
+        onSale, discountPercentage, saleEndDate
       } = product;
       
       setFormData({
@@ -66,6 +90,9 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
         sku: sku || '',
         partNumber: partNumber || '',
         featured: featured || false,
+        onSale: onSale || false,
+        discountPercentage: discountPercentage || '',
+        saleEndDate: saleEndDate ? new Date(saleEndDate).toISOString().slice(0, 10) : '',
         compatibleModels: compatibleModels || [],
         images: images || []
       });
@@ -219,6 +246,13 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
     setError('');
     
     try {
+      // Validar descuento si está en oferta
+      if (formData.onSale) {
+        if (!formData.discountPercentage || formData.discountPercentage <= 0 || formData.discountPercentage > 100) {
+          throw new Error('El porcentaje de descuento debe estar entre 1 y 100');
+        }
+      }
+      
       let responseData;
       
       // Crear o actualizar producto básico sin imágenes primero
@@ -246,8 +280,8 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
       }
     } catch (err) {
       console.error('Error al enviar formulario:', err);
-      setError(err.response?.data?.error || `Error al ${isEditing ? 'actualizar' : 'crear'} el producto`);
-      toast.error(err.response?.data?.error || `Error al ${isEditing ? 'actualizar' : 'crear'} el producto`);
+      setError(err.message || err.response?.data?.error || `Error al ${isEditing ? 'actualizar' : 'crear'} el producto`);
+      toast.error(err.message || err.response?.data?.error || `Error al ${isEditing ? 'actualizar' : 'crear'} el producto`);
     } finally {
       setLoading(false);
     }
@@ -439,6 +473,97 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
             />
           </div>
           
+          {/* Producto en oferta */}
+          <div className="sm:col-span-6">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="onSale"
+                  name="onSale"
+                  type="checkbox"
+                  checked={formData.onSale}
+                  onChange={handleChange}
+                  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="onSale" className="font-medium text-gray-700">
+                  Producto en oferta
+                </label>
+                <p className="text-gray-500">
+                  Marcar esta opción para aplicar un descuento al producto. El producto se destacará en la página principal.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Campos adicionales si el producto está en oferta */}
+          {formData.onSale && (
+            <>
+              {/* Porcentaje de descuento */}
+              <div className="sm:col-span-2">
+                <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700">
+                  Porcentaje de descuento *
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <input
+                    type="number"
+                    name="discountPercentage"
+                    id="discountPercentage"
+                    value={formData.discountPercentage}
+                    onChange={handleChange}
+                    required={formData.onSale}
+                    min="1"
+                    max="100"
+                    step="0.1"
+                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">%</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Precio calculado con descuento */}
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Precio con descuento
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={calculatedSalePrice.toFixed(0)}
+                    readOnly
+                    className="bg-gray-100 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">CLP</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Fecha de fin de oferta */}
+              <div className="sm:col-span-2">
+                <label htmlFor="saleEndDate" className="block text-sm font-medium text-gray-700">
+                  Fecha fin de oferta
+                </label>
+                <input
+                  type="date"
+                  name="saleEndDate"
+                  id="saleEndDate"
+                  value={formData.saleEndDate}
+                  onChange={handleChange}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                />
+                <p className="mt-1 text-xs text-gray-500">Opcional. Si no se establece, la oferta no tendrá fecha de caducidad.</p>
+              </div>
+            </>
+          )}
+          
           {/* Producto destacado */}
           <div className="sm:col-span-6">
             <div className="flex items-start">
@@ -596,7 +721,7 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
                   {/* Barra de progreso */}
                   {uploadProgress[image.id] !== undefined && uploadProgress[image.id] < 100 && (
                     <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-                      <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
+                        <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
                         <div 
                           className="bg-blue-600 h-full rounded-full" 
                           style={{ width: `${uploadProgress[image.id]}%` }}

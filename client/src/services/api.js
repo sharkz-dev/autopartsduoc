@@ -69,7 +69,8 @@ export const productService = {
     }),
   getMyProducts: () => api.get('/products/my/products'),
   getProductsByDistributor: (id) => api.get(`/products/distributor/${id}`),
-  addProductRating: (id, ratingData) => api.post(`/products/${id}/ratings`, ratingData)
+  addProductRating: (id, ratingData) => api.post(`/products/${id}/ratings`, ratingData),
+  getProductsOnSale: (params) => api.get('/products/on-sale', { params })
 };
 
 // Servicios de categorías

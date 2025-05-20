@@ -1,25 +1,101 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useCart } from '../../context/CartContext';
+import { productService } from '../../services/api';
 import { ShoppingCartIcon, StarIcon } from '@heroicons/react/24/solid';
+import { TagIcon } from '@heroicons/react/24/outline';
+import { useCart } from '../../context/CartContext';
 
-const ProductCard = ({ product }) => {
+const OnSaleProductsSection = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const { addToCart, cartType } = useCart();
-  
+
+  useEffect(() => {
+    const fetchOnSaleProducts = async () => {
+      try {
+        setLoading(true);
+        // Obtener los primeros 8 productos en oferta
+        const response = await productService.getProductsOnSale({ limit: 8 });
+        setProducts(response.data.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error al cargar productos en oferta:', err);
+        setError('No se pudieron cargar los productos en oferta');
+        setLoading(false);
+      }
+    };
+
+    fetchOnSaleProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+            <p>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return null; // No mostrar la sección si no hay productos en oferta
+  }
+
+  return (
+    <section className="py-8 bg-gray-50">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+            <TagIcon className="h-6 w-6 mr-2 text-red-500" />
+            Ofertas especiales
+          </h2>
+          <Link 
+            to="/catalog?filter=on-sale" 
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          >
+            Ver todas las ofertas
+          </Link>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {products.map(product => (
+            <ProductCard key={product._id} product={product} addToCart={addToCart} cartType={cartType} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Componente de tarjeta de producto con oferta
+const ProductCard = ({ product, addToCart, cartType }) => {
   // Determinar el precio según el tipo de carrito (B2B o B2C)
   const regularPrice = cartType === 'B2B' && product.wholesalePrice 
     ? product.wholesalePrice 
     : product.price;
 
-  // Verificar si el producto está en oferta y tiene un precio de oferta válido
-  const isOnSale = product.onSale && product.salePrice > 0;
-  
-  // Calcular el precio final a mostrar
-  const displayPrice = isOnSale ? product.salePrice : regularPrice;
+  const discountedPrice = product.onSale ? product.salePrice : regularPrice;
+  const discountPercentage = product.discountPercentage;
 
   const defaultImage = 'https://via.placeholder.com/300x300?text=No+Image';
   
-  // Formatear el precio con separador de miles y 2 decimales
+  // Formatear precios con separador de miles
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -30,9 +106,9 @@ const ProductCard = ({ product }) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 relative">
       {/* Badge de descuento */}
-      {isOnSale && (
+      {product.onSale && (
         <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-br z-10">
-          -{product.discountPercentage}%
+          -{discountPercentage}%
         </div>
       )}
       
@@ -66,10 +142,10 @@ const ProductCard = ({ product }) => {
           
           <div className="flex justify-between items-center mt-4">
             <div>
-              {isOnSale ? (
+              {product.onSale ? (
                 <div>
                   <p className="text-lg font-bold text-red-600">
-                    {formatPrice(displayPrice)}
+                    {formatPrice(discountedPrice)}
                   </p>
                   <p className="text-sm text-gray-500 line-through">
                     {formatPrice(regularPrice)}
@@ -77,7 +153,7 @@ const ProductCard = ({ product }) => {
                 </div>
               ) : (
                 <p className="text-lg font-bold text-blue-600">
-                  {formatPrice(displayPrice)}
+                  {formatPrice(regularPrice)}
                 </p>
               )}
               {cartType === 'B2B' && product.wholesalePrice && (
@@ -124,4 +200,4 @@ const ProductCard = ({ product }) => {
   );
 };
 
-export default ProductCard;
+export default OnSaleProductsSection;
