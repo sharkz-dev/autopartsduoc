@@ -38,7 +38,11 @@ import OrderDetailsPage from './pages/client/OrderDetailsPage';
 // Páginas de administrador
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
+import AdminAddProductPage from './pages/admin/AdminAddProductPage';
+import AdminEditProductPage from './pages/admin/AdminEditProductPage';
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AdminAddCategoryPage from './pages/admin/AdminAddCategoryPage';
+import AdminEditCategoryPage from './pages/admin/AdminEditCategoryPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminDistributorsPage from './pages/admin/AdminDistributorsPage';
@@ -82,13 +86,17 @@ function App() {
 
           {/* Rutas de administrador */}
           <Route path="/admin" element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={['admin']}>
               <AdminLayout />
             </PrivateRoute>
           }>
             <Route index element={<AdminDashboardPage />} />
             <Route path="products" element={<AdminProductsPage />} />
+            <Route path="products/add" element={<AdminAddProductPage />} />
+            <Route path="products/edit/:id" element={<AdminEditProductPage />} />
             <Route path="categories" element={<AdminCategoriesPage />} />
+            <Route path="categories/add" element={<AdminAddCategoryPage />} />
+            <Route path="categories/edit/:id" element={<AdminEditCategoryPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="distributors" element={<AdminDistributorsPage />} />
@@ -96,7 +104,7 @@ function App() {
 
           {/* Rutas de distribuidor */}
           <Route path="/distributor" element={
-            <PrivateRoute>
+            <PrivateRoute allowedRoles={['distributor']}>
               <DistributorLayout />
             </PrivateRoute>
           }>

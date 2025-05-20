@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { productService } from '../../services/api';
-import ProductForm from '../../components/distributor/ProductForm';
-import toast from 'react-hot-toast';
+import AdminProductForm from '../../components/admin/AdminProductForm';
 
-const DistributorEditProductPage = () => {
+const AdminEditProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
@@ -30,15 +29,10 @@ const DistributorEditProductPage = () => {
   }, [id]);
   
   const handleSubmit = () => {
-    // Mostrar mensaje de éxito
-    toast.success('Producto actualizado correctamente');
-    
-    // Redireccionar a la página de productos
-    setTimeout(() => {
-      navigate('/distributor/products');
-    }, 1000);
+    // Redireccionar a la página de productos después de la edición exitosa
+    navigate('/admin/products');
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -46,7 +40,7 @@ const DistributorEditProductPage = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4" role="alert">
@@ -58,10 +52,15 @@ const DistributorEditProductPage = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar Producto</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Editar Producto</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Modifique la información del producto a continuación.
+        </p>
+      </div>
       
       {product && (
-        <ProductForm 
+        <AdminProductForm 
           product={product} 
           onSubmit={handleSubmit} 
           isEditing={true} 
@@ -71,4 +70,4 @@ const DistributorEditProductPage = () => {
   );
 };
 
-export default DistributorEditProductPage;
+export default AdminEditProductPage;

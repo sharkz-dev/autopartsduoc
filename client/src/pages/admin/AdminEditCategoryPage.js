@@ -1,44 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { productService } from '../../services/api';
-import ProductForm from '../../components/distributor/ProductForm';
-import toast from 'react-hot-toast';
+import { categoryService } from '../../services/api';
+import AdminCategoryForm from '../../components/admin/AdminCategoryForm';
 
-const DistributorEditProductPage = () => {
+const AdminEditCategoryPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const [product, setProduct] = useState(null);
+  const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchCategory = async () => {
       try {
         setLoading(true);
-        const response = await productService.getProduct(id);
-        setProduct(response.data.data);
+        const response = await categoryService.getCategory(id);
+        setCategory(response.data.data);
         setLoading(false);
       } catch (err) {
-        console.error('Error al cargar producto:', err);
-        setError('Error al cargar producto. Por favor, intente de nuevo más tarde.');
+        console.error('Error al cargar categoría:', err);
+        setError('Error al cargar categoría. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }
     };
     
-    fetchProduct();
+    fetchCategory();
   }, [id]);
   
   const handleSubmit = () => {
-    // Mostrar mensaje de éxito
-    toast.success('Producto actualizado correctamente');
-    
-    // Redireccionar a la página de productos
-    setTimeout(() => {
-      navigate('/distributor/products');
-    }, 1000);
+    // Redireccionar a la página de categorías después de la edición exitosa
+    navigate('/admin/categories');
   };
-  
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -46,7 +40,7 @@ const DistributorEditProductPage = () => {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 my-4" role="alert">
@@ -58,11 +52,16 @@ const DistributorEditProductPage = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar Producto</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Editar Categoría</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Modifique la información de la categoría a continuación.
+        </p>
+      </div>
       
-      {product && (
-        <ProductForm 
-          product={product} 
+      {category && (
+        <AdminCategoryForm 
+          category={category} 
           onSubmit={handleSubmit} 
           isEditing={true} 
         />
@@ -71,4 +70,4 @@ const DistributorEditProductPage = () => {
   );
 };
 
-export default DistributorEditProductPage;
+export default AdminEditCategoryPage;

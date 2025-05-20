@@ -39,73 +39,70 @@ const DistributorSidebar = () => {
   
   return (
     <>
-      {/* Sidebar para desktop */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 bg-gray-800">
-          <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-            <div className="flex items-center flex-shrink-0 px-4">
-              <Link to="/" className="text-xl font-bold text-white">
-                AutoRepuestos
-              </Link>
-            </div>
-            
-            {/* Información del distribuidor */}
-            <div className="mt-5 px-4">
-              <div className="bg-gray-700 p-3 rounded-lg">
-                <p className="text-sm font-medium text-white">
-                  {user?.companyName || 'Mi Tienda'}
-                </p>
-                <p className="text-xs text-gray-300 mt-1">
-                  Panel de Distribuidor
-                </p>
-              </div>
-            </div>
-            
-            <nav className="mt-5 flex-1 px-2 space-y-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`
-                    group flex items-center px-2 py-2 text-sm font-medium rounded-md
-                    ${isActive(item.href)
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
-                  `}
-                >
-                  <item.icon
-                    className={`mr-3 flex-shrink-0 h-6 w-6 ${
-                      isActive(item.href)
-                        ? 'text-white'
-                        : 'text-gray-400 group-hover:text-gray-300'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  {item.name}
-                </Link>
-              ))}
-              
-              {/* Enlace al catálogo público */}
-              <Link
-                to="/catalog"
-                className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white"
-              >
-                <ChartBarIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-300" />
-                Ver Catálogo
-              </Link>
-            </nav>
+      <div className="h-full flex flex-col">
+        <div className="flex-1 flex flex-col overflow-y-auto pt-5 pb-4">
+          <div className="flex items-center flex-shrink-0 px-4">
+            <Link to="/" className="text-xl font-bold text-white">
+              AutoRepuestos
+            </Link>
           </div>
           
-          {/* Footer con botón de logout */}
-          <div className="flex-shrink-0 flex border-t border-gray-700 p-4">
-            <button
-              onClick={handleLogout}
-              className="flex-shrink-0 w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white"
-            >
-              <ArrowRightOnRectangleIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-300" />
-              Cerrar Sesión
-            </button>
+          {/* Información del distribuidor */}
+          <div className="mt-5 px-4">
+            <div className="bg-gray-700 p-3 rounded-lg">
+              <p className="text-sm font-medium text-white">
+                {user?.companyName || 'Mi Tienda'}
+              </p>
+              <p className="text-xs text-gray-300 mt-1">
+                Panel de Distribuidor
+              </p>
+            </div>
           </div>
+          
+          <nav className="mt-5 flex-1 px-2 space-y-1">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`
+                  group flex items-center px-2 py-2 text-sm font-medium rounded-md
+                  ${isActive(item.href)
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                `}
+              >
+                <item.icon
+                  className={`mr-3 flex-shrink-0 h-6 w-6 ${
+                    isActive(item.href)
+                      ? 'text-white'
+                      : 'text-gray-400 group-hover:text-gray-300'
+                  }`}
+                  aria-hidden="true"
+                />
+                {item.name}
+              </Link>
+            ))}
+            
+            {/* Enlace al catálogo público */}
+            <Link
+              to="/catalog"
+              className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              <ChartBarIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-300" />
+              Ver Catálogo
+            </Link>
+          </nav>
+        </div>
+        
+        {/* Footer con botón de logout */}
+        <div className="flex-shrink-0 flex border-t border-gray-700 p-4">
+          <button
+            onClick={handleLogout}
+            className="flex-shrink-0 w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white"
+          >
+            <ArrowRightOnRectangleIcon className="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-300" />
+            Cerrar Sesión
+          </button>
         </div>
       </div>
       
