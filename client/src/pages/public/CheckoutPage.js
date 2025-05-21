@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { orderService } from '../../services/api';
+import { getProductImageUrl } from '../../utils/imageHelpers';
 import api from '../../services/api';
 import ShipmentMethodSelector from '../../components/checkout/ShipmentMethodSelector';
 import ShippingAddressForm from '../../components/checkout/ShippingAddressForm';
@@ -248,9 +249,9 @@ const CheckoutPage = () => {
                       <div className="flex items-center">
                         {item.images && item.images.length > 0 ? (
                           <img 
-                            src={`/uploads/${item.images[0]}`} 
-                            alt={item.name}
-                            className="h-16 w-16 object-cover rounded mr-4"
+            src={getProductImageUrl(item)}  // Usar la función helper
+            alt={item.name}
+            className="h-16 w-16 object-cover rounded mr-4"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = "https://via.placeholder.com/150";

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { orderService } from '../../services/api';
+import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
 import {
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -50,7 +51,7 @@ const DistributorOrdersPage = () => {
     try {
       setUpdatingStatus(true);
       await orderService.updateOrderStatus(orderId, { status });
-      toast.success(`Estado de la orden actualizado a: ${status}`);
+      toast.success(`Estado de la orden actualizado a: ${getStatusTranslation(status)}`);
       
       // Actualizar la orden seleccionada y la lista de órdenes
       if (selectedOrder && selectedOrder._id === orderId) {
@@ -62,7 +63,7 @@ const DistributorOrdersPage = () => {
       ));
     } catch (err) {
       console.error('Error al actualizar estado:', err);
-toast.error(err.response?.data?.error || 'Error al actualizar estado');
+      toast.error(err.response?.data?.error || 'Error al actualizar estado');
     } finally {
       setUpdatingStatus(false);
     }
@@ -80,10 +81,17 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
     setCurrentPage(1);
   };
   
-  // Abrir modal de detalles de orden
-  const openOrderDetails = (order) => {
-    setSelectedOrder(order);
-    setShowOrderDetails(true);
+  // Abrir modal de detalles de orden - Cargar orden completa
+  const openOrderDetails = async (order) => {
+    try {
+      // Cargar los detalles completos de la orden
+      const response = await orderService.getOrder(order._id);
+      setSelectedOrder(response.data.data);
+      setShowOrderDetails(true);
+    } catch (err) {
+      console.error('Error al cargar detalles de la orden:', err);
+      toast.error('Error al cargar detalles de la orden');
+    }
   };
   
   // Filtrar órdenes
@@ -130,6 +138,8 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
         return 'bg-blue-100 text-blue-800';
       case 'shipped':
         return 'bg-purple-100 text-purple-800';
+      case 'ready_for_pickup':
+        return 'bg-indigo-100 text-indigo-800';
       case 'delivered':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
@@ -145,6 +155,7 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
       'pending': 'Pendiente',
       'processing': 'Procesando',
       'shipped': 'Enviado',
+      'ready_for_pickup': 'Listo para Retiro',
       'delivered': 'Entregado',
       'cancelled': 'Cancelado'
     };
@@ -218,6 +229,7 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
               <option value="pending">Pendiente</option>
               <option value="processing">Procesando</option>
               <option value="shipped">Enviado</option>
+              <option value="ready_for_pickup">Listo para Retiro</option>
               <option value="delivered">Entregado</option>
               <option value="cancelled">Cancelado</option>
             </select>
@@ -289,7 +301,7 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
           </div>
 
           {/* Paginación */}
-          {totalPages > 1 && (
+          {Math.ceil(filteredOrders.length / ordersPerPage) > 1 && (
             <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
               <div className="flex-1 flex justify-between sm:hidden">
                 <button
@@ -304,10 +316,10 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                   Anterior
                 </button>
                 <button
-                  onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => paginate(Math.min(Math.ceil(filteredOrders.length / ordersPerPage), currentPage + 1))}
+                  disabled={currentPage === Math.ceil(filteredOrders.length / ordersPerPage)}
                   className={`${
-                    currentPage === totalPages 
+                    currentPage === Math.ceil(filteredOrders.length / ordersPerPage)
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                       : 'bg-white text-indigo-600 hover:bg-gray-50'
                   } ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md`}
@@ -343,7 +355,7 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                     </button>
                     
                     {/* Números de página */}
-                    {[...Array(totalPages)].map((_, index) => {
+                    {[...Array(Math.ceil(filteredOrders.length / ordersPerPage))].map((_, index) => {
                       const pageNumber = index + 1;
                       return (
                         <button
@@ -361,10 +373,10 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                     })}
                     
                     <button
-                      onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
+                      onClick={() => paginate(Math.min(Math.ceil(filteredOrders.length / ordersPerPage), currentPage + 1))}
+                      disabled={currentPage === Math.ceil(filteredOrders.length / ordersPerPage)}
                       className={`${
-                        currentPage === totalPages
+                        currentPage === Math.ceil(filteredOrders.length / ordersPerPage)
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-white text-indigo-600 hover:bg-gray-50'
                       } relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium`}
@@ -418,13 +430,30 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                       <p><span className="font-medium">Fecha de Orden:</span> {formatDate(selectedOrder.createdAt)}</p>
                     </div>
                     
-                    {/* Dirección de envío */}
+                    {/* Información de envío/retiro */}
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="text-md font-medium text-gray-900 mb-2">Dirección de Envío</h4>
-                      <p>{selectedOrder.shippingAddress.street}</p>
-                      <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
-                      <p>{selectedOrder.shippingAddress.postalCode}</p>
-                      <p>{selectedOrder.shippingAddress.country}</p>
+                      <h4 className="text-md font-medium text-gray-900 mb-2">
+                        {selectedOrder.shipmentMethod === 'delivery' ? 'Dirección de Envío' : 'Información de Retiro'}
+                      </h4>
+                      
+                      {selectedOrder.shipmentMethod === 'delivery' && selectedOrder.shippingAddress ? (
+                        <>
+                          <p>{selectedOrder.shippingAddress.street}</p>
+                          <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
+                          <p>{selectedOrder.shippingAddress.postalCode}</p>
+                          <p>{selectedOrder.shippingAddress.country}</p>
+                        </>
+                      ) : selectedOrder.shipmentMethod === 'pickup' && selectedOrder.pickupLocation ? (
+                        <>
+                          <p><span className="font-medium">Tienda:</span> {selectedOrder.pickupLocation.name}</p>
+                          <p><span className="font-medium">Dirección:</span> {selectedOrder.pickupLocation.address}</p>
+                          {selectedOrder.pickupLocation.notes && (
+                            <p><span className="font-medium">Notas:</span> {selectedOrder.pickupLocation.notes}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-500">Información no disponible</p>
+                      )}
                     </div>
                   </div>
                   
@@ -450,10 +479,11 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                                     <img 
                                       className="h-10 w-10 rounded-full object-cover" 
                                       src={item.product?.images && item.product.images.length > 0 
-                                        ? `/uploads/${item.product.images[0]}`
+                                        ? getProductImageUrl(item.product)
                                         : "https://via.placeholder.com/40"
                                       } 
                                       alt={item.product?.name || 'Producto'} 
+                                      onError={(e) => handleImageError(e)}
                                     />
                                   </div>
                                   <div className="ml-4">
@@ -496,6 +526,23 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(selectedOrder.status)}`}>
                           {getStatusTranslation(selectedOrder.status)}
                         </span>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Método de pago: {selectedOrder.paymentMethod}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {selectedOrder.isPaid ? (
+                            <span className="text-green-600">Pagado el {formatDate(selectedOrder.paidAt)}</span>
+                          ) : (
+                            <span className="text-red-600">No pagado</span>
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {selectedOrder.isDelivered ? (
+                            <span className="text-green-600">Entregado el {formatDate(selectedOrder.deliveredAt)}</span>
+                          ) : (
+                            <span className="text-orange-600">No entregado</span>
+                          )}
+                        </p>
                       </div>
                       
                       <div className="relative inline-block text-left">
@@ -529,6 +576,16 @@ toast.error(err.response?.data?.error || 'Error al actualizar estado');
                               >
                                 Enviado
                               </button>
+                              {selectedOrder.shipmentMethod === 'pickup' && (
+                                <button
+                                  onClick={() => updateOrderStatus(selectedOrder._id, 'ready_for_pickup')}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                  role="menuitem"
+                                  disabled={selectedOrder.status === 'ready_for_pickup' || updatingStatus}
+                                >
+                                  Listo para Retiro
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getProductImageUrl } from '../../utils/imageHelpers';
 import { Link } from 'react-router-dom';
 import { orderService } from '../../services/api';
 import {
@@ -463,9 +464,9 @@ const AdminOrdersPage = () => {
                                   <div className="h-10 w-10 flex-shrink-0">
                                     <img 
                                       className="h-10 w-10 rounded-full object-cover" 
-                                      src={item.product?.images && item.product.images.length > 0 
-                                        ? `/uploads/${item.product.images[0]}`
-                                        : "https://via.placeholder.com/40"
+                  src={item.product?.images && item.product.images.length > 0 
+                      ? getProductImageUrl(item.product)  // Usar la función helper
+                      : "https://via.placeholder.com/40"
                                       } 
                                       alt={item.product?.name || 'Producto'} 
                                     />
