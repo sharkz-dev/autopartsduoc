@@ -9,6 +9,8 @@ const emailService = require('../services/email.service');
 // @access  Private
 exports.createPaymentPreference = async (req, res, next) => {
   try {
+    console.log(`Iniciando creación de preferencia para orden: ${req.params.orderId}`);
+    
     const order = await Order.findById(req.params.orderId)
       .populate({
         path: 'user',
@@ -24,6 +26,7 @@ exports.createPaymentPreference = async (req, res, next) => {
       });
 
     if (!order) {
+      console.log(`Orden no encontrada: ${req.params.orderId}`);
       return res.status(404).json({
         success: false,
         error: 'Orden no encontrada'
@@ -32,6 +35,7 @@ exports.createPaymentPreference = async (req, res, next) => {
 
     // Verificar que el usuario es el propietario de la orden
     if (order.user._id.toString() !== req.user.id) {
+      console.log(`Usuario ${req.user.id} no autorizado para orden ${order._id}`);
       return res.status(401).json({
         success: false,
         error: 'No autorizado para realizar esta acción'
@@ -40,20 +44,32 @@ exports.createPaymentPreference = async (req, res, next) => {
 
     // Verificar que la orden no esté pagada
     if (order.isPaid) {
+      console.log(`Orden ${order._id} ya ha sido pagada`);
       return res.status(400).json({
         success: false,
         error: 'Esta orden ya ha sido pagada'
       });
     }
 
-    // Crear preferencia de pago
-    const preference = await mercadopagoService.createPaymentPreference(order);
-
-    res.status(200).json({
-      success: true,
-      data: preference
-    });
+    // Crear preferencia de pago con mejor manejo de errores
+    try {
+      console.log(`Enviando orden ${order._id} al servicio de MercadoPago`);
+      const preference = await mercadopagoService.createPaymentPreference(order);
+      
+      console.log(`Preferencia creada con éxito: ${preference.id}`);
+      return res.status(200).json({
+        success: true,
+        data: preference
+      });
+    } catch (mpError) {
+      console.error(`Error de MercadoPago para orden ${order._id}:`, mpError);
+      return res.status(500).json({
+        success: false,
+        error: `Error al crear preferencia de pago: ${mpError.message}`
+      });
+    }
   } catch (err) {
+    console.error('Error en createPaymentPreference:', err);
     next(err);
   }
 };

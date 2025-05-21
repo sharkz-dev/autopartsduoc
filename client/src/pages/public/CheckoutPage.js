@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
+import { orderService } from '../../services/api';
+import api from '../../services/api';
 import ShipmentMethodSelector from '../../components/checkout/ShipmentMethodSelector';
 import ShippingAddressForm from '../../components/checkout/ShippingAddressForm';
 import PaymentMethodSelector from '../../components/checkout/PaymentMethodSelector';
@@ -124,69 +126,75 @@ const CheckoutPage = () => {
   
   // Enviar pedido
   const handleSubmitOrder = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
+  
+  setLoading(true);
+  setError('');
+  
+  try {
+    // Preparar datos de la orden
+    const orderData = {
+      items: cartItems.map(item => ({
+        product: item._id,
+        quantity: item.quantity
+      })),
+      shipmentMethod,
+      paymentMethod,
+      itemsPrice: getSubtotal(),
+      taxPrice: getTaxAmount(),
+      shippingPrice: getShippingAmount(),
+      totalPrice: getFinalTotal()
+    };
     
-    if (!validateForm()) {
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    
-    try {
-      // Preparar datos de la orden
-      const orderData = {
-        items: cartItems.map(item => ({
-          product: item._id,
-          quantity: item.quantity
-        })),
-        shipmentMethod,
-        paymentMethod,
-        itemsPrice: getSubtotal(),
-        taxPrice: getTaxAmount(),
-        shippingPrice: getShippingAmount(),
-        totalPrice: getFinalTotal()
+    // Añadir datos según el método de envío
+    if (shipmentMethod === 'delivery') {
+      orderData.shippingAddress = shippingAddress;
+    } else {
+      orderData.pickupLocation = {
+        name: pickupLocation.name,
+        address: pickupLocation.address,
+        notes: pickupLocation.notes
       };
-      
-      // Añadir datos según el método de envío
-      if (shipmentMethod === 'delivery') {
-        orderData.shippingAddress = shippingAddress;
-      } else {
-        orderData.pickupLocation = {
-          name: pickupLocation.name,
-          address: pickupLocation.address,
-          notes: pickupLocation.notes
-        };
-      }
-      
-      // Crear la orden
-      const response = await axios.post('/api/orders', orderData);
-      const order = response.data.data;
-      
-      // Manejar según el método de pago
-      if (paymentMethod === 'mercadopago') {
-        // Crear preferencia de pago en Mercado Pago
-        const prefResponse = await axios.post(`/api/payment/create-preference/${order._id}`);
-        const preferenceData = prefResponse.data.data;
-        
-        // Guardar ID de orden en localStorage para recuperarla después del pago
-        localStorage.setItem('currentOrderId', order._id);
-        
-        // Redirigir a Mercado Pago
-        window.location.href = preferenceData.init_point;
-      } else {
-        // Para otros métodos de pago, redirigir directamente a la confirmación
-        clearCart();
-        navigate(`/order-confirmation/${order._id}`);
-      }
-    } catch (err) {
-      console.error('Error al crear la orden:', err);
-      setError(err.response?.data?.error || 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.');
-      toast.error('Error al procesar tu pedido');
-    } finally {
-      setLoading(false);
     }
-  };
+    
+    // Crear la orden usando el servicio importado
+    const response = await orderService.createOrder(orderData);
+    const order = response.data.data;
+    
+    // Manejar según el método de pago
+    if (paymentMethod === 'mercadopago') {
+      // Crear preferencia de pago en Mercado Pago
+      const prefResponse = await api.post(`/payment/create-preference/${order._id}`);
+      const preferenceData = prefResponse.data.data;
+      
+      // Guardar ID de orden en localStorage para recuperarla después del pago
+      localStorage.setItem('currentOrderId', order._id);
+      
+      // Redirigir a Mercado Pago
+      window.location.href = preferenceData.init_point;
+    } else {
+      // Para otros métodos de pago, redirigir directamente a la confirmación
+      clearCart();
+      navigate(`/order-confirmation/${order._id}`);
+    }
+} catch (err) {
+  console.error('Error al crear la orden:', err);
+  // Mostrar más detalles del error del servidor si están disponibles
+  let errorMessage = 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.';
+  if (err.response?.data?.error) {
+    errorMessage = err.response.data.error;
+    console.error('Detalle del error del servidor:', err.response.data);
+  }
+  setError(errorMessage);
+  toast.error(errorMessage);
+} finally {
+  setLoading(false);
+}
+};
   
   return (
     <div className="py-8">

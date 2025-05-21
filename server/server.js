@@ -56,6 +56,7 @@ try {
 // Esto es crítico para que Express sirva las imágenes correctamente
 app.use('/uploads', express.static(absoluteUploadsDir));
 console.log(`Serviendo archivos estáticos desde: ${absoluteUploadsDir} en la ruta /uploads`);
+app.use('/api/uploads', express.static(absoluteUploadsDir));
 
 // Rutas de API
 app.use('/api/auth', require('./routes/auth.routes'));
