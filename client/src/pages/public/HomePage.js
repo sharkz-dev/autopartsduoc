@@ -6,7 +6,6 @@ import { ChevronRightIcon, TruckIcon, IdentificationIcon, ShieldCheckIcon, Build
 
 const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [newProducts, setNewProducts] = useState([]);
   const [onSaleProducts, setOnSaleProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [stats, setStats] = useState({
@@ -26,16 +25,9 @@ const HomePage = () => {
         const featuredResponse = await productService.getProducts({ featured: true, limit: 8 });
         setFeaturedProducts(featuredResponse.data.data);
         
-        // Cargar productos nuevos
-        const newProductsResponse = await productService.getProducts({ 
-          sort: '-createdAt', 
-          limit: 8 
-        });
-        setNewProducts(newProductsResponse.data.data);
-        
-        // Cargar productos en oferta
+        // Cargar productos en oferta - Priorizar por mayor descuento
         const onSaleResponse = await productService.getProductsOnSale({ 
-          limit: 8,
+          limit: 12,  // Aumentamos el límite para mostrar más ofertas
           sort: '-discountPercentage' // Ordenar por mayor descuento primero
         });
         setOnSaleProducts(onSaleResponse.data.data);
@@ -132,24 +124,24 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Ofertas Especiales */}
+      {/* Ofertas Especiales - Sección Destacada */}
       {onSaleProducts.length > 0 && (
-        <section className="bg-red-50 rounded-xl p-8 shadow-sm">
+        <section className="bg-red-50 rounded-xl p-8 shadow-md border border-red-200">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-              <TagIcon className="h-6 w-6 mr-2 text-red-500" />
-              Ofertas Especiales
+            <h2 className="text-3xl font-bold text-red-600 flex items-center">
+              <TagIcon className="h-8 w-8 mr-2 text-red-600" />
+              ¡Ofertas Especiales!
             </h2>
             <Link
               to="/catalog?onSale=true"
-              className="flex items-center text-red-600 hover:text-red-800 transition"
+              className="flex items-center text-red-600 hover:text-red-800 transition font-medium"
             >
               Ver todas las ofertas
               <ChevronRightIcon className="h-5 w-5 ml-1" />
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {onSaleProducts.map((product) => (
+            {onSaleProducts.slice(0, 8).map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}
           </div>
@@ -260,24 +252,26 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Nuevos Productos */}
-      <section>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Nuevos Productos</h2>
-          <Link
-            to="/catalog?sort=-createdAt"
-            className="flex items-center text-blue-600 hover:text-blue-800 transition"
-          >
-            Ver todos
-            <ChevronRightIcon className="h-5 w-5 ml-1" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {newProducts.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
-        </div>
-      </section>
+      {/* Más Ofertas (Mostrar el resto de productos en oferta si hay más de 8) */}
+      {onSaleProducts.length > 8 && (
+        <section>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Más Ofertas Imperdibles</h2>
+            <Link
+              to="/catalog?onSale=true"
+              className="flex items-center text-blue-600 hover:text-blue-800 transition"
+            >
+              Ver todas
+              <ChevronRightIcon className="h-5 w-5 ml-1" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {onSaleProducts.slice(8, 12).map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

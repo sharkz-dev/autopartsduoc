@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 const path = require('path');
 const fileUpload = require('express-fileupload');
 const ErrorResponse = require('./utils/errorResponse');
+const fs = require('fs');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -29,15 +30,32 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Carpeta estática para uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Asegurarse de que la carpeta de uploads exista
+const uploadsDir = process.env.FILE_UPLOAD_PATH || './uploads';
+// Convertir a ruta absoluta si es relativa
+const absoluteUploadsDir = path.isAbsolute(uploadsDir) 
+  ? uploadsDir 
+  : path.join(__dirname, uploadsDir);
 
-// Definir ruta para uploads si no existe
-const uploadsDir = path.join(__dirname, 'uploads');
-const fs = require('fs');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Crear carpeta de uploads si no existe
+if (!fs.existsSync(absoluteUploadsDir)) {
+  console.log(`Creando directorio de uploads: ${absoluteUploadsDir}`);
+  fs.mkdirSync(absoluteUploadsDir, { recursive: true });
 }
+
+// Verificar permisos de escritura
+try {
+  fs.accessSync(absoluteUploadsDir, fs.constants.W_OK);
+  console.log(`Directorio de uploads con permisos correctos: ${absoluteUploadsDir}`);
+} catch (err) {
+  console.error(`ERROR: No se puede escribir en el directorio de uploads: ${absoluteUploadsDir}`);
+  console.error('Por favor, verifica los permisos de la carpeta o crea el directorio manualmente.');
+}
+
+// Configurar carpeta estática para uploads
+// Usar ruta absoluta para mayor seguridad
+app.use('/uploads', express.static(absoluteUploadsDir));
+console.log(`Serviendo archivos estáticos desde: ${absoluteUploadsDir} en la ruta /uploads`);
 
 // Rutas
 app.use('/api/auth', require('./routes/auth.routes'));
@@ -46,6 +64,9 @@ app.use('/api/products', require('./routes/product.routes'));
 app.use('/api/categories', require('./routes/category.routes'));
 app.use('/api/orders', require('./routes/order.routes'));
 app.use('/api/stats', require('./routes/stats.routes'));
+
+// Añadir rutas de depuración en desarrollo
+app.use('/api/debug', require('./routes/debug.routes'));
 
 // Ruta para el frontend en producción
 if (process.env.NODE_ENV === 'production') {

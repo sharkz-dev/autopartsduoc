@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
+import ImageDebugger from './components/debug/ImageDebugger';
 
 // Contextos
 import { AuthProvider } from './context/AuthContext';
@@ -24,6 +25,7 @@ import AboutPage from './pages/public/AboutPage';
 import ContactPage from './pages/public/ContactPage';
 import NotFoundPage from './pages/public/NotFoundPage';
 import UnauthorizedPage from './pages/public/UnauthorizedPage';
+
 
 // Páginas de autenticación
 import LoginPage from './pages/auth/LoginPage';
@@ -73,6 +75,7 @@ function App() {
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="register-distributor" element={<RegisterDistributorPage />} />
+            <Route path="/debug/images" element={<ImageDebugger />} />
             <Route path="*" element={<NotFoundPage />} />
             
             {/* Rutas protegidas para cualquier usuario autenticado */}

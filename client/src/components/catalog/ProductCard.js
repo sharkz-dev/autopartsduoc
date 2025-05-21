@@ -6,16 +6,30 @@ import { ShoppingCartIcon, StarIcon } from '@heroicons/react/24/solid';
 const ProductCard = ({ product }) => {
   const { addToCart, cartType } = useCart();
   
-  // Determinar el precio según el tipo de carrito (B2B o B2C)
-  const regularPrice = cartType === 'B2B' && product.wholesalePrice 
+  // Determinar el precio base según el tipo de cliente (B2B o B2C)
+  const basePrice = cartType === 'B2B' && product.wholesalePrice 
     ? product.wholesalePrice 
     : product.price;
 
-  // Verificar si el producto está en oferta y tiene un precio de oferta válido
-  const isOnSale = product.onSale && product.salePrice > 0;
+  // Verificar si el producto está en oferta y tiene datos válidos
+  const isOnSale = product.onSale && product.discountPercentage > 0;
   
-  // Calcular el precio final a mostrar
-  const displayPrice = isOnSale ? product.salePrice : regularPrice;
+  // Calcular el precio con descuento según el tipo de cliente
+  let salePrice = null;
+  if (isOnSale) {
+    // Para B2B: Calcular descuento basado en wholesalePrice
+    // Para B2C: Usar salePrice existente o calcular basado en price
+    if (cartType === 'B2B' && product.wholesalePrice) {
+      const discountAmount = product.wholesalePrice * (product.discountPercentage / 100);
+      salePrice = Math.round(product.wholesalePrice - discountAmount);
+    } else {
+      // Para B2C, usar el precio de oferta calculado o guardado
+      salePrice = product.salePrice || Math.round(product.price - (product.price * (product.discountPercentage / 100)));
+    }
+  }
+  
+  // Determinar precio final a mostrar
+  const displayPrice = isOnSale ? salePrice : basePrice;
 
   const defaultImage = 'https://via.placeholder.com/300x300?text=No+Image';
   
@@ -31,8 +45,8 @@ const ProductCard = ({ product }) => {
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 relative">
       {/* Badge de descuento */}
       {isOnSale && (
-        <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-br z-10">
-          -{product.discountPercentage}%
+        <div className="absolute top-0 right-0 bg-red-600 text-white font-bold px-3 py-1 rounded-bl-lg z-10 shadow-md">
+          -{Math.round(product.discountPercentage)}%
         </div>
       )}
       
@@ -41,7 +55,7 @@ const ProductCard = ({ product }) => {
           <img 
             src={product.images && product.images.length > 0 ? `/uploads/${product.images[0]}` : defaultImage} 
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain p-2"
           />
         </div>
         
@@ -67,12 +81,12 @@ const ProductCard = ({ product }) => {
           <div className="flex justify-between items-center mt-4">
             <div>
               {isOnSale ? (
-                <div>
-                  <p className="text-lg font-bold text-red-600">
+                <div className="flex flex-col">
+                  <p className="text-xl font-bold text-red-600">
                     {formatPrice(displayPrice)}
                   </p>
                   <p className="text-sm text-gray-500 line-through">
-                    {formatPrice(regularPrice)}
+                    {formatPrice(basePrice)}
                   </p>
                 </div>
               ) : (
@@ -81,7 +95,9 @@ const ProductCard = ({ product }) => {
                 </p>
               )}
               {cartType === 'B2B' && product.wholesalePrice && (
-                <p className="text-xs text-gray-500">Precio mayorista</p>
+                <p className="text-xs text-gray-500">
+                  {isOnSale ? 'Precio mayorista con descuento' : 'Precio mayorista'}
+                </p>
               )}
             </div>
             

@@ -25,6 +25,31 @@ export const CartProvider = ({ children }) => {
     }
   }, []);
 
+  // Calcular el precio correcto según tipo de carrito y si hay oferta
+  const calculateProductPrice = (product) => {
+    // Determinar precio base según tipo de cliente
+    const basePrice = cartType === 'B2B' && product.wholesalePrice 
+      ? product.wholesalePrice 
+      : product.price;
+    
+    // Verificar si hay oferta válida
+    const isOnSale = product.onSale && product.discountPercentage > 0;
+    
+    if (!isOnSale) {
+      return basePrice;
+    }
+    
+    // Calcular precio con descuento según tipo de cliente
+    if (cartType === 'B2B' && product.wholesalePrice) {
+      // Para B2B: Aplicar descuento al precio mayorista
+      const discountAmount = product.wholesalePrice * (product.discountPercentage / 100);
+      return Math.round(product.wholesalePrice - discountAmount);
+    } else {
+      // Para B2C: Usar precio de oferta guardado o calcularlo
+      return product.salePrice || Math.round(product.price - (product.price * (product.discountPercentage / 100)));
+    }
+  };
+
   // Actualizar total y contador cuando cambian los items
   useEffect(() => {
     // Calcular número total de productos
@@ -33,8 +58,8 @@ export const CartProvider = ({ children }) => {
     
     // Calcular precio total
     const total = cartItems.reduce((sum, item) => {
-      // Usar precio mayorista si el tipo de carrito es B2B y el producto tiene ese precio
-      const price = cartType === 'B2B' && item.wholesalePrice ? item.wholesalePrice : item.price;
+      // Usar el precio calculado (con oferta si aplica)
+      const price = calculateProductPrice(item);
       return sum + (price * item.quantity);
     }, 0);
     setCartTotal(total);
@@ -51,6 +76,9 @@ export const CartProvider = ({ children }) => {
   // Cambiar entre vista B2B y B2C
   const toggleCartType = (type) => {
     setCartType(type);
+    
+    // Cuando cambia el tipo, debemos recalcular los precios de los productos en el carrito
+    // Si hay productos en oferta, sus precios cambiarán según el tipo de carrito
   };
 
   // Añadir producto al carrito
@@ -125,9 +153,7 @@ export const CartProvider = ({ children }) => {
   // Calcular subtotal (sin impuestos ni envío)
   const getSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      const price = cartType === 'B2B' && item.wholesalePrice 
-        ? item.wholesalePrice 
-        : item.price;
+      const price = calculateProductPrice(item);
       return sum + (price * item.quantity);
     }, 0);
   };
@@ -163,7 +189,8 @@ export const CartProvider = ({ children }) => {
     getSubtotal,
     getTaxAmount,
     getShippingAmount,
-    getFinalTotal
+    getFinalTotal,
+    calculateProductPrice  // Exponemos esta función para usarla en otros componentes
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -25,7 +25,10 @@
     ],
     "featured": true,
     "avgRating": 4.5,
-    "createdAt": "2023-01-05T00:00:00.000Z"
+    "createdAt": "2023-01-05T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 20,
+    "salePrice": 7992
   },
   {
     "_id": "61099192e06a763f761cb8e2",
@@ -53,7 +56,10 @@
     ],
     "featured": true,
     "avgRating": 4.8,
-    "createdAt": "2023-01-06T00:00:00.000Z"
+    "createdAt": "2023-01-06T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 15,
+    "salePrice": 21242
   },
   {
     "_id": "61099192e06a763f761cb8e3",
@@ -81,7 +87,10 @@
     ],
     "featured": false,
     "avgRating": 4.2,
-    "createdAt": "2023-01-07T00:00:00.000Z"
+    "createdAt": "2023-01-07T00:00:00.000Z",
+    "onSale": false,
+    "discountPercentage": 0,
+    "salePrice": null
   },
   {
     "_id": "61099192e06a763f761cb8e4",
@@ -109,7 +118,10 @@
     ],
     "featured": true,
     "avgRating": 4.6,
-    "createdAt": "2023-01-08T00:00:00.000Z"
+    "createdAt": "2023-01-08T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 25,
+    "salePrice": 59993
   },
   {
     "_id": "61099192e06a763f761cb8e5",
@@ -137,7 +149,10 @@
     ],
     "featured": false,
     "avgRating": 4.7,
-    "createdAt": "2023-01-09T00:00:00.000Z"
+    "createdAt": "2023-01-09T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 30,
+    "salePrice": 90993
   },
   {
     "_id": "61099192e06a763f761cb8e6",
@@ -165,6 +180,9 @@
     ],
     "featured": true,
     "avgRating": 4.4,
-    "createdAt": "2023-01-10T00:00:00.000Z"
+    "createdAt": "2023-01-10T00:00:00.000Z",
+    "onSale": false,
+    "discountPercentage": 0,
+    "salePrice": null
   }
 ]

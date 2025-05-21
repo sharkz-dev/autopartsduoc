@@ -21,7 +21,7 @@ import ProductRating from '../../components/catalog/ProductRating';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
-  const { addToCart, cartType } = useCart();
+  const { addToCart, cartType, calculateProductPrice } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,21 +87,29 @@ const ProductDetailsPage = () => {
     );
   }
 
-  // Determinar el precio según el tipo de carrito (B2B o B2C)
-  const regularPrice = cartType === 'B2B' && product.wholesalePrice 
+  // Determinar el precio base según el tipo de carrito (B2B o B2C)
+  const basePrice = cartType === 'B2B' && product.wholesalePrice 
     ? product.wholesalePrice 
     : product.price;
 
-  // Verificar si el producto está en oferta y tiene un precio de oferta válido
-  const isOnSale = product.onSale && product.salePrice > 0;
+  // Verificar si el producto está en oferta
+  const isOnSale = product.onSale && product.discountPercentage > 0;
   
-  // Calcular el precio final a mostrar
-  const displayPrice = isOnSale ? product.salePrice : regularPrice;
-
-  // Calcular el porcentaje de descuento
-  const discountPercentage = product.onSale && product.discountPercentage
-    ? product.discountPercentage
-    : Math.round(((regularPrice - product.salePrice) / regularPrice) * 100);
+  // Calcular precio con descuento según tipo de cliente
+  let salePrice = null;
+  if (isOnSale) {
+    if (cartType === 'B2B' && product.wholesalePrice) {
+      // Para B2B: Aplicar el descuento al precio mayorista
+      const discountAmount = product.wholesalePrice * (product.discountPercentage / 100);
+      salePrice = Math.round(product.wholesalePrice - discountAmount);
+    } else {
+      // Para B2C: Usar el precio de oferta guardado o calcularlo
+      salePrice = product.salePrice || Math.round(product.price - (product.price * (product.discountPercentage / 100)));
+    }
+  }
+  
+  // Determinar precio final a mostrar
+  const displayPrice = isOnSale ? salePrice : basePrice;
 
   // Formatear precios con separador de miles
   const formatPrice = (price) => {
@@ -154,8 +162,8 @@ const ProductDetailsPage = () => {
               >
                 {/* Badge de descuento */}
                 {isOnSale && (
-                  <div className="absolute top-0 left-0 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-br z-10">
-                    -{discountPercentage}% OFERTA
+                  <div className="absolute top-0 right-0 bg-red-600 text-white text-sm font-bold px-3 py-1 rounded-bl-lg z-10 shadow-md">
+                    -{product.discountPercentage}% OFERTA
                   </div>
                 )}
                 
@@ -243,19 +251,25 @@ const ProductDetailsPage = () => {
                       {formatPrice(displayPrice)}
                     </span>
                     <span className="text-lg text-gray-500 line-through">
-                      {formatPrice(regularPrice)}
+                      {formatPrice(basePrice)}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <TagIcon className="h-5 w-5 text-red-600 mr-1" />
                     <span className="text-red-600 font-medium">
-                      ¡Ahorras {formatPrice(regularPrice - displayPrice)}!
+                      ¡Ahorras {formatPrice(basePrice - displayPrice)}!
                     </span>
                   </div>
-                  {product.saleEndDate && (
-                    <div className="mt-1 text-sm text-gray-500">
-                      Oferta válida hasta: {new Date(product.saleEndDate).toLocaleDateString()}
+                  {cartType === 'B2B' && product.wholesalePrice ? (
+                    <div className="mt-1 text-sm text-gray-600">
+                      Precio mayorista con descuento del {product.discountPercentage}%
                     </div>
+                  ) : (
+                    product.saleEndDate && (
+                      <div className="mt-1 text-sm text-gray-500">
+                        Oferta válida hasta: {new Date(product.saleEndDate).toLocaleDateString()}
+                      </div>
+                    )
                   )}
                 </div>
               ) : (
