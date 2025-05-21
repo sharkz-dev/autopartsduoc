@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { categoryService } from '../../services/api';
 import { 
   AdjustmentsHorizontalIcon, 
   XMarkIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
-import { TagIcon, StarIcon } from '@heroicons/react/24/solid';
+import { TagIcon } from '@heroicons/react/24/solid';
 
 const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMobileFilters }) => {
   const [categories, setCategories] = useState([]);
@@ -15,12 +15,9 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     price: true
   });
   
-  // Estados locales para los campos de precio - NO sincronizados con filters
+  // Estados locales para los campos de precio
   const [tempMinPrice, setTempMinPrice] = useState(filters.minPrice || '');
   const [tempMaxPrice, setTempMaxPrice] = useState(filters.maxPrice || '');
-  
-  // Ref para el timeout del debounce
-  const priceDebounceTimer = useRef(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -35,25 +32,11 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     fetchCategories();
   }, []);
 
-  // Solo sincronizar cuando los filtros externos cambien Y sean diferentes
-  // Esto evita loops infinitos
+  // Sincronizar los valores temporales cuando cambien los filtros externos
   useEffect(() => {
-    if (filters.minPrice !== undefined && filters.minPrice !== tempMinPrice) {
-      setTempMinPrice(filters.minPrice);
-    }
-    if (filters.maxPrice !== undefined && filters.maxPrice !== tempMaxPrice) {
-      setTempMaxPrice(filters.maxPrice);
-    }
+    setTempMinPrice(filters.minPrice || '');
+    setTempMaxPrice(filters.maxPrice || '');
   }, [filters.minPrice, filters.maxPrice]);
-
-  // Limpiar timer al desmontar
-  useEffect(() => {
-    return () => {
-      if (priceDebounceTimer.current) {
-        clearTimeout(priceDebounceTimer.current);
-      }
-    };
-  }, []);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -63,22 +46,37 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
   };
 
   const handleCategoryChange = (categoryId) => {
-    onFilterChange({ ...filters, category: categoryId === filters.category ? '' : categoryId });
+    const newFilters = { ...filters };
+
+    if (categoryId === filters.category) {
+      // Si ya está seleccionada, la deseleccionamos
+      delete newFilters.category;
+    } else {
+      // Si no está seleccionada, la seleccionamos
+      newFilters.category = categoryId;
+    }
+
+    onFilterChange(newFilters);
   };
 
   const handleFeatureChange = (feature) => {
     const newFilters = { ...filters };
-    
+
     if (feature === 'featured') {
-      newFilters.featured = filters.featured === 'true' ? '' : 'true';
+      newFilters.featured = !filters.featured;
+      if (!newFilters.featured) {
+        delete newFilters.featured;
+      }
     } else if (feature === 'onSale') {
-      newFilters.onSale = filters.onSale === 'true' ? '' : 'true';
+      newFilters.onSale = !filters.onSale;
+      if (!newFilters.onSale) {
+        delete newFilters.onSale;
+      }
     }
-    
+
     onFilterChange(newFilters);
   };
 
-  // IMPORTANTE: Solo actualizar el estado local, NO los filtros
   const handlePriceInputChange = (event) => {
     const { name, value } = event.target;
     
@@ -92,22 +90,23 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     }
   };
 
-  const handlePriceKeyPress = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      applyPriceFilter();
-    }
-  };
-
   const applyPriceFilter = () => {
-    // Cancelar cualquier timer pendiente
-    if (priceDebounceTimer.current) {
-      clearTimeout(priceDebounceTimer.current);
+    const newFilters = { ...filters };
+    
+    // Aplicar precio mínimo
+    if (tempMinPrice !== '') {
+      newFilters.minPrice = tempMinPrice;
+    } else {
+      delete newFilters.minPrice;
     }
     
-    const newFilters = { ...filters };
-    newFilters.minPrice = tempMinPrice;
-    newFilters.maxPrice = tempMaxPrice;
+    // Aplicar precio máximo
+    if (tempMaxPrice !== '') {
+      newFilters.maxPrice = tempMaxPrice;
+    } else {
+      delete newFilters.maxPrice;
+    }
+    
     onFilterChange(newFilters);
   };
 
@@ -116,232 +115,19 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     setTempMaxPrice('');
     
     const newFilters = { ...filters };
-    newFilters.minPrice = '';
-    newFilters.maxPrice = '';
+    delete newFilters.minPrice;
+    delete newFilters.maxPrice;
     onFilterChange(newFilters);
   };
 
   const clearFilters = () => {
     setTempMinPrice('');
     setTempMaxPrice('');
-    onFilterChange({
-      category: '',
-      brand: '',
-      minPrice: '',
-      maxPrice: '',
-      search: filters.search || '',
-      sort: filters.sort || '-createdAt',
-      featured: '',
-      onSale: ''
-    });
+    onFilterChange({});
   };
 
-  // Verificar si hay cambios pendientes en el precio
-  const hasPendingPriceChanges = tempMinPrice !== (filters.minPrice || '') || 
-                                 tempMaxPrice !== (filters.maxPrice || '');
-
-  const hasActiveFilters = filters.category || filters.brand || filters.minPrice || 
-                          filters.maxPrice || filters.featured === 'true' || filters.onSale === 'true';
+  const hasActiveFilters = Object.keys(filters).length > 0;
   const hasPriceFilter = filters.minPrice || filters.maxPrice;
-
-  const FilterContent = () => (
-    <>
-      {/* Categorías */}
-      <div className="border-b border-gray-200 pb-4 mb-4">
-        <div 
-          className="flex justify-between items-center mb-2 cursor-pointer"
-          onClick={() => toggleSection('categories')}
-        >
-          <h3 className="text-md font-medium text-gray-900">Categorías</h3>
-          <ChevronDownIcon 
-            className={`h-5 w-5 text-gray-500 transition-transform ${
-              expandedSections.categories ? 'transform rotate-180' : ''
-            }`}
-          />
-        </div>
-        
-        {expandedSections.categories && (
-          <div className="space-y-2 ml-2">
-            <div className="flex items-center">
-              <input
-                type="radio"
-                id="category-all"
-                name="category"
-                checked={!filters.category}
-                onChange={() => handleCategoryChange('')}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="category-all" className="ml-3 text-sm text-gray-600">
-                Todas las categorías
-              </label>
-            </div>
-            {categories.map(category => (
-              <div key={category._id} className="flex items-center">
-                <input
-                  type="radio"
-                  id={`category-${category._id}`}
-                  name="category"
-                  checked={filters.category === category._id}
-                  onChange={() => handleCategoryChange(category._id)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                />
-                <label
-                  htmlFor={`category-${category._id}`}
-                  className="ml-3 text-sm text-gray-600"
-                >
-                  {category.name}
-                </label>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      {/* Características */}
-      <div className="border-b border-gray-200 pb-4 mb-4">
-        <div 
-          className="flex justify-between items-center mb-2 cursor-pointer"
-          onClick={() => toggleSection('features')}
-        >
-          <h3 className="text-md font-medium text-gray-900">Características</h3>
-          <ChevronDownIcon 
-            className={`h-5 w-5 text-gray-500 transition-transform ${
-              expandedSections.features ? 'transform rotate-180' : ''
-            }`}
-          />
-        </div>
-        
-        {expandedSections.features && (
-          <div className="space-y-2 ml-2">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="featured"
-                checked={filters.featured === 'true'}
-                onChange={() => handleFeatureChange('featured')}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label
-                htmlFor="featured"
-                className="ml-3 flex items-center text-sm text-gray-600"
-              >
-                <StarIcon className="h-4 w-4 text-yellow-500 mr-1" />
-                Productos destacados
-              </label>
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="onSale"
-                checked={filters.onSale === 'true'}
-                onChange={() => handleFeatureChange('onSale')}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label
-                htmlFor="onSale"
-                className="ml-3 flex items-center text-sm text-gray-600"
-              >
-                <TagIcon className="h-4 w-4 text-red-500 mr-1" />
-                En oferta
-              </label>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Rango de precio */}
-      <div>
-        <div 
-          className="flex justify-between items-center mb-2 cursor-pointer"
-          onClick={() => toggleSection('price')}
-        >
-          <h3 className="text-md font-medium text-gray-900">Rango de precio</h3>
-          <ChevronDownIcon 
-            className={`h-5 w-5 text-gray-500 transition-transform ${
-              expandedSections.price ? 'transform rotate-180' : ''
-            }`}
-          />
-        </div>
-        
-        {expandedSections.price && (
-          <div className="space-y-3 ml-2">
-            <div>
-              <label htmlFor="min-price" className="text-sm text-gray-600">
-                Precio mínimo (CLP)
-              </label>
-              <input
-                type="number"
-                id="min-price"
-                name="minPrice"
-                value={tempMinPrice}
-                onChange={handlePriceInputChange}
-                onKeyPress={handlePriceKeyPress}
-                min="0"
-                placeholder="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="max-price" className="text-sm text-gray-600">
-                Precio máximo (CLP)
-              </label>
-              <input
-                type="number"
-                id="max-price"
-                name="maxPrice"
-                value={tempMaxPrice}
-                onChange={handlePriceInputChange}
-                onKeyPress={handlePriceKeyPress}
-                min="0"
-                placeholder="Sin límite"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            
-            <div className="flex space-x-2">
-              <button
-                type="button"
-                onClick={applyPriceFilter}
-                className={`flex-1 rounded-md px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                  hasPendingPriceChanges
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-                disabled={!hasPendingPriceChanges}
-              >
-                Aplicar {hasPendingPriceChanges && '•'}
-              </button>
-              {hasPriceFilter && (
-                <button
-                  type="button"
-                  onClick={clearPriceFilter}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Limpiar
-                </button>
-              )}
-            </div>
-            
-            {hasPriceFilter && (
-              <div className="mt-2 text-xs text-gray-500">
-                Filtro activo: {filters.minPrice && `Desde $${parseInt(filters.minPrice).toLocaleString('es-CL')}`} 
-                {filters.minPrice && filters.maxPrice && ' - '} 
-                {filters.maxPrice && `Hasta $${parseInt(filters.maxPrice).toLocaleString('es-CL')}`}
-              </div>
-            )}
-            
-            {hasPendingPriceChanges && (
-              <div className="mt-1 text-xs text-blue-600">
-                Presiona "Aplicar" o Enter para filtrar
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </>
-  );
 
   return (
     <>
@@ -357,7 +143,7 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
             Filtros
             {hasActiveFilters && (
               <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                {Object.values(filters).filter(v => v && v !== '-createdAt').length}
+                {Object.keys(filters).length}
               </span>
             )}
           </button>
@@ -392,7 +178,167 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
 
               {/* Contenido de filtros */}
               <div className="p-4">
-                <FilterContent />
+                {/* Categorías */}
+                <div className="border-b border-gray-200 pb-4 mb-4">
+                  <div 
+                    className="flex justify-between items-center mb-2 cursor-pointer"
+                    onClick={() => toggleSection('categories')}
+                  >
+                    <h3 className="text-md font-medium text-gray-900">Categorías</h3>
+                    <ChevronDownIcon 
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedSections.categories ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </div>
+                  
+                  {expandedSections.categories && (
+                    <div className="space-y-2 ml-2">
+                      {categories.map(category => (
+                        <div key={category._id} className="flex items-center">
+                          <input
+                            id={`mobile-category-${category._id}`}
+                            name="category"
+                            type="checkbox"
+                            checked={filters.category === category._id}
+                            onChange={() => handleCategoryChange(category._id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <label
+                            htmlFor={`mobile-category-${category._id}`}
+                            className="ml-3 text-sm text-gray-600"
+                          >
+                            {category.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Características */}
+                <div className="border-b border-gray-200 pb-4 mb-4">
+                  <div 
+                    className="flex justify-between items-center mb-2 cursor-pointer"
+                    onClick={() => toggleSection('features')}
+                  >
+                    <h3 className="text-md font-medium text-gray-900">Características</h3>
+                    <ChevronDownIcon 
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedSections.features ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </div>
+                  
+                  {expandedSections.features && (
+                    <div className="space-y-2 ml-2">
+                      <div className="flex items-center">
+                        <input
+                          id="mobile-featured"
+                          name="featured"
+                          type="checkbox"
+                          checked={!!filters.featured}
+                          onChange={() => handleFeatureChange('featured')}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor="mobile-featured"
+                          className="ml-3 text-sm text-gray-600"
+                        >
+                          Productos destacados
+                        </label>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <input
+                          id="mobile-onSale"
+                          name="onSale"
+                          type="checkbox"
+                          checked={!!filters.onSale}
+                          onChange={() => handleFeatureChange('onSale')}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor="mobile-onSale"
+                          className="ml-3 flex items-center text-sm text-gray-600"
+                        >
+                          <TagIcon className="h-4 w-4 text-red-500 mr-1" />
+                          En oferta
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Rango de precio */}
+                <div>
+                  <div 
+                    className="flex justify-between items-center mb-2 cursor-pointer"
+                    onClick={() => toggleSection('price')}
+                  >
+                    <h3 className="text-md font-medium text-gray-900">Rango de precio</h3>
+                    <ChevronDownIcon 
+                      className={`h-5 w-5 text-gray-500 transition-transform ${
+                        expandedSections.price ? 'transform rotate-180' : ''
+                      }`}
+                    />
+                  </div>
+                  
+                  {expandedSections.price && (
+                    <div className="space-y-3 ml-2">
+                      <div>
+                        <label htmlFor="mobile-min-price" className="text-sm text-gray-600">
+                          Precio mínimo (CLP)
+                        </label>
+                        <input
+                          type="number"
+                          id="mobile-min-price"
+                          name="minPrice"
+                          value={tempMinPrice}
+                          onChange={handlePriceInputChange}
+                          min="0"
+                          placeholder="0"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="mobile-max-price" className="text-sm text-gray-600">
+                          Precio máximo (CLP)
+                        </label>
+                        <input
+                          type="number"
+                          id="mobile-max-price"
+                          name="maxPrice"
+                          value={tempMaxPrice}
+                          onChange={handlePriceInputChange}
+                          min="0"
+                          placeholder="Sin límite"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        />
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={applyPriceFilter}
+                          className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                          Aplicar
+                        </button>
+                        {hasPriceFilter && (
+                          <button
+                            type="button"
+                            onClick={clearPriceFilter}
+                            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 
                 {/* Botón para limpiar filtros */}
                 {hasActiveFilters && (
@@ -428,7 +374,173 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
           </button>
         )}
         
-        <FilterContent />
+        {/* Categorías */}
+        <div className="border-b border-gray-200 pb-4 mb-4">
+          <div 
+            className="flex justify-between items-center mb-2 cursor-pointer"
+            onClick={() => toggleSection('categories')}
+          >
+            <h3 className="text-md font-medium text-gray-900">Categorías</h3>
+            <ChevronDownIcon 
+              className={`h-5 w-5 text-gray-500 transition-transform ${
+                expandedSections.categories ? 'transform rotate-180' : ''
+              }`}
+            />
+          </div>
+          
+          {expandedSections.categories && (
+            <div className="space-y-2 ml-2">
+              {categories.map(category => (
+                <div key={category._id} className="flex items-center">
+                  <input
+                    id={`category-${category._id}`}
+                    name="category"
+                    type="checkbox"
+                    checked={filters.category === category._id}
+                    onChange={() => handleCategoryChange(category._id)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label
+                    htmlFor={`category-${category._id}`}
+                    className="ml-3 text-sm text-gray-600"
+                  >
+                    {category.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        {/* Características */}
+        <div className="border-b border-gray-200 pb-4 mb-4">
+          <div 
+            className="flex justify-between items-center mb-2 cursor-pointer"
+            onClick={() => toggleSection('features')}
+          >
+            <h3 className="text-md font-medium text-gray-900">Características</h3>
+            <ChevronDownIcon 
+              className={`h-5 w-5 text-gray-500 transition-transform ${
+                expandedSections.features ? 'transform rotate-180' : ''
+              }`}
+            />
+          </div>
+          
+          {expandedSections.features && (
+            <div className="space-y-2 ml-2">
+              <div className="flex items-center">
+                <input
+                  id="featured"
+                  name="featured"
+                  type="checkbox"
+                  checked={!!filters.featured}
+                  onChange={() => handleFeatureChange('featured')}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="featured"
+                  className="ml-3 text-sm text-gray-600"
+                >
+                  Productos destacados
+                </label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  id="onSale"
+                  name="onSale"
+                  type="checkbox"
+                  checked={!!filters.onSale}
+                  onChange={() => handleFeatureChange('onSale')}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="onSale"
+                  className="ml-3 flex items-center text-sm text-gray-600"
+                >
+                  <TagIcon className="h-4 w-4 text-red-500 mr-1" />
+                  En oferta
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Rango de precio */}
+        <div>
+          <div 
+            className="flex justify-between items-center mb-2 cursor-pointer"
+            onClick={() => toggleSection('price')}
+          >
+            <h3 className="text-md font-medium text-gray-900">Rango de precio</h3>
+            <ChevronDownIcon 
+              className={`h-5 w-5 text-gray-500 transition-transform ${
+                expandedSections.price ? 'transform rotate-180' : ''
+              }`}
+            />
+          </div>
+          
+          {expandedSections.price && (
+            <div className="space-y-3 ml-2">
+              <div>
+                <label htmlFor="min-price" className="text-sm text-gray-600">
+                  Precio mínimo (CLP)
+                </label>
+                <input
+                  type="number"
+                  id="min-price"
+                  name="minPrice"
+                  value={tempMinPrice}
+                  onChange={handlePriceInputChange}
+                  min="0"
+                  placeholder="0"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="max-price" className="text-sm text-gray-600">
+                  Precio máximo (CLP)
+                </label>
+                <input
+                  type="number"
+                  id="max-price"
+                  name="maxPrice"
+                  value={tempMaxPrice}
+                  onChange={handlePriceInputChange}
+                  min="0"
+                  placeholder="Sin límite"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={applyPriceFilter}
+                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Aplicar
+                </button>
+                {hasPriceFilter && (
+                  <button
+                    type="button"
+                    onClick={clearPriceFilter}
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              
+              {hasPriceFilter && (
+                <div className="mt-2 text-xs text-gray-500">
+                  Filtro activo: {filters.minPrice && `Desde $${filters.minPrice}`} {filters.minPrice && filters.maxPrice && '-'} {filters.maxPrice && `Hasta $${filters.maxPrice}`}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
