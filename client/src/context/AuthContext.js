@@ -34,31 +34,31 @@ export const AuthProvider = ({ children }) => {
 
   // Función de inicio de sesión
   const login = async (credentials) => {
-  setLoading(true);
-  setError(null);
-  try {
-    const response = await authService.login(credentials);
-    const { token, user } = response.data;
-    
-    // Guardar token y datos de usuario en localStorage
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    
-    // Log para verificar que el token se está guardando
-    console.log('Token guardado:', token);
-    
-    setUser(user);
-    toast.success('Inicio de sesión exitoso');
-    return user;
-  } catch (error) {
-    const message = error.response?.data?.error || 'Error al iniciar sesión';
-    setError(message);
-    toast.error(message);
-    throw error;
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await authService.login(credentials);
+      const { token, user } = response.data;
+      
+      // Guardar token y datos de usuario en localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Log para verificar que el token se está guardando
+      console.log('Token guardado:', token);
+      
+      setUser(user);
+      toast.success('Inicio de sesión exitoso');
+      return user;
+    } catch (error) {
+      const message = error.response?.data?.error || 'Error al iniciar sesión';
+      setError(message);
+      toast.error(message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Función de registro
   const register = async (userData) => {
@@ -120,6 +120,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // NUEVA FUNCIÓN: Refrescar datos del usuario desde el servidor
+  const refreshUser = async () => {
+    try {
+      const response = await authService.getCurrentUser();
+      const updatedUser = response.data.data;
+      
+      // Actualizar usuario en localStorage y estado
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('Error al refrescar datos del usuario:', error);
+      const message = error.response?.data?.error || 'Error al obtener datos actualizados';
+      toast.error(message);
+      throw error;
+    }
+  };
+
+  // NUEVA FUNCIÓN: Actualizar solo el campo del logo (para actualización inmediata)
+  const updateUserLogo = (companyLogo) => {
+    const updatedUser = { ...user, companyLogo };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   // Función para actualizar contraseña
   const updatePassword = async (passwords) => {
     setLoading(true);
@@ -152,6 +178,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     updatePassword,
+    refreshUser,     // AÑADIR
+    updateUserLogo,  // AÑADIR
     hasRole,
     isAuthenticated: !!user
   };

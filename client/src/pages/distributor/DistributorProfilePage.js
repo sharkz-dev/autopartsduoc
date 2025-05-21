@@ -6,7 +6,7 @@ import { getImageUrl } from '../../utils/imageHelpers';
 import toast from 'react-hot-toast';
 
 const DistributorProfilePage = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser } = useAuth(); // Añadir refreshUser
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -102,48 +102,43 @@ const DistributorProfilePage = () => {
   
   // Actualizar perfil
   const handleUpdateProfile = async (e) => {
-  e.preventDefault();
-  
-  try {
-    setLoading(true);
+    e.preventDefault();
     
-    // Actualizar datos de perfil
-    await updateProfile(profileForm);
-    
-    // Subir logo si se seleccionó una nueva imagen
-    if (selectedImage && user) {
-      const formData = new FormData();
-      formData.append('file', selectedImage);
+    try {
+      setLoading(true);
       
-      await authService.uploadCompanyLogo(user._id, formData, {
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(progress);
-        }
-      });
+      // Actualizar datos de perfil
+      await updateProfile(profileForm);
+      
+      // Subir logo si se seleccionó una nueva imagen
+      if (selectedImage && user) {
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        
+        await authService.uploadCompanyLogo(user._id, formData, {
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(progress);
+          }
+        });
+        
+        // IMPORTANTE: Refrescar los datos del usuario después de subir la imagen
+        await refreshUser();
+      }
+      
+      // Limpiar el estado de la imagen seleccionada
+      setSelectedImage(null);
+      setUploadProgress(0);
+      
+      toast.success('Perfil actualizado correctamente');
+      
+    } catch (err) {
+      console.error('Error al actualizar perfil:', err);
+      toast.error(err.response?.data?.error || 'Error al actualizar perfil');
+    } finally {
+      setLoading(false);
     }
-    
-    // IMPORTANTE: Recargar los datos del usuario desde el servidor
-    const response = await authService.getMe();
-    
-    // Si tienes una función setUser en el contexto, úsala:
-    if (typeof setUser === 'function') {
-      setUser(response.data.data);
-    }
-    
-    // Limpiar el estado de la imagen seleccionada
-    setSelectedImage(null);
-    setUploadProgress(0);
-    
-    toast.success('Perfil actualizado correctamente');
-    
-  } catch (err) {
-    console.error('Error al actualizar perfil:', err);
-    toast.error(err.response?.data?.error || 'Error al actualizar perfil');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   
   // Actualizar contraseña
   const handleUpdatePassword = async (e) => {
@@ -212,17 +207,17 @@ const DistributorProfilePage = () => {
                       />
                     </div>
                   ) : user?.companyLogo ? (
-<div className="mr-4">
-  <img
-    src={getImageUrl(user.companyLogo)}
-    alt={user.companyName || user.name}
-    className="h-24 w-24 object-cover rounded-full"
-    onError={(e) => {
-      e.target.onerror = null;
-      e.target.src = '/placeholder-logo.png';
-    }}
-  />
-</div>
+                    <div className="mr-4">
+                      <img
+                        src={getImageUrl(user.companyLogo)}
+                        alt={user.companyName || user.name}
+                        className="h-24 w-24 object-cover rounded-full"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder-logo.png';
+                        }}
+                      />
+                    </div>
                   ) : (
                     <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center mr-4">
                       <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -244,7 +239,7 @@ const DistributorProfilePage = () => {
                   <div className="mt-2">
                     <div className="bg-gray-200 rounded-full h-2.5">
                       <div
-                        className="bg-indigo-600 h-2.5 rounded-full"
+                        className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
                         style={{ width: `${uploadProgress}%` }}
                       ></div>
                     </div>

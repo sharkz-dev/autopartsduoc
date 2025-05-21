@@ -14,6 +14,10 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     features: true,
     price: true
   });
+  
+  // Estados locales para los campos de precio
+  const [tempMinPrice, setTempMinPrice] = useState(filters.minPrice || '');
+  const [tempMaxPrice, setTempMaxPrice] = useState(filters.maxPrice || '');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -27,6 +31,12 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
 
     fetchCategories();
   }, []);
+
+  // Sincronizar los valores temporales cuando cambien los filtros externos
+  useEffect(() => {
+    setTempMinPrice(filters.minPrice || '');
+    setTempMaxPrice(filters.maxPrice || '');
+  }, [filters.minPrice, filters.maxPrice]);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -67,38 +77,57 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     onFilterChange(newFilters);
   };
 
-  const handlePriceRangeChange = (event) => {
+  const handlePriceInputChange = (event) => {
     const { name, value } = event.target;
     
-    // Solo aceptamos números positivos
+    // Solo aceptamos números positivos o vacío
     if (value === '' || (Number(value) >= 0 && !isNaN(Number(value)))) {
-      onFilterChange({
-        ...filters,
-        [name]: value
-      });
+      if (name === 'minPrice') {
+        setTempMinPrice(value);
+      } else if (name === 'maxPrice') {
+        setTempMaxPrice(value);
+      }
     }
   };
 
   const applyPriceFilter = () => {
-    // Aplicar filtro solo si hay valores válidos
     const newFilters = { ...filters };
     
-    if (filters.minPrice === '') {
+    // Aplicar precio mínimo
+    if (tempMinPrice !== '') {
+      newFilters.minPrice = tempMinPrice;
+    } else {
       delete newFilters.minPrice;
     }
     
-    if (filters.maxPrice === '') {
+    // Aplicar precio máximo
+    if (tempMaxPrice !== '') {
+      newFilters.maxPrice = tempMaxPrice;
+    } else {
       delete newFilters.maxPrice;
     }
     
     onFilterChange(newFilters);
   };
 
+  const clearPriceFilter = () => {
+    setTempMinPrice('');
+    setTempMaxPrice('');
+    
+    const newFilters = { ...filters };
+    delete newFilters.minPrice;
+    delete newFilters.maxPrice;
+    onFilterChange(newFilters);
+  };
+
   const clearFilters = () => {
+    setTempMinPrice('');
+    setTempMaxPrice('');
     onFilterChange({});
   };
 
   const hasActiveFilters = Object.keys(filters).length > 0;
+  const hasPriceFilter = filters.minPrice || filters.maxPrice;
 
   return (
     <>
@@ -155,7 +184,7 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                     className="flex justify-between items-center mb-2 cursor-pointer"
                     onClick={() => toggleSection('categories')}
                   >
-<h3 className="text-md font-medium text-gray-900">Categorías</h3>
+                    <h3 className="text-md font-medium text-gray-900">Categorías</h3>
                     <ChevronDownIcon 
                       className={`h-5 w-5 text-gray-500 transition-transform ${
                         expandedSections.categories ? 'transform rotate-180' : ''
@@ -265,8 +294,8 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                           type="number"
                           id="mobile-min-price"
                           name="minPrice"
-                          value={filters.minPrice || ''}
-                          onChange={handlePriceRangeChange}
+                          value={tempMinPrice}
+                          onChange={handlePriceInputChange}
                           min="0"
                           placeholder="0"
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -281,21 +310,32 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                           type="number"
                           id="mobile-max-price"
                           name="maxPrice"
-                          value={filters.maxPrice || ''}
-                          onChange={handlePriceRangeChange}
+                          value={tempMaxPrice}
+                          onChange={handlePriceInputChange}
                           min="0"
                           placeholder="Sin límite"
                           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         />
                       </div>
                       
-                      <button
-                        type="button"
-                        onClick={applyPriceFilter}
-                        className="mt-2 w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        Aplicar
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={applyPriceFilter}
+                          className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        >
+                          Aplicar
+                        </button>
+                        {hasPriceFilter && (
+                          <button
+                            type="button"
+                            onClick={clearPriceFilter}
+                            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -450,8 +490,8 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                   type="number"
                   id="min-price"
                   name="minPrice"
-                  value={filters.minPrice || ''}
-                  onChange={handlePriceRangeChange}
+                  value={tempMinPrice}
+                  onChange={handlePriceInputChange}
                   min="0"
                   placeholder="0"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -466,21 +506,38 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                   type="number"
                   id="max-price"
                   name="maxPrice"
-                  value={filters.maxPrice || ''}
-                  onChange={handlePriceRangeChange}
+                  value={tempMaxPrice}
+                  onChange={handlePriceInputChange}
                   min="0"
                   placeholder="Sin límite"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 />
               </div>
               
-              <button
-                type="button"
-                onClick={applyPriceFilter}
-                className="mt-2 w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Aplicar
-              </button>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={applyPriceFilter}
+                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Aplicar
+                </button>
+                {hasPriceFilter && (
+                  <button
+                    type="button"
+                    onClick={clearPriceFilter}
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+              
+              {hasPriceFilter && (
+                <div className="mt-2 text-xs text-gray-500">
+                  Filtro activo: {filters.minPrice && `Desde $${filters.minPrice}`} {filters.minPrice && filters.maxPrice && '-'} {filters.maxPrice && `Hasta $${filters.maxPrice}`}
+                </div>
+              )}
             </div>
           )}
         </div>
