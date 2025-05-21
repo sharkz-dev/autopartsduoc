@@ -32,7 +32,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Asegurarse de que la carpeta de uploads exista
 const uploadsDir = process.env.FILE_UPLOAD_PATH || './uploads';
-// Convertir a ruta absoluta si es relativa
+// Convertir a ruta absoluta
 const absoluteUploadsDir = path.isAbsolute(uploadsDir) 
   ? uploadsDir 
   : path.join(__dirname, uploadsDir);
@@ -52,12 +52,12 @@ try {
   console.error('Por favor, verifica los permisos de la carpeta o crea el directorio manualmente.');
 }
 
-// Configurar carpeta estática para uploads
-// Usar ruta absoluta para mayor seguridad
+// IMPORTANTE: Configurar carpeta estática ANTES de las rutas de API
+// Esto es crítico para que Express sirva las imágenes correctamente
 app.use('/uploads', express.static(absoluteUploadsDir));
 console.log(`Serviendo archivos estáticos desde: ${absoluteUploadsDir} en la ruta /uploads`);
 
-// Rutas
+// Rutas de API
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/users', require('./routes/user.routes'));
 app.use('/api/products', require('./routes/product.routes'));
@@ -65,8 +65,15 @@ app.use('/api/categories', require('./routes/category.routes'));
 app.use('/api/orders', require('./routes/order.routes'));
 app.use('/api/stats', require('./routes/stats.routes'));
 
+// Ruta de prueba
+app.use('/api/test', require('./routes/test.routes'));
+
 // Añadir rutas de depuración en desarrollo
-app.use('/api/debug', require('./routes/debug.routes'));
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Cargando rutas de debug...');
+  app.use('/api/debug', require('./routes/debug.routes'));
+  console.log('Rutas de debug cargadas correctamente');
+}
 
 // Ruta para el frontend en producción
 if (process.env.NODE_ENV === 'production') {

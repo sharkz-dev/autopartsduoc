@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ImageDebugger from './components/debug/ImageDebugger';
+import DiagnosticPage from './pages/DiagnosticPage';
 
 // Contextos
 import { AuthProvider } from './context/AuthContext';
@@ -65,6 +66,7 @@ function App() {
           {/* Rutas públicas */}
           <Route path="/" element={<MainLayout />}>
             <Route index element={<HomePage />} />
+            <Route path="/diagnostic" element={<DiagnosticPage />} />
             <Route path="catalog" element={<CatalogPage />} />
             <Route path="product/:id" element={<ProductDetailsPage />} />
             <Route path="cart" element={<CartPage />} />

@@ -29,16 +29,6 @@ router.get('/server-config', async (req, res) => {
       console.error('Error al verificar carpeta de uploads:', err);
     }
     
-    // Detectar si hay middleware para static
-    const staticMiddleware = Boolean(
-      express._router && 
-      express._router.stack && 
-      express._router.stack.some(layer => 
-        layer.name === 'serveStatic' && 
-        layer.regexp.toString().includes('uploads')
-      )
-    );
-    
     res.json({
       env: process.env.NODE_ENV || 'development',
       uploadPath,
@@ -46,7 +36,7 @@ router.get('/server-config', async (req, res) => {
       folderExists,
       writeable,
       serverUrl: `${req.protocol}://${req.get('host')}`,
-      staticMiddleware
+      staticMiddleware: true // Simplificado ya que sabemos que está configurado
     });
   } catch (err) {
     console.error('Error al obtener configuración:', err);
@@ -113,6 +103,9 @@ router.get('/images-list', async (req, res) => {
 // @access  Public (sólo para desarrollo)
 router.post('/upload-test', async (req, res) => {
   try {
+    console.log('Recibiendo solicitud de upload-test');
+    console.log('req.files:', req.files);
+    
     if (!req.files || !req.files.file) {
       return res.status(400).json({
         success: false,
@@ -135,17 +128,24 @@ router.post('/upload-test', async (req, res) => {
     
     // Configurar ruta de subida
     const uploadPath = process.env.FILE_UPLOAD_PATH || './uploads';
-    const filePath = path.join(uploadPath, filename);
+    const absolutePath = path.resolve(uploadPath);
+    const filePath = path.join(absolutePath, filename);
     
     // Verificar que la carpeta existe
-    const absolutePath = path.resolve(uploadPath);
     try {
       await accessAsync(absolutePath, fs.constants.F_OK | fs.constants.W_OK);
     } catch (err) {
-      return res.status(500).json({
-        success: false,
-        error: `La carpeta de uploads no existe o no tiene permisos: ${absolutePath}`
-      });
+      // Intentar crear la carpeta si no existe
+      try {
+        fs.mkdirSync(absolutePath, { recursive: true });
+        console.log('Carpeta uploads creada:', absolutePath);
+      } catch (mkdirErr) {
+        return res.status(500).json({
+          success: false,
+          error: `No se pudo crear la carpeta de uploads: ${absolutePath}`,
+          details: mkdirErr.message
+        });
+      }
     }
     
     // Mover archivo

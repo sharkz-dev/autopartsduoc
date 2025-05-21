@@ -31,7 +31,24 @@ const ProductCard = ({ product }) => {
   // Determinar precio final a mostrar
   const displayPrice = isOnSale ? salePrice : basePrice;
 
+  // Configurar imagen por defecto
   const defaultImage = 'https://via.placeholder.com/300x300?text=No+Image';
+  
+  // Obtener la URL de la imagen correctamente
+  const getImageUrl = () => {
+    if (product.images && product.images.length > 0 && product.images[0]) {
+      // Si la imagen ya incluye /uploads/, no la agregamos de nuevo
+      const imageName = product.images[0];
+      if (imageName.startsWith('/uploads/')) {
+        return imageName;
+      } else if (imageName.startsWith('uploads/')) {
+        return `/${imageName}`;
+      } else {
+        return `/uploads/${imageName}`;
+      }
+    }
+    return defaultImage;
+  };
   
   // Formatear el precio con separador de miles y 2 decimales
   const formatPrice = (price) => {
@@ -40,6 +57,8 @@ const ProductCard = ({ product }) => {
       currency: 'CLP'
     }).format(price);
   };
+
+  const imageUrl = getImageUrl();
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 relative">
@@ -51,11 +70,16 @@ const ProductCard = ({ product }) => {
       )}
       
       <Link to={`/product/${product._id}`} className="block">
-        <div className="h-48 overflow-hidden">
+        <div className="h-48 overflow-hidden bg-gray-100">
           <img 
-            src={product.images && product.images.length > 0 ? `/uploads/${product.images[0]}` : defaultImage} 
+            src={imageUrl}
             alt={product.name}
             className="w-full h-full object-contain p-2"
+            onError={(e) => {
+              console.error('Error loading image:', e.target.src);
+              e.target.onerror = null;
+              e.target.src = defaultImage;
+            }}
           />
         </div>
         
