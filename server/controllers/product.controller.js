@@ -8,19 +8,63 @@ const fs = require('fs');
 // @access  Public
 exports.getProducts = async (req, res, next) => {
   try {
-    // Construir query
-    const queryObj = { ...req.query };
+    // Construir objeto de consulta MongoDB
+    let mongoQuery = {};
 
-    // Campos a excluir
-    const excludedFields = ['page', 'sort', 'limit', 'fields'];
-    excludedFields.forEach(el => delete queryObj[el]);
+    // Manejar búsqueda por texto
+    if (req.query.search) {
+      mongoQuery.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } },
+        { brand: { $regex: req.query.search, $options: 'i' } }
+      ];
+    }
 
-    // Filtrado avanzado
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
+    // Manejar filtros de precio - CORREGIDO
+    if (req.query.minPrice || req.query.maxPrice) {
+      mongoQuery.price = {};
+      
+      if (req.query.minPrice) {
+        // Convertir a número y asegurar que sea válido
+        const minPrice = parseFloat(req.query.minPrice);
+        if (!isNaN(minPrice)) {
+          mongoQuery.price.$gte = minPrice;
+        }
+      }
+      
+      if (req.query.maxPrice) {
+        // Convertir a número y asegurar que sea válido
+        const maxPrice = parseFloat(req.query.maxPrice);
+        if (!isNaN(maxPrice)) {
+          mongoQuery.price.$lte = maxPrice;
+        }
+      }
+    }
 
-    // Crear query base
-    let query = Product.find(JSON.parse(queryStr))
+    // Manejar filtro de categoría
+    if (req.query.category) {
+      mongoQuery.category = req.query.category;
+    }
+
+    // Manejar filtro de marca
+    if (req.query.brand) {
+      mongoQuery.brand = req.query.brand;
+    }
+
+    // Manejar filtro de productos en oferta
+    if (req.query.onSale === 'true') {
+      mongoQuery.onSale = true;
+    }
+
+    // Manejar filtro de productos destacados
+    if (req.query.featured === 'true') {
+      mongoQuery.featured = true;
+    }
+
+    console.log('Query MongoDB:', JSON.stringify(mongoQuery, null, 2)); // Para debug
+
+    // Crear query base con los filtros construidos
+    let query = Product.find(mongoQuery)
       .populate('category', 'name')
       .populate('distributor', 'name companyName');
 
@@ -32,20 +76,14 @@ exports.getProducts = async (req, res, next) => {
       query = query.sort('-createdAt');
     }
 
-    // Seleccionar campos
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields);
-    } else {
-      query = query.select('-__v');
-    }
-
     // Paginación
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const total = await Product.countDocuments(JSON.parse(queryStr));
+    
+    // Contar documentos con los mismos filtros
+    const total = await Product.countDocuments(mongoQuery);
 
     query = query.skip(startIndex).limit(limit);
 
@@ -77,6 +115,7 @@ exports.getProducts = async (req, res, next) => {
       data: products
     });
   } catch (err) {
+    console.error('Error en getProducts:', err);
     next(err);
   }
 };
