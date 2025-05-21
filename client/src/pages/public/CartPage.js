@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import {
   ArrowRightIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
+import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
 
 const CartPage = () => {
   const { 
@@ -28,6 +29,11 @@ const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [couponSuccess, setCouponSuccess] = useState('');
+  
+  // Debug para ver el contenido del carrito
+  useEffect(() => {
+    console.log("Contenido del carrito:", cartItems);
+  }, [cartItems]);
   
   // Formatear moneda
   const formatCurrency = (value) => {
@@ -111,11 +117,9 @@ const CartPage = () => {
                       {/* Imagen del producto */}
                       <div className="flex-shrink-0 rounded-lg overflow-hidden w-full sm:w-24 h-24 bg-gray-100 mb-4 sm:mb-0">
                         <img
-                          src={item.images && item.images.length > 0 
-                            ? `/uploads/${item.images[0]}`
-                            : "https://via.placeholder.com/150"
-                          }
+                          src={getProductImageUrl(item)}
                           alt={item.name}
+                          onError={(e) => handleImageError(e)}
                           className="w-full h-full object-center object-cover"
                         />
                       </div>

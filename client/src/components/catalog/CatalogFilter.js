@@ -82,32 +82,26 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     
     // Solo aceptamos números positivos o vacío
     if (value === '' || (Number(value) >= 0 && !isNaN(Number(value)))) {
+      const newFilters = { ...filters };
+      
       if (name === 'minPrice') {
         setTempMinPrice(value);
+        if (value !== '') {
+          newFilters.minPrice = value;
+        } else {
+          delete newFilters.minPrice;
+        }
       } else if (name === 'maxPrice') {
         setTempMaxPrice(value);
+        if (value !== '') {
+          newFilters.maxPrice = value;
+        } else {
+          delete newFilters.maxPrice;
+        }
       }
+      
+      onFilterChange(newFilters);
     }
-  };
-
-  const applyPriceFilter = () => {
-    const newFilters = { ...filters };
-    
-    // Aplicar precio mínimo
-    if (tempMinPrice !== '') {
-      newFilters.minPrice = tempMinPrice;
-    } else {
-      delete newFilters.minPrice;
-    }
-    
-    // Aplicar precio máximo
-    if (tempMaxPrice !== '') {
-      newFilters.maxPrice = tempMaxPrice;
-    } else {
-      delete newFilters.maxPrice;
-    }
-    
-    onFilterChange(newFilters);
   };
 
   const clearPriceFilter = () => {
@@ -241,12 +235,15 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                           onChange={() => handleFeatureChange('featured')}
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <label
-                          htmlFor="mobile-featured"
-                          className="ml-3 text-sm text-gray-600"
-                        >
-                          Productos destacados
-                        </label>
+<label
+  htmlFor="mobile-featured"
+  className="ml-3 flex items-center text-sm text-gray-600"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500 mr-1">
+    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+  </svg>
+  Productos destacados
+</label>
                       </div>
                       
                       <div className="flex items-center">
@@ -318,24 +315,23 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                         />
                       </div>
                       
-                      <div className="flex space-x-2">
-                        <button
-                          type="button"
-                          onClick={applyPriceFilter}
-                          className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        >
-                          Aplicar
-                        </button>
+                      <div className="flex">
                         {hasPriceFilter && (
                           <button
                             type="button"
                             onClick={clearPriceFilter}
-                            className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                           >
                             Limpiar
                           </button>
                         )}
                       </div>
+                      
+                      {hasPriceFilter && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          Filtro activo: {filters.minPrice && `Desde $${filters.minPrice}`} {filters.minPrice && filters.maxPrice && '-'} {filters.maxPrice && `Hasta $${filters.maxPrice}`}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -437,12 +433,15 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                   onChange={() => handleFeatureChange('featured')}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <label
-                  htmlFor="featured"
-                  className="ml-3 text-sm text-gray-600"
-                >
-                  Productos destacados
-                </label>
+<label
+  htmlFor="featured"
+  className="ml-3 flex items-center text-sm text-gray-600"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500 mr-1">
+    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+  </svg>
+  Productos destacados
+</label>
               </div>
               
               <div className="flex items-center">
@@ -514,24 +513,17 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
                 />
               </div>
               
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  onClick={applyPriceFilter}
-                  className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  Aplicar
-                </button>
-                {hasPriceFilter && (
+              {hasPriceFilter && (
+                <div className="flex">
                   <button
                     type="button"
                     onClick={clearPriceFilter}
-                    className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     Limpiar
                   </button>
-                )}
-              </div>
+                </div>
+              )}
               
               {hasPriceFilter && (
                 <div className="mt-2 text-xs text-gray-500">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userService, productService } from '../../services/api';
+import { getImageUrl } from '../../utils/imageHelpers';
 import { 
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -203,13 +204,13 @@ const AdminDistributorsPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
-                          {distributor.companyLogo ? (
-                            <img 
-                              className="h-10 w-10 rounded-full object-cover" 
-                              src={`/uploads/${distributor.companyLogo}`}
-                              alt={distributor.companyName || distributor.name} 
-                            />
-                          ) : (
+{distributor.companyLogo ? (
+  <img 
+    className="h-10 w-10 rounded-full object-cover" 
+    src={getImageUrl(distributor.companyLogo)}
+    alt={distributor.companyName || distributor.name} 
+  />
+) : (
                             <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                               <svg className="h-6 w-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -385,13 +386,13 @@ const AdminDistributorsPage = () => {
                 
                 <div className="bg-gray-50 p-4 rounded-lg mb-6">
                   <div className="flex items-center mb-4">
-                    {selectedDistributor.companyLogo ? (
-                      <img 
-                        className="h-20 w-20 rounded-full object-cover mr-4" 
-                        src={`/uploads/${selectedDistributor.companyLogo}`}
-                        alt={selectedDistributor.companyName || selectedDistributor.name} 
-                      />
-                    ) : (
+{selectedDistributor.companyLogo ? (
+  <img 
+    className="h-20 w-20 rounded-full object-cover mr-4" 
+    src={getImageUrl(selectedDistributor.companyLogo)}
+    alt={selectedDistributor.companyName || selectedDistributor.name} 
+  />
+) : (
                       <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center mr-4">
                         <svg className="h-10 w-10 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -449,14 +450,14 @@ const AdminDistributorsPage = () => {
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className="h-10 w-10 flex-shrink-0">
-                                    <img 
-                                      className="h-10 w-10 rounded-full object-cover" 
-                                      src={product.images && product.images.length > 0 
-                                        ? `/uploads/${product.images[0]}`
-                                        : "https://via.placeholder.com/40"
-                                      } 
-                                      alt={product.name} 
-                                    />
+<img 
+  className="h-10 w-10 rounded-full object-cover" 
+  src={product.images && product.images.length > 0 
+    ? getImageUrl(product.images[0])
+    : "https://via.placeholder.com/40"
+  } 
+  alt={product.name} 
+/>
                                   </div>
                                   <div className="ml-4">
                                     <div className="text-sm font-medium text-gray-900">{product.name}</div>

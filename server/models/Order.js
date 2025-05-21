@@ -1,3 +1,4 @@
+// server/models/Order.js (actualizado)
 const mongoose = require('mongoose');
 
 const OrderSchema = new mongoose.Schema({
@@ -33,29 +34,54 @@ const OrderSchema = new mongoose.Schema({
   shippingAddress: {
     street: {
       type: String,
-      required: true
+      required: function() {
+        return this.shipmentMethod === 'delivery';
+      }
     },
     city: {
       type: String,
-      required: true
+      required: function() {
+        return this.shipmentMethod === 'delivery';
+      }
     },
     state: {
       type: String,
-      required: true
+      required: function() {
+        return this.shipmentMethod === 'delivery';
+      }
     },
     postalCode: {
       type: String,
-      required: true
+      required: function() {
+        return this.shipmentMethod === 'delivery';
+      }
     },
     country: {
       type: String,
-      required: true
+      required: function() {
+        return this.shipmentMethod === 'delivery';
+      }
     }
+  },
+  // Método de envío: 'delivery' o 'pickup'
+  shipmentMethod: {
+    type: String,
+    required: true,
+    enum: ['delivery', 'pickup'],
+    default: 'delivery'
+  },
+  // Para retiro en tienda
+  pickupLocation: {
+    name: String,
+    address: String,
+    scheduledDate: Date,
+    notes: String
   },
   paymentMethod: {
     type: String,
     required: true,
-    enum: ['creditCard', 'bankTransfer', 'paypal', 'cash']
+    enum: ['mercadopago', 'bankTransfer', 'cash'],
+    default: 'mercadopago'
   },
   paymentResult: {
     id: String,
@@ -102,7 +128,7 @@ const OrderSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'shipped', 'ready_for_pickup', 'delivered', 'cancelled'],
     default: 'pending'
   },
   orderType: {

@@ -1,5 +1,8 @@
+// server/controllers/order.controller.js (actualizado)
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const User = require('../models/User');
+const emailService = require('../services/email.service');
 
 // @desc    Crear nueva orden
 // @route   POST /api/orders
@@ -8,7 +11,9 @@ exports.createOrder = async (req, res, next) => {
   try {
     const {
       items,
+      shipmentMethod,
       shippingAddress,
+      pickupLocation,
       paymentMethod,
       itemsPrice,
       taxPrice,
@@ -22,6 +27,30 @@ exports.createOrder = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         error: 'No hay productos en la orden'
+      });
+    }
+
+    // Verificar método de envío
+    if (!shipmentMethod || !['delivery', 'pickup'].includes(shipmentMethod)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Método de envío inválido'
+      });
+    }
+
+    // Verificar dirección de envío para delivery
+    if (shipmentMethod === 'delivery' && (!shippingAddress || !shippingAddress.street || !shippingAddress.city)) {
+      return res.status(400).json({
+        success: false,
+        error: 'La dirección de envío es requerida para envíos a domicilio'
+      });
+    }
+
+    // Verificar ubicación de retiro para pickup
+    if (shipmentMethod === 'pickup' && (!pickupLocation || !pickupLocation.name || !pickupLocation.address)) {
+      return res.status(400).json({
+        success: false,
+        error: 'La ubicación de retiro es requerida para retiro en tienda'
       });
     }
 
@@ -67,18 +96,71 @@ exports.createOrder = async (req, res, next) => {
     const order = await Order.create({
       user: req.user.id,
       items: orderItems,
-      shippingAddress,
+      shipmentMethod,
+      shippingAddress: shipmentMethod === 'delivery' ? shippingAddress : undefined,
+      pickupLocation: shipmentMethod === 'pickup' ? pickupLocation : undefined,
       paymentMethod,
       itemsPrice,
       taxPrice,
       shippingPrice,
       totalPrice,
-      orderType: orderType || 'B2C'
+      orderType: orderType || 'B2C',
+      status: paymentMethod === 'cash' && shipmentMethod === 'pickup' ? 'pending' : 'pending'
     });
+
+    // Cargar la orden completa con datos relacionados
+    const populatedOrder = await Order.findById(order._id)
+      .populate({
+        path: 'user',
+        select: 'name email'
+      })
+      .populate({
+        path: 'items.product',
+        select: 'name images'
+      })
+      .populate({
+        path: 'items.distributor',
+        select: 'name companyName email'
+      });
+
+    // Si el método de pago es contra reembolso o transferencia, enviar notificaciones
+    if (paymentMethod === 'cash' || paymentMethod === 'bankTransfer') {
+      try {
+        // Enviar email de confirmación al usuario
+        const user = await User.findById(req.user.id);
+        await emailService.sendOrderConfirmationEmail(populatedOrder, user);
+
+        // Agrupar items por distribuidor para enviar notificaciones
+        const itemsByDistributor = {};
+        for (const item of populatedOrder.items) {
+          const distributorId = item.distributor._id.toString();
+          if (!itemsByDistributor[distributorId]) {
+            itemsByDistributor[distributorId] = {
+              distributor: item.distributor,
+              items: []
+            };
+          }
+          itemsByDistributor[distributorId].items.push(item);
+        }
+
+        // Enviar notificación a cada distribuidor
+        for (const distributorId in itemsByDistributor) {
+          const { distributor, items } = itemsByDistributor[distributorId];
+          await emailService.sendDistributorOrderNotification(
+            populatedOrder,
+            distributor,
+            items
+          );
+        }
+      } catch (emailError) {
+        console.error('Error al enviar notificaciones por email:', emailError);
+        // No interrumpir la creación de la orden por errores de email
+      }
+    }
 
     res.status(201).json({
       success: true,
-      data: order
+      data: populatedOrder
     });
   } catch (err) {
     next(err);
@@ -263,8 +345,8 @@ exports.updateOrderStatus = async (req, res, next) => {
         order.paidAt = Date.now();
       }
       
-      // Actualizar isDelivered y deliveredAt si se marca como entregado
-      if (req.body.isDelivered) {
+      // Actualizar isDelivered y deliveredAt según el estado
+      if (['delivered', 'ready_for_pickup'].includes(req.body.status)) {
         order.isDelivered = true;
         order.deliveredAt = Date.now();
       }
@@ -282,15 +364,21 @@ exports.updateOrderStatus = async (req, res, next) => {
       }
 
       // Los distribuidores solo pueden actualizar entre ciertos estados
-      const allowedStatusChanges = ['processing', 'shipped'];
+      const allowedStatusChanges = ['processing', 'shipped', 'ready_for_pickup'];
       if (!allowedStatusChanges.includes(req.body.status)) {
         return res.status(400).json({
           success: false,
-          error: 'Los distribuidores solo pueden cambiar el estado a: processing, shipped'
+          error: 'Los distribuidores solo pueden cambiar el estado a: processing, shipped, ready_for_pickup'
         });
       }
 
       order.status = req.body.status;
+      
+      // Si el estado es "listo para retiro" y el método de envío es "pickup"
+      if (req.body.status === 'ready_for_pickup' && order.shipmentMethod === 'pickup') {
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
+      }
     } else {
       return res.status(401).json({
         success: false,
@@ -299,6 +387,17 @@ exports.updateOrderStatus = async (req, res, next) => {
     }
 
     await order.save();
+
+    // Enviar notificación al cliente sobre cambio de estado
+    try {
+      const user = await User.findById(order.user);
+      if (user) {
+        await emailService.sendOrderStatusUpdateEmail(order, user);
+      }
+    } catch (emailError) {
+      console.error('Error al enviar email de actualización de estado:', emailError);
+      // No interrumpir la actualización por errores de email
+    }
 
     res.status(200).json({
       success: true,
@@ -364,3 +463,5 @@ exports.cancelOrder = async (req, res, next) => {
     next(err);
   }
 };
+
+module.exports = exports;

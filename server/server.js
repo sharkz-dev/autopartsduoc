@@ -65,6 +65,9 @@ app.use('/api/categories', require('./routes/category.routes'));
 app.use('/api/orders', require('./routes/order.routes'));
 app.use('/api/stats', require('./routes/stats.routes'));
 
+// Rutas de pago
+app.use('/api/payment', require('./routes/payment.routes'));
+
 // Ruta de prueba
 app.use('/api/test', require('./routes/test.routes'));
 
@@ -83,6 +86,13 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve(__dirname, '../client/build', 'index.html'));
   });
 }
+
+// Middleware para redirigir solicitudes incorrectas
+app.use('/products', (req, res) => {
+  const redirectUrl = `/api/products${req.url}`;
+  console.log(`Redirigiendo solicitud de ${req.originalUrl} a ${redirectUrl}`);
+  res.status(200).json({ redirected: true, message: 'Usando ruta incorrecta. Por favor actualiza la URL a /api/products' });
+});
 
 // Middleware para manejar rutas no encontradas
 app.use((req, res, next) => {

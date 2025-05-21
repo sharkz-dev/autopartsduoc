@@ -2,7 +2,8 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ImageDebugger from './components/debug/ImageDebugger';
 import DiagnosticPage from './pages/DiagnosticPage';
-import SimpleImageTest from './components/debug/SimpleImageTest';
+import OrderConfirmationPage from './pages/public/OrderConfirmationPage';
+import PaymentReturnPage from './pages/public/PaymentReturnPage';
 
 // Contextos
 import { AuthProvider } from './context/AuthContext';
@@ -79,6 +80,11 @@ function App() {
             <Route path="register" element={<RegisterPage />} />
             <Route path="register-distributor" element={<RegisterDistributorPage />} />
             <Route path="/debug/images" element={<ImageDebugger />} />
+            <Route path="/checkout" element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
+<Route path="/order-confirmation/:orderId" element={<PrivateRoute><OrderConfirmationPage /></PrivateRoute>} />
+<Route path="/payment/success" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
+<Route path="/payment/failure" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
+<Route path="/payment/pending" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
             <Route path="*" element={<NotFoundPage />} />
             
             {/* Rutas protegidas para cualquier usuario autenticado */}
