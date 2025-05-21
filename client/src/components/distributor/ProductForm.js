@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getImageUrl } from '../../utils/imageHelpers';
 import { useDropzone } from 'react-dropzone';
 import { categoryService, productService } from '../../services/api';
 import { 
@@ -98,16 +99,16 @@ const ProductForm = ({ product, onSubmit, isEditing = false }) => {
       });
       
       // Mostrar imágenes existentes
-      if (images && images.length > 0) {
-        setUploadedImages(
-          images.map((image, index) => ({
-            id: `existing-${index}`,
-            name: image,
-            preview: `/uploads/${image}`,
-            existing: true
-          }))
-        );
-      }
+if (images && images.length > 0) {
+  setUploadedImages(
+    images.map((image, index) => ({
+      id: `existing-${index}`,
+      name: image,
+      preview: getImageUrl(image),
+      existing: true
+    }))
+  );
+}
     }
   }, [isEditing, product]);
   

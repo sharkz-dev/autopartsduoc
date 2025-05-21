@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getImageUrl } from '../../utils/imageHelpers';
 import {
   HomeIcon,
   CubeIcon,
@@ -58,7 +59,7 @@ const DistributorSidebar = () => {
               <div className="flex items-center space-x-3">
                 {user.companyLogo ? (
                   <img 
-                    src={`/uploads/${user.companyLogo}`}
+                    src={getImageUrl(user.companyLogo)}
                     alt={user.companyName}
                     className="h-10 w-10 rounded-full object-cover bg-white p-0.5"
                   />

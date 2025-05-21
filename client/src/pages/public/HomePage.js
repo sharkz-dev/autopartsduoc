@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getImageUrl } from '../../utils/imageHelpers';
 import { productService, statsService, categoryService } from '../../services/api';
 import ProductCard from '../../components/catalog/ProductCard';
 import { ChevronRightIcon, TruckIcon, IdentificationIcon, ShieldCheckIcon, BuildingStorefrontIcon, TagIcon } from '@heroicons/react/24/outline';
@@ -167,13 +168,17 @@ const HomePage = () => {
               to={`/catalog?category=${category._id}`}
               className="group bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition"
             >
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <img
-                  src={category.image ? `/uploads/${category.image}` : '/images/category-placeholder.png'}
-                  alt={category.name}
-                  className="w-10 h-10 object-contain"
-                />
-              </div>
+<div className="w-16 h-16 mx-auto mb-3 overflow-hidden rounded-full bg-blue-100">
+  <img
+    src={category.image ? getImageUrl(category.image) : '/placeholder-category.png'}
+    alt={category.name}
+    className="w-full h-full object-cover"
+    onError={(e) => {
+      e.target.onerror = null;
+      e.target.src = '/placeholder-category.png';
+    }}
+  />
+</div>
               <h3 className="font-medium text-gray-800 group-hover:text-blue-600 transition">
                 {category.name}
               </h3>

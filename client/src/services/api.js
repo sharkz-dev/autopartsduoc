@@ -47,6 +47,13 @@ api.interceptors.response.use(
 
 // Servicios de autenticación
 export const authService = {
+    uploadCompanyLogo: (userId, formData) => {
+    return api.put(`/users/${userId}/logo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   getCurrentUser: () => api.get('/auth/me'),
@@ -75,11 +82,32 @@ export const productService = {
 
 // Servicios de categorías
 export const categoryService = {
+  // Obtener todas las categorías
   getCategories: () => api.get('/categories'),
+  
+  // Obtener una categoría por ID
   getCategory: (id) => api.get(`/categories/${id}`),
-  createCategory: (categoryData) => api.post('/categories', categoryData),
-  updateCategory: (id, categoryData) => api.put(`/categories/${id}`, categoryData),
-  deleteCategory: (id) => api.delete(`/categories/${id}`)
+  
+  // Crear nueva categoría
+  createCategory: (data) => api.post('/categories', data),
+  
+  // Actualizar categoría
+  updateCategory: (id, data) => api.put(`/categories/${id}`, data),
+  
+  // Eliminar categoría
+  deleteCategory: (id) => api.delete(`/categories/${id}`),
+  
+  // Subir imagen de categoría - ESTA ES LA FUNCIÓN QUE NECESITAS
+  uploadCategoryImage: (categoryId, formData) => {
+    return api.put(`/categories/${categoryId}/image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // Obtener subcategorías
+  getSubcategories: (parentId) => api.get(`/categories/${parentId}/subcategories`),
 };
 
 // Servicios de órdenes

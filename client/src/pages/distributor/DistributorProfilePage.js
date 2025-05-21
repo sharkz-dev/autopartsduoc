@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/api';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { getImageUrl } from '../../utils/imageHelpers';
 import toast from 'react-hot-toast';
 
 const DistributorProfilePage = () => {
@@ -101,35 +102,48 @@ const DistributorProfilePage = () => {
   
   // Actualizar perfil
   const handleUpdateProfile = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  try {
+    setLoading(true);
     
-    try {
-      setLoading(true);
+    // Actualizar datos de perfil
+    await updateProfile(profileForm);
+    
+    // Subir logo si se seleccionó una nueva imagen
+    if (selectedImage && user) {
+      const formData = new FormData();
+      formData.append('file', selectedImage);
       
-      // Actualizar datos de perfil
-      await updateProfile(profileForm);
-      
-      // Subir logo si se seleccionó una nueva imagen
-      if (selectedImage && user) {
-        const formData = new FormData();
-        formData.append('file', selectedImage);
-        
-        await authService.uploadCompanyLogo(user._id, formData, {
-          onUploadProgress: (progressEvent) => {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(progress);
-          }
-        });
-      }
-      
-      toast.success('Perfil actualizado correctamente');
-      setLoading(false);
-    } catch (err) {
-      console.error('Error al actualizar perfil:', err);
-      toast.error(err.response?.data?.error || 'Error al actualizar perfil');
-      setLoading(false);
+      await authService.uploadCompanyLogo(user._id, formData, {
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(progress);
+        }
+      });
     }
-  };
+    
+    // IMPORTANTE: Recargar los datos del usuario desde el servidor
+    const response = await authService.getMe();
+    
+    // Si tienes una función setUser en el contexto, úsala:
+    if (typeof setUser === 'function') {
+      setUser(response.data.data);
+    }
+    
+    // Limpiar el estado de la imagen seleccionada
+    setSelectedImage(null);
+    setUploadProgress(0);
+    
+    toast.success('Perfil actualizado correctamente');
+    
+  } catch (err) {
+    console.error('Error al actualizar perfil:', err);
+    toast.error(err.response?.data?.error || 'Error al actualizar perfil');
+  } finally {
+    setLoading(false);
+  }
+};
   
   // Actualizar contraseña
   const handleUpdatePassword = async (e) => {
@@ -198,13 +212,17 @@ const DistributorProfilePage = () => {
                       />
                     </div>
                   ) : user?.companyLogo ? (
-                    <div className="mr-4">
-                      <img 
-                        src={`/uploads/${user.companyLogo}`}
-                        alt={user.companyName || user.name}
-                        className="h-24 w-24 object-cover rounded-full"
-                      />
-                    </div>
+<div className="mr-4">
+  <img
+    src={getImageUrl(user.companyLogo)}
+    alt={user.companyName || user.name}
+    className="h-24 w-24 object-cover rounded-full"
+    onError={(e) => {
+      e.target.onerror = null;
+      e.target.src = '/placeholder-logo.png';
+    }}
+  />
+</div>
                   ) : (
                     <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center mr-4">
                       <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

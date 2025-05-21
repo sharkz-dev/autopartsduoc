@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getProductImageUrl } from '../../utils/imageHelpers';
 import { productService, categoryService } from '../../services/api';
 import { 
   PencilIcon, 
@@ -346,10 +347,7 @@ className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-5
                         <div className="h-10 w-10 flex-shrink-0">
                           <img 
                             className="h-10 w-10 rounded-full object-cover" 
-                            src={product.images && product.images.length > 0 
-                              ? `/uploads/${product.images[0]}`
-                              : "https://via.placeholder.com/40"
-                            } 
+src={getProductImageUrl(product)}
                             alt={product.name} 
                           />
                         </div>

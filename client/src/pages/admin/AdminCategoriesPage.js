@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { categoryService } from '../../services/api';
+import { getImageUrl } from '../../utils/imageHelpers';
 import { 
   PlusIcon, 
   PencilIcon, 
@@ -102,54 +103,75 @@ const AdminCategoriesPage = () => {
   
   // Enviar formulario
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  try {
+    let savedCategory;
+    // Definir isEditing basándose en si hay una categoría en edición
+    const isEditing = editingCategory !== null;
     
-    try {
-      // Crear o actualizar categoría
-      if (editingCategory) {
-        await categoryService.updateCategory(editingCategory._id, formData);
-        
-        // Subir imagen si se seleccionó una nueva
-        if (selectedImage) {
-          const formDataImg = new FormData();
-          formDataImg.append('file', selectedImage);
-          
-          await categoryService.uploadCategoryImage(editingCategory._id, formDataImg, {
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              setUploadProgress(progress);
-            }
-          });
-        }
-        
-        toast.success('Categoría actualizada correctamente');
-      } else {
-        const response = await categoryService.createCategory(formData);
-        
-        // Subir imagen si se seleccionó una
-        if (selectedImage) {
-          const formDataImg = new FormData();
-          formDataImg.append('file', selectedImage);
-          
-          await categoryService.uploadCategoryImage(response.data.data._id, formDataImg, {
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              setUploadProgress(progress);
-            }
-          });
-        }
-        
-        toast.success('Categoría creada correctamente');
-      }
+    if (isEditing) {
+      // Actualizar categoría existente (sin la imagen)
+      const categoryData = {
+        name: formData.name,
+        description: formData.description,
+        parent: formData.parent || null
+      };
       
-      // Cerrar modal y recargar categorías
-      setIsModalOpen(false);
-      fetchCategories();
-    } catch (err) {
-      console.error('Error al guardar categoría:', err);
-      toast.error(err.response?.data?.error || 'Error al guardar categoría');
+      const response = await categoryService.updateCategory(editingCategory._id, categoryData);
+      savedCategory = response.data.data;
+      
+      toast.success('Categoría actualizada correctamente');
+    } else {
+      // Crear nueva categoría
+      const categoryData = {
+        name: formData.name,
+        description: formData.description,
+        parent: formData.parent || null
+      };
+      
+      const response = await categoryService.createCategory(categoryData);
+      savedCategory = response.data.data;
+      
+      toast.success('Categoría creada correctamente');
     }
-  };
+    
+    // Si hay una imagen seleccionada, subirla por separado
+    if (selectedImage) {
+      const imageFormData = new FormData();
+      imageFormData.append('file', selectedImage);
+      
+      try {
+        await categoryService.uploadCategoryImage(savedCategory._id, imageFormData);
+        toast.success('Imagen subida correctamente');
+      } catch (imageError) {
+        console.error('Error al subir imagen:', imageError);
+        toast.error('La categoría se guardó pero hubo un error al subir la imagen');
+      }
+    }
+    
+    // Recargar categorías y cerrar modal
+    fetchCategories();
+    handleCancel();
+    
+  } catch (err) {
+    console.error('Error al guardar categoría:', err);
+    toast.error(err.response?.data?.error || 'Error al guardar categoría');
+  }
+};
+
+// También necesitas agregar la función handleCancel si no la tienes:
+const handleCancel = () => {
+  setIsModalOpen(false);
+  setEditingCategory(null);
+  setFormData({
+    name: '',
+    description: '',
+    parent: ''
+  });
+  setSelectedImage(null);
+  setUploadProgress(0);
+};
   
   // Renderizar árbol de categorías
   const renderCategoryTree = () => {
@@ -419,7 +441,7 @@ const CategoryItem = ({ category, categories, onEdit, onDelete }) => {
           <div className="flex items-center">
             {category.image && (
               <img
-                src={`/uploads/${category.image}`}
+                src={getImageUrl(category.image)}
                 alt={category.name}
                 className="h-10 w-10 rounded-full mr-3 object-cover"
               />

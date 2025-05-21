@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getProductImageUrl } from '../../utils/imageHelpers';
 import { Link } from 'react-router-dom';
 import { productService, categoryService } from '../../services/api';
 import { 
@@ -298,10 +299,7 @@ const DistributorProductsPage = () => {
                         <div className="h-10 w-10 flex-shrink-0">
                           <img 
                             className="h-10 w-10 rounded-full object-cover" 
-                            src={product.images && product.images.length > 0 
-                              ? `/uploads/${product.images[0]}`
-                              : "https://via.placeholder.com/40"
-                            } 
+src={getProductImageUrl(product)}
                             alt={product.name} 
                           />
                         </div>

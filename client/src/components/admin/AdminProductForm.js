@@ -81,18 +81,32 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
       });
       
       // Mostrar imágenes existentes
-      if (images && images.length > 0) {
-        setUploadedImages(
-          images.map((image, index) => ({
+if (images && images.length > 0) {
+      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      
+      setUploadedImages(
+        images.map((image, index) => {
+          // Construir la URL correcta para la imagen
+          let imageUrl = '';
+          if (image.startsWith('http://') || image.startsWith('https://')) {
+            imageUrl = image;
+          } else if (image.startsWith('/uploads/')) {
+            imageUrl = `${baseURL}${image}`;
+          } else {
+            imageUrl = `${baseURL}/uploads/${image}`;
+          }
+          
+          return {
             id: `existing-${index}`,
             name: image,
-            preview: `/uploads/${image}`,
+            preview: imageUrl,
             existing: true
-          }))
-        );
-      }
+          };
+        })
+      );
     }
-  }, [isEditing, product]);
+  }
+}, [isEditing, product]);
   
   // Manejar cambios en formulario
   const handleChange = (e) => {
@@ -628,46 +642,60 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
           </div>
         </div>
         
-        {/* Vista previa de imágenes */}
-        {uploadedImages.length > 0 && (
-          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {uploadedImages.map((image) => (
-              <div key={image.id} className="relative group">
-                <div className="aspect-w-1 aspect-h-1 rounded-md overflow-hidden bg-gray-100">
-                  <img
-                    src={image.preview}
-                    alt={image.name}
-                    className="object-cover w-full h-32"
-                  />
-                  
-                  {/* Barra de progreso */}
-                  {uploadProgress[image.id] !== undefined && uploadProgress[image.id] < 100 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-                      <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-indigo-600 h-full rounded-full" 
-                          style={{ width: `${uploadProgress[image.id]}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Botón para eliminar imagen */}
-                <button
-                  type="button"
-                  onClick={() => removeImage(image.id)}
-                  className="absolute top-1 right-1 bg-red-100 text-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
-                
-                {/* Etiqueta de imagen principal */}
-                {uploadedImages.indexOf(image) === 0 && (
-                  <div className="absolute top-1 left-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
-                    Principal
-                  </div>
-                )}
+{/* Vista previa de imágenes */}
+{uploadedImages.length > 0 && (
+  <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    {uploadedImages.map((image) => (
+      <div key={image.id} className="relative group">
+        <div className="aspect-w-1 aspect-h-1 rounded-md overflow-hidden bg-gray-100">
+          <img
+            src={image.preview}
+            alt={image.name}
+            className="object-cover w-full h-32"
+            onError={(e) => {
+              console.error('Error cargando imagen:', e.target.src);
+              // Intentar con diferentes rutas
+              if (!e.target.dataset.retried) {
+                e.target.dataset.retried = 'true';
+                // Si la imagen no carga, intentar con /uploads/
+                if (!e.target.src.includes('/uploads/')) {
+                  e.target.src = `/uploads/${image.name}`;
+                } else {
+                  // Si aún falla, mostrar placeholder
+                  e.target.src = 'https://via.placeholder.com/150?text=Error';
+                }
+              }
+            }}
+          />
+          
+          {/* Barra de progreso */}
+          {uploadProgress[image.id] !== undefined && uploadProgress[image.id] < 100 && (
+            <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+              <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-indigo-600 h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${uploadProgress[image.id]}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Botón para eliminar imagen */}
+        <button
+          type="button"
+          onClick={() => removeImage(image.id)}
+          className="absolute top-1 right-1 bg-red-100 text-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
+        >
+          <XMarkIcon className="h-5 w-5" />
+        </button>
+        
+        {/* Etiqueta de imagen principal */}
+        {uploadedImages.indexOf(image) === 0 && (
+          <div className="absolute top-1 left-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+            Principal
+          </div>
+        )}
               </div>
             ))}
           </div>

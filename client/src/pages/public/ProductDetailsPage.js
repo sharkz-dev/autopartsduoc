@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getImageUrl } from '../../utils/imageHelpers';
 import { useParams, Link } from 'react-router-dom';
 import { productService } from '../../services/api';
 import { useCart } from '../../context/CartContext';
@@ -167,17 +168,21 @@ const ProductDetailsPage = () => {
                   </div>
                 )}
                 
-                {product.images.map((image, index) => (
-                  <SwiperSlide key={index}>
-                    <div className="h-80 flex items-center justify-center bg-gray-100">
-                      <img
-                        src={`/uploads/${image}`}
-                        alt={`${product.name} - Imagen ${index + 1}`}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  </SwiperSlide>
-                ))}
+{product.images.map((image, index) => (
+  <SwiperSlide key={index}>
+    <div className="h-80 flex items-center justify-center bg-gray-100">
+      <img
+        src={getImageUrl(image)}  // CAMBIAR AQUÍ
+        alt={`${product.name} - Imagen ${index + 1}`}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = '/placeholder-product.png';
+        }}
+      />
+    </div>
+  </SwiperSlide>
+))}
               </Swiper>
 
               {/* Miniaturas */}
@@ -191,17 +196,21 @@ const ProductDetailsPage = () => {
                   modules={[FreeMode, Navigation, Thumbs]}
                   className="thumbs-swiper"
                 >
-                  {product.images.map((image, index) => (
-                    <SwiperSlide key={index}>
-                      <div className="h-20 cursor-pointer border border-gray-200 rounded overflow-hidden">
-                        <img
-                          src={`/uploads/${image}`}
-                          alt={`Miniatura ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </SwiperSlide>
-                  ))}
+{product.images.map((image, index) => (
+  <SwiperSlide key={index}>
+    <div className="h-20 cursor-pointer border border-gray-200 rounded overflow-hidden">
+      <img
+        src={getImageUrl(image)}  // CAMBIAR AQUÍ
+        alt={`Miniatura ${index + 1}`}
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = '/placeholder-product.png';
+        }}
+      />
+    </div>
+  </SwiperSlide>
+))}
                 </Swiper>
               )}
             </>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { ShoppingCartIcon, StarIcon } from '@heroicons/react/24/solid';
+import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
 
 const ProductCard = ({ product }) => {
   const { addToCart, cartType } = useCart();
@@ -17,13 +18,10 @@ const ProductCard = ({ product }) => {
   // Calcular el precio con descuento según el tipo de cliente
   let salePrice = null;
   if (isOnSale) {
-    // Para B2B: Calcular descuento basado en wholesalePrice
-    // Para B2C: Usar salePrice existente o calcular basado en price
     if (cartType === 'B2B' && product.wholesalePrice) {
       const discountAmount = product.wholesalePrice * (product.discountPercentage / 100);
       salePrice = Math.round(product.wholesalePrice - discountAmount);
     } else {
-      // Para B2C, usar el precio de oferta calculado o guardado
       salePrice = product.salePrice || Math.round(product.price - (product.price * (product.discountPercentage / 100)));
     }
   }
@@ -31,26 +29,9 @@ const ProductCard = ({ product }) => {
   // Determinar precio final a mostrar
   const displayPrice = isOnSale ? salePrice : basePrice;
 
-  // Configurar imagen por defecto
-  const defaultImage = 'https://via.placeholder.com/300x300?text=No+Image';
+
   
-  // Obtener la URL de la imagen correctamente
-  const getImageUrl = () => {
-    if (product.images && product.images.length > 0 && product.images[0]) {
-      // Si la imagen ya incluye /uploads/, no la agregamos de nuevo
-      const imageName = product.images[0];
-      if (imageName.startsWith('/uploads/')) {
-        return imageName;
-      } else if (imageName.startsWith('uploads/')) {
-        return `/${imageName}`;
-      } else {
-        return `/uploads/${imageName}`;
-      }
-    }
-    return defaultImage;
-  };
-  
-  // Formatear el precio con separador de miles y 2 decimales
+  // Formatear el precio con separador de miles
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -58,7 +39,8 @@ const ProductCard = ({ product }) => {
     }).format(price);
   };
 
-  const imageUrl = getImageUrl();
+  // Obtener URL de la imagen usando el helper
+  const imageUrl = getProductImageUrl(product);
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 relative">
@@ -74,12 +56,9 @@ const ProductCard = ({ product }) => {
           <img 
             src={imageUrl}
             alt={product.name}
-            className="w-full h-full object-contain p-2"
-            onError={(e) => {
-              console.error('Error loading image:', e.target.src);
-              e.target.onerror = null;
-              e.target.src = defaultImage;
-            }}
+            className="w-full h-full object-cover"
+            onError={(e) => handleImageError(e)}
+            loading="lazy"
           />
         </div>
         
@@ -142,8 +121,8 @@ const ProductCard = ({ product }) => {
             <div className="flex space-x-2">
               <button
                 onClick={(e) => {
-                  e.preventDefault(); // Evitar navegación
-                  e.stopPropagation(); // Evitar propagación
+                  e.preventDefault();
+                  e.stopPropagation();
                   addToCart(product, 1);
                 }}
                 disabled={product.stockQuantity <= 0}

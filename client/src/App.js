@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ImageDebugger from './components/debug/ImageDebugger';
 import DiagnosticPage from './pages/DiagnosticPage';
+import SimpleImageTest from './components/debug/SimpleImageTest';
 
 // Contextos
 import { AuthProvider } from './context/AuthContext';
