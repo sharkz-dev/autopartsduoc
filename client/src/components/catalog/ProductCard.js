@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
-import { ShoppingCartIcon, StarIcon } from '@heroicons/react/24/solid';
+import { ShoppingCartIcon, StarIcon, TagIcon } from '@heroicons/react/24/solid';
 import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
 
 const ProductCard = ({ product }) => {
@@ -28,8 +28,6 @@ const ProductCard = ({ product }) => {
   
   // Determinar precio final a mostrar
   const displayPrice = isOnSale ? salePrice : basePrice;
-
-
   
   // Formatear el precio con separador de miles
   const formatPrice = (price) => {
@@ -44,12 +42,21 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:shadow-lg hover:-translate-y-1 relative">
-      {/* Badge de descuento */}
-      {isOnSale && (
-        <div className="absolute top-0 right-0 bg-red-600 text-white font-bold px-3 py-1 rounded-bl-lg z-10 shadow-md">
-          -{Math.round(product.discountPercentage)}%
-        </div>
-      )}
+      {/* Badges de descuento y destacado */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-2">
+        {isOnSale && (
+          <div className="bg-red-600 text-white font-bold px-3 py-1 rounded-md text-sm shadow-md flex items-center">
+            <TagIcon className="h-3 w-3 mr-1" />
+            -{Math.round(product.discountPercentage)}%
+          </div>
+        )}
+        {product.featured && (
+          <div className="bg-yellow-500 text-white font-bold px-3 py-1 rounded-md text-sm shadow-md flex items-center">
+            <StarIcon className="h-3 w-3 mr-1" />
+            Destacado
+          </div>
+        )}
+      </div>
       
       <Link to={`/product/${product._id}`} className="block">
         <div className="h-48 overflow-hidden bg-gray-100">
@@ -64,9 +71,9 @@ const ProductCard = ({ product }) => {
         
         <div className="p-4">
           <div className="flex justify-between items-start mb-1">
-            <h3 className="text-lg font-semibold text-gray-800 truncate">{product.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-800 truncate flex-1 mr-2">{product.name}</h3>
             {product.avgRating > 0 && (
-              <div className="flex items-center">
+              <div className="flex items-center flex-shrink-0">
                 <StarIcon className="h-4 w-4 text-yellow-500" />
                 <span className="text-sm text-gray-600 ml-1">{product.avgRating.toFixed(1)}</span>
               </div>
@@ -74,7 +81,7 @@ const ProductCard = ({ product }) => {
           </div>
           
           <p className="text-gray-500 text-sm mb-2">
-            {product.brand} - {product.category?.name}
+            {product.brand} {product.category?.name && `- ${product.category.name}`}
           </p>
           
           <p className="text-gray-600 text-sm h-12 overflow-hidden">
@@ -108,34 +115,32 @@ const ProductCard = ({ product }) => {
               {product.stockQuantity > 0 ? (
                 `${product.stockQuantity} disponibles`
               ) : (
-                <span className="text-red-500">Agotado</span>
+                <span className="text-red-500 font-semibold">Agotado</span>
               )}
             </p>
           </div>
           
           <div className="mt-3 flex justify-between items-center">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 truncate max-w-[60%]">
               Distribuidor: {product.distributor?.companyName || 'N/A'}
             </span>
             
-            <div className="flex space-x-2">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  addToCart(product, 1);
-                }}
-                disabled={product.stockQuantity <= 0}
-                className={`p-2 rounded-full ${
-                  product.stockQuantity > 0
-                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                    : 'bg-gray-300 cursor-not-allowed text-gray-500'
-                } transition-colors`}
-                title={product.stockQuantity > 0 ? 'Añadir al carrito' : 'Sin stock'}
-              >
-                <ShoppingCartIcon className="h-5 w-5" />
-              </button>
-            </div>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                addToCart(product, 1);
+              }}
+              disabled={product.stockQuantity <= 0}
+              className={`p-2 rounded-full ${
+                product.stockQuantity > 0
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                  : 'bg-gray-300 cursor-not-allowed text-gray-500'
+              } transition-colors`}
+              title={product.stockQuantity > 0 ? 'Añadir al carrito' : 'Sin stock'}
+            >
+              <ShoppingCartIcon className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </Link>
