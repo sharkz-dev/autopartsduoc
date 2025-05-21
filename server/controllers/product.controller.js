@@ -81,6 +81,55 @@ exports.getProducts = async (req, res, next) => {
   }
 };
 
+// @desc    Obtener productos en oferta
+// @route   GET /api/products/on-sale
+// @access  Public
+exports.getProductsOnSale = async (req, res, next) => {
+  try {
+    // Convertir parámetros de query
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+    const sort = req.query.sort || '-discountPercentage';
+    
+    // Crear query para encontrar productos en oferta
+    const query = {
+      onSale: true,
+      salePrice: { $gt: 0 }
+    };
+    
+    // Ejecutar consulta con paginación y ordenamiento
+    const products = await Product.find(query)
+      .populate('category', 'name')
+      .populate('distributor', 'name companyName')
+      .sort(sort)
+      .skip(startIndex)
+      .limit(limit);
+    
+    // Contar total para paginación
+    const total = await Product.countDocuments(query);
+    
+    // Preparar información de paginación
+    const pagination = {};
+    if (startIndex + limit < total) {
+      pagination.next = { page: page + 1, limit };
+    }
+    if (startIndex > 0) {
+      pagination.prev = { page: page - 1, limit };
+    }
+    
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      pagination,
+      total,
+      data: products
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Obtener un producto por ID
 // @route   GET /api/products/:id
 // @access  Public
@@ -113,6 +162,13 @@ exports.createProduct = async (req, res, next) => {
   try {
     // Asignar el distribuidor (usuario actual)
     req.body.distributor = req.user.id;
+    
+    // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
+    if (req.body.salePrice && req.body.onSale && !req.body.discountPercentage) {
+      req.body.discountPercentage = Math.round(
+        ((req.body.price - req.body.salePrice) / req.body.price) * 100
+      );
+    }
 
     // Crear producto
     const product = await Product.create(req.body);
@@ -149,6 +205,13 @@ exports.updateProduct = async (req, res, next) => {
         success: false,
         error: 'No está autorizado para actualizar este producto'
       });
+    }
+
+    // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
+    if (req.body.salePrice && req.body.onSale && !req.body.discountPercentage) {
+      req.body.discountPercentage = Math.round(
+        ((req.body.price - req.body.salePrice) / req.body.price) * 100
+      );
     }
 
     // Actualizar fecha

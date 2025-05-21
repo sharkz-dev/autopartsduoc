@@ -23,6 +23,24 @@ const ProductSchema = new mongoose.Schema({
     type: Number,
     min: [0, 'El precio mayorista no puede ser negativo']
   },
+  // Nuevos campos para descuentos
+  onSale: {
+    type: Boolean,
+    default: false
+  },
+  discountPercentage: {
+    type: Number,
+    min: [0, 'El porcentaje de descuento no puede ser negativo'],
+    max: [100, 'El porcentaje de descuento no puede ser mayor a 100'],
+    default: 0
+  },
+  salePrice: {
+    type: Number,
+    min: [0, 'El precio de oferta no puede ser negativo']
+  },
+  saleEndDate: {
+    type: Date
+  },
   stockQuantity: {
     type: Number,
     required: [true, 'Por favor ingrese la cantidad en stock'],
@@ -107,6 +125,15 @@ ProductSchema.pre('save', function(next) {
   
   // Actualizar fecha de modificación
   this.updatedAt = Date.now();
+  
+  // Calcular precio de oferta si está en descuento
+  if (this.onSale && this.discountPercentage > 0) {
+    this.salePrice = this.price - (this.price * (this.discountPercentage / 100));
+  } else {
+    this.onSale = false;
+    this.discountPercentage = 0;
+    this.salePrice = null;
+  }
   
   next();
 });

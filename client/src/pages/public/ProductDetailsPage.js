@@ -11,7 +11,8 @@ import {
   StarIcon
 } from '@heroicons/react/24/solid';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { FreeMode, Navigation, Thumbs } from 'swiper';
+// Cambio en la forma de importar los módulos de Swiper
+import { FreeMode, Navigation, Thumbs } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import 'swiper/css/navigation';
@@ -97,6 +98,11 @@ const ProductDetailsPage = () => {
   // Calcular el precio final a mostrar
   const displayPrice = isOnSale ? product.salePrice : regularPrice;
 
+  // Calcular el porcentaje de descuento
+  const discountPercentage = product.onSale && product.discountPercentage
+    ? product.discountPercentage
+    : Math.round(((regularPrice - product.salePrice) / regularPrice) * 100);
+
   // Formatear precios con separador de miles
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CL', {
@@ -149,7 +155,7 @@ const ProductDetailsPage = () => {
                 {/* Badge de descuento */}
                 {isOnSale && (
                   <div className="absolute top-0 left-0 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-br z-10">
-                    -{product.discountPercentage}% OFERTA
+                    -{discountPercentage}% OFERTA
                   </div>
                 )}
                 

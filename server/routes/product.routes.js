@@ -9,13 +9,15 @@ const {
   uploadProductImages,
   getProductsByDistributor,
   getMyProducts,
-  addProductRating
+  addProductRating,
+  getProductsOnSale // Añadir esta nueva función
 } = require('../controllers/product.controller');
 
 const { protect, authorize } = require('../middleware/auth');
 
 // Rutas públicas
 router.get('/', getProducts);
+router.get('/on-sale', getProductsOnSale); // Añadir esta nueva ruta antes de la ruta con /:id
 router.get('/:id', getProduct);
 router.get('/distributor/:id', getProductsByDistributor);
 
