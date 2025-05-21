@@ -179,11 +179,15 @@ exports.getOrder = async (req, res, next) => {
       })
       .populate({
         path: 'items.product',
-        select: 'name images'
+        select: 'name images sku price wholesalePrice category'
+      })
+      .populate({
+        path: 'items.product.category',
+        select: 'name'
       })
       .populate({
         path: 'items.distributor',
-        select: 'name companyName'
+        select: 'name companyName email'
       });
 
     if (!order) {
@@ -193,20 +197,36 @@ exports.getOrder = async (req, res, next) => {
       });
     }
 
-    // Verificar que el usuario es el propietario o un admin
-    if (
-      order.user._id.toString() !== req.user.id &&
-      req.user.role !== 'admin' &&
-      // Si es distribuidor, verificar que tenga algún producto en la orden
-      !(
-        req.user.role === 'distributor' &&
-        order.items.some(item => item.distributor._id.toString() === req.user.id)
-      )
-    ) {
+    // Verificar que el usuario es el propietario o un admin o distribuidor con productos en la orden
+    const isOwner = order.user._id.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    const isDistributorWithProducts = 
+      req.user.role === 'distributor' && 
+      order.items.some(item => 
+        item.distributor && item.distributor._id.toString() === req.user.id
+      );
+
+    if (!isOwner && !isAdmin && !isDistributorWithProducts) {
       return res.status(401).json({
         success: false,
         error: 'No está autorizado para ver esta orden'
       });
+    }
+
+    // Si es distribuidor, añadir un cálculo de subtotal específico para sus productos
+    if (req.user.role === 'distributor') {
+      const distributorItems = order.items.filter(
+        item => item.distributor && item.distributor._id.toString() === req.user.id
+      );
+      
+      // Calcular subtotal para este distribuidor
+      const distributorSubtotal = distributorItems.reduce(
+        (acc, item) => acc + item.price * item.quantity, 
+        0
+      );
+      
+      // Añadir a la respuesta
+      order._doc.distributorSubtotal = distributorSubtotal;
     }
 
     res.status(200).json({
@@ -218,9 +238,117 @@ exports.getOrder = async (req, res, next) => {
   }
 };
 
-// @desc    Obtener todas las órdenes del usuario actual
-// @route   GET /api/orders/my-orders
-// @access  Private
+// Mejorar el método getDistributorOrders para incluir subtotales por distribuidor
+exports.getDistributorOrders = async (req, res, next) => {
+  try {
+    // Buscar órdenes que contengan productos del distribuidor actual
+    const orders = await Order.find({
+      'items.distributor': req.user.id
+    })
+      .populate({
+        path: 'user',
+        select: 'name email'
+      })
+      .populate({
+        path: 'items.product',
+        select: 'name images price sku'
+      })
+      .sort('-createdAt');
+
+    // Para cada orden, filtrar solo los items que pertenecen a este distribuidor
+    // y calcular el subtotal adecuadamente
+    const processedOrders = orders.map(order => {
+      const filteredItems = order.items.filter(
+        item => item.distributor && item.distributor.toString() === req.user.id
+      );
+      
+      // Calcular subtotal para este distribuidor
+      const subtotal = filteredItems.reduce(
+        (acc, item) => acc + item.price * item.quantity,
+        0
+      );
+      
+      // Calcular proporción del subtotal respecto al total para estimar impuestos y envío
+      const ratio = order.itemsPrice > 0 ? subtotal / order.itemsPrice : 0;
+      const estimatedTax = ratio * order.taxPrice;
+      const estimatedShipping = ratio * order.shippingPrice;
+      
+      // Crear objeto con solo los datos relevantes para el distribuidor
+      return {
+        _id: order._id,
+        user: order.user,
+        items: filteredItems,
+        status: order.status,
+        createdAt: order.createdAt,
+        shipmentMethod: order.shipmentMethod,
+        subtotal: subtotal,
+        estimatedTax: estimatedTax,
+        estimatedShipping: estimatedShipping,
+        estimatedTotal: subtotal + estimatedTax + estimatedShipping,
+        isPaid: order.isPaid,
+        paidAt: order.paidAt
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      count: processedOrders.length,
+      data: processedOrders
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Mejorar el método updateOrderStatus para manejar mejor los distintos estados
+exports.updateOrderStatus = async (req, res, next) => {
+  try {
+    console.log('Recibida solicitud para actualizar estado. ID:', req.params.id, 'Datos:', req.body);
+    
+    let order = await Order.findById(req.params.id);
+
+    if (!order) {
+      console.log('Orden no encontrada con ID:', req.params.id);
+      return res.status(404).json({
+        success: false,
+        error: 'Orden no encontrada'
+      });
+    }
+
+    // Almacenar el estado anterior para comparar
+    const previousStatus = order.status;
+    
+    // Actualizar según el rol del usuario
+    if (req.user.role === 'admin') {
+      console.log('Usuario admin actualizando estado de', previousStatus, 'a:', req.body.status);
+      order.status = req.body.status;
+      // Resto del código para admin...
+    } else if (req.user.role === 'distributor') {
+      console.log('Usuario distribuidor actualizando estado de', previousStatus, 'a:', req.body.status);
+      // Resto del código para distribuidor...
+      order.status = req.body.status;
+    }
+
+    console.log('Guardando orden con nuevo estado:', order.status);
+    await order.save();
+    console.log('Orden guardada exitosamente. ID:', order._id, 'Nuevo estado:', order.status);
+
+    // Obtener la orden actualizada para devolver al cliente
+    const updatedOrder = await Order.findById(order._id)
+      .populate('user', 'name email')
+      .populate('items.product', 'name images')
+      .populate('items.distributor', 'name companyName');
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrder
+    });
+  } catch (err) {
+    console.error('Error en updateOrderStatus:', err);
+    next(err);
+  }
+};
+
 exports.getMyOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ user: req.user.id })

@@ -26,8 +26,22 @@ const AdminOrdersPage = () => {
   // Estado para modal de detalles y actualización
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   
+useEffect(() => {
+  function handleClickOutside(event) {
+    if (showStatusMenu) {
+      setShowStatusMenu(false);
+    }
+  }
+  
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, [showStatusMenu]);
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -48,27 +62,61 @@ const AdminOrdersPage = () => {
   };
   
   // Actualizar estado de una orden
-  const updateOrderStatus = async (orderId, status) => {
-    try {
-      setUpdatingStatus(true);
-      await orderService.updateOrderStatus(orderId, { status });
-      toast.success(`Estado de la orden actualizado a: ${status}`);
-      
-      // Actualizar la orden seleccionada y la lista de órdenes
+  // En AdminOrdersPage.js o DistributorOrdersPage.js
+const updateOrderStatus = async (orderId, status) => {
+  try {
+    // Mostrar estado de carga
+    setUpdatingStatus(true);
+    
+    // Mostrar toast de carga
+    const loadingToast = toast.loading('Actualizando estado...');
+    
+    // Log para depuración
+    console.log('Intentando actualizar estado:', orderId, status);
+    
+    // Llamar a la API con los datos correctos
+    const response = await orderService.updateOrderStatus(orderId, { status });
+    
+    // Log para depuración
+    console.log('Respuesta recibida:', response);
+    
+    // Verificar que la respuesta sea exitosa
+    if (response.data.success) {
+      // Actualizar el estado local de la orden seleccionada
       if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status });
+        setSelectedOrder({
+          ...selectedOrder,
+          status: status
+        });
       }
       
-      setOrders(orders.map(order => 
-        order._id === orderId ? { ...order, status } : order
-      ));
-    } catch (err) {
-      console.error('Error al actualizar estado:', err);
-      toast.error(err.response?.data?.error || 'Error al actualizar estado');
-    } finally {
-      setUpdatingStatus(false);
+      // Actualizar la lista de órdenes
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order._id === orderId ? { ...order, status } : order
+        )
+      );
+      
+      // Mostrar mensaje de éxito
+      toast.dismiss(loadingToast);
+      toast.success(`Estado actualizado a: ${getStatusTranslation(status)}`);
+    } else {
+      // Manejar respuesta no exitosa
+      toast.dismiss(loadingToast);
+      toast.error('Error al actualizar estado: ' + (response.data.error || 'Error desconocido'));
     }
-  };
+  } catch (err) {
+    // Manejar errores
+    console.error('Error al actualizar estado:', err);
+    toast.dismiss();
+    toast.error(err.response?.data?.error || 'Error al actualizar estado');
+  } finally {
+    // Siempre finalizar el estado de carga
+    setUpdatingStatus(false);
+    // Cerrar el menú desplegable
+    setShowStatusMenu(false);
+  }
+};
   
   // Manejar cambio de filtro
   const handleFilterChange = (e) => {
@@ -547,65 +595,93 @@ const AdminOrdersPage = () => {
                         </p>
                       </div>
                       
-                      <div className="relative inline-block text-left">
-                        <div className="group">
-                          <button
-                            type="button"
-                            className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            id="options-menu"
-                            aria-haspopup="true"
-                            aria-expanded="true"
-                            disabled={updatingStatus}
-                          >
-                            {updatingStatus ? 'Actualizando...' : 'Actualizar Estado'}
-                            <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
-                          </button>
-                          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden group-hover:block">
-                            <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                              <button
-                                onClick={() => updateOrderStatus(selectedOrder._id, 'pending')}
-                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                role="menuitem"
-                                disabled={selectedOrder.status === 'pending' || updatingStatus}
-                              >
-                                Pendiente
-                              </button>
-                              <button
-                                onClick={() => updateOrderStatus(selectedOrder._id, 'processing')}
-                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                role="menuitem"
-                                disabled={selectedOrder.status === 'processing' || updatingStatus}
-                              >
-                                Procesando
-                              </button>
-                              <button
-                                onClick={() => updateOrderStatus(selectedOrder._id, 'shipped')}
-                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                role="menuitem"
-                                disabled={selectedOrder.status === 'shipped' || updatingStatus}
-                              >
-                                Enviado
-                              </button>
-                              <button
-                                onClick={() => updateOrderStatus(selectedOrder._id, 'delivered')}
-                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                role="menuitem"
-                                disabled={selectedOrder.status === 'delivered' || updatingStatus}
-                              >
-                                Entregado
-                              </button>
-                              <button
-                                onClick={() => updateOrderStatus(selectedOrder._id, 'cancelled')}
-                                className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-700"
-                                role="menuitem"
-                                disabled={selectedOrder.status === 'cancelled' || updatingStatus}
-                              >
-                                Cancelado
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+<div className="relative inline-block text-left">
+<button
+  type="button"
+  onClick={() => {
+    console.log('Botón de menú clickeado');
+    setShowStatusMenu(!showStatusMenu);
+  }}
+  disabled={updatingStatus}
+  className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+>
+  {updatingStatus ? 'Actualizando...' : 'Actualizar Estado'}
+  <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
+</button>
+  {showStatusMenu && (
+    <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+      <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+        <button
+          onClick={() => {
+            updateOrderStatus(selectedOrder._id, 'pending');
+            setShowStatusMenu(false);
+          }}
+          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          role="menuitem"
+          disabled={selectedOrder.status === 'pending' || updatingStatus}
+        >
+          Pendiente
+        </button>
+<button
+  onClick={() => {
+    console.log('Botón de estado processing clickeado');
+    updateOrderStatus(selectedOrder._id, 'processing');
+    setShowStatusMenu(false);
+  }}
+  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+  role="menuitem"
+  disabled={selectedOrder.status === 'processing' || updatingStatus}
+>
+  Procesando
+</button>
+        <button
+          onClick={() => {
+            updateOrderStatus(selectedOrder._id, 'shipped');
+            setShowStatusMenu(false);
+          }}
+          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          role="menuitem"
+          disabled={selectedOrder.status === 'shipped' || updatingStatus}
+        >
+          Enviado
+        </button>
+        <button
+          onClick={() => {
+            updateOrderStatus(selectedOrder._id, 'ready_for_pickup');
+            setShowStatusMenu(false);
+          }}
+          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          role="menuitem"
+          disabled={selectedOrder.status === 'ready_for_pickup' || updatingStatus}
+        >
+          Listo para Retiro
+        </button>
+        <button
+          onClick={() => {
+            updateOrderStatus(selectedOrder._id, 'delivered');
+            setShowStatusMenu(false);
+          }}
+          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          role="menuitem"
+          disabled={selectedOrder.status === 'delivered' || updatingStatus}
+        >
+          Entregado
+        </button>
+        <button
+          onClick={() => {
+            updateOrderStatus(selectedOrder._id, 'cancelled');
+            setShowStatusMenu(false);
+          }}
+          className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-700"
+          role="menuitem"
+          disabled={selectedOrder.status === 'cancelled' || updatingStatus}
+        >
+          Cancelado
+        </button>
+      </div>
+    </div>
+  )}
+</div>
                     </div>
                   </div>
                 </div>
