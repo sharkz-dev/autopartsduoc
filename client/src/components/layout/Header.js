@@ -153,7 +153,7 @@ const Header = () => {
               </div>
               <div className="hidden sm:flex items-center">
                 <EnvelopeIcon className="h-3 w-3 mr-1" />
-                <span>ventas@autorepuestos.com</span>
+                <span>ventas@AutoParts.com</span>
               </div>
             </div>
             <div className="flex items-center space-x-3">

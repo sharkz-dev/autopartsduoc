@@ -8,7 +8,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo y descripción */}
           <div className="col-span-1 md:col-span-1">
-            <h2 className="text-xl font-bold mb-4">AutoRepuestos</h2>
+            <h2 className="text-xl font-bold mb-4">AutoParts</h2>
             <p className="text-gray-400 mb-4">
               La mejor plataforma para comprar y vender repuestos de autos con garantía de calidad.
             </p>
@@ -174,7 +174,7 @@ const Footer = () => {
                 <p>Calle Repuestos #123</p>
                 <p>Ciudad Automotriz, 12345</p>
               </li>
-              <li>Email: info@autorepuestos.com</li>
+              <li>Email: info@AutoParts.com</li>
               <li>Teléfono: +123 456 7890</li>
               <li className="pt-2">
                 <Link
@@ -190,7 +190,7 @@ const Footer = () => {
 
         <div className="mt-8 pt-8 border-t border-gray-700">
           <p className="text-center text-gray-400">
-            &copy; {new Date().getFullYear()} AutoRepuestos. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} AutoParts. Todos los derechos reservados.
           </p>
         </div>
       </div>
