@@ -1,0 +1,188 @@
+[
+  {
+    "_id": "61099192e06a763f761cb8e1",
+    "name": "Filtro de Aceite Premium",
+    "description": "Filtro de aceite de alta calidad para motores de 4 cilindros. Compatible con múltiples marcas.",
+    "price": 9990,
+    "wholesalePrice": 7990,
+    "stockQuantity": 100,
+    "category": "61098c591540b03a9423c8a7",
+    "brand": "FilterPro",
+    "sku": "FP-1234",
+    "partNumber": "FP-OIL-1234",
+    "distributor": "60d0fe4f5311236168a109cb",
+    "compatibleModels": [
+      {
+        "make": "Toyota",
+        "model": "Corolla",
+        "year": 2018
+      },
+      {
+        "make": "Honda",
+        "model": "Civic",
+        "year": 2019
+      }
+    ],
+    "featured": true,
+    "avgRating": 4.5,
+    "createdAt": "2023-01-05T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 20,
+    "salePrice": 7992
+  },
+  {
+    "_id": "61099192e06a763f761cb8e2",
+    "name": "Pastillas de Freno Delanteras",
+    "description": "Pastillas de freno de cerámica de alto rendimiento. Duración extendida y bajo nivel de ruido.",
+    "price": 24990,
+    "wholesalePrice": 19990,
+    "stockQuantity": 50,
+    "category": "61098c591540b03a9423c8a8",
+    "brand": "BrakeMaster",
+    "sku": "BM-2468",
+    "partNumber": "BM-FRONT-2468",
+    "distributor": "60d0fe4f5311236168a109cb",
+    "compatibleModels": [
+      {
+        "make": "Chevrolet",
+        "model": "Cruze",
+        "year": 2017
+      },
+      {
+        "make": "Hyundai",
+        "model": "Elantra",
+        "year": 2018
+      }
+    ],
+    "featured": true,
+    "avgRating": 4.8,
+    "createdAt": "2023-01-06T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 15,
+    "salePrice": 21242
+  },
+  {
+    "_id": "61099192e06a763f761cb8e3",
+    "name": "Amortiguador Trasero",
+    "description": "Amortiguador de alta resistencia para uso en todo tipo de terrenos. Mayor estabilidad y control.",
+    "price": 49990,
+    "wholesalePrice": 39990,
+    "stockQuantity": 30,
+    "category": "61098c591540b03a9423c8a9",
+    "brand": "SuspensionTech",
+    "sku": "ST-3690",
+    "partNumber": "ST-REAR-3690",
+    "distributor": "60d0fe4f5311236168a109cb",
+    "compatibleModels": [
+      {
+        "make": "Nissan",
+        "model": "Sentra",
+        "year": 2019
+      },
+      {
+        "make": "Kia",
+        "model": "Rio",
+        "year": 2020
+      }
+    ],
+    "featured": false,
+    "avgRating": 4.2,
+    "createdAt": "2023-01-07T00:00:00.000Z",
+    "onSale": false,
+    "discountPercentage": 0,
+    "salePrice": null
+  },
+  {
+    "_id": "61099192e06a763f761cb8e4",
+    "name": "Alternador 12V",
+    "description": "Alternador de alto rendimiento para sistemas eléctricos de 12V. Mayor duración y eficiencia.",
+    "price": 79990,
+    "wholesalePrice": 64990,
+    "stockQuantity": 20,
+    "category": "61098c591540b03a9423c8aa",
+    "brand": "ElectroPower",
+    "sku": "EP-4812",
+    "partNumber": "EP-ALT-4812",
+    "distributor": "60d0fe4f5311236168a109cb",
+    "compatibleModels": [
+      {
+        "make": "Ford",
+        "model": "Focus",
+        "year": 2018
+      },
+      {
+        "make": "Mazda",
+        "model": "3",
+        "year": 2019
+      }
+    ],
+    "featured": true,
+    "avgRating": 4.6,
+    "createdAt": "2023-01-08T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 25,
+    "salePrice": 59993
+  },
+  {
+    "_id": "61099192e06a763f761cb8e5",
+    "name": "Kit de Embrague Completo",
+    "description": "Kit completo de embrague incluyendo disco, plato y rodamiento. Mayor durabilidad y rendimiento suave.",
+    "price": 129990,
+    "wholesalePrice": 99990,
+    "stockQuantity": 15,
+    "category": "61098c591540b03a9423c8ab",
+    "brand": "TransmissionPro",
+    "sku": "TP-5730",
+    "partNumber": "TP-CLUTCH-5730",
+    "distributor": "60d0fe4f5311236168a109cb",
+    "compatibleModels": [
+      {
+        "make": "Mitsubishi",
+        "model": "Lancer",
+        "year": 2017
+      },
+      {
+        "make": "Subaru",
+        "model": "Impreza",
+        "year": 2018
+      }
+    ],
+    "featured": false,
+    "avgRating": 4.7,
+    "createdAt": "2023-01-09T00:00:00.000Z",
+    "onSale": true,
+    "discountPercentage": 30,
+    "salePrice": 90993
+  },
+  {
+    "_id": "61099192e06a763f761cb8e6",
+    "name": "Espejo Retrovisor Izquierdo",
+    "description": "Espejo retrovisor lateral izquierdo con ajuste eléctrico y calefacción. Diseño OEM para reemplazo directo.",
+    "price": 59990,
+    "wholesalePrice": 47990,
+    "stockQuantity": 25,
+    "category": "61098c591540b03a9423c8ac",
+    "brand": "BodyParts",
+    "sku": "BP-6854",
+    "partNumber": "BP-MIRROR-L-6854",
+    "distributor": "60d0fe4f5311236168a109cb",
+    "compatibleModels": [
+      {
+        "make": "Volkswagen",
+        "model": "Golf",
+        "year": 2019
+      },
+      {
+        "make": "Audi",
+        "model": "A3",
+        "year": 2020
+      }
+    ],
+    "featured": true,
+    "avgRating": 4.4,
+    "createdAt": "2023-01-10T00:00:00.000Z",
+    "onSale": false,
+    "discountPercentage": 0,
+    "salePrice": null
+  }
+]
