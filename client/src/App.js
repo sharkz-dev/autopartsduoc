@@ -1,7 +1,5 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import ImageDebugger from './components/debug/ImageDebugger';
-import DiagnosticPage from './pages/DiagnosticPage';
 import OrderConfirmationPage from './pages/public/OrderConfirmationPage';
 import PaymentReturnPage from './pages/public/PaymentReturnPage';
 
@@ -68,7 +66,6 @@ function App() {
           {/* Rutas públicas */}
           <Route path="/" element={<MainLayout />}>
             <Route index element={<HomePage />} />
-            <Route path="/diagnostic" element={<DiagnosticPage />} />
             <Route path="catalog" element={<CatalogPage />} />
             <Route path="product/:id" element={<ProductDetailsPage />} />
             <Route path="cart" element={<CartPage />} />
@@ -79,7 +76,6 @@ function App() {
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="register-distributor" element={<RegisterDistributorPage />} />
-            <Route path="/debug/images" element={<ImageDebugger />} />
             <Route path="/checkout" element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
 <Route path="/order-confirmation/:orderId" element={<PrivateRoute><OrderConfirmationPage /></PrivateRoute>} />
 <Route path="/payment/success" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />

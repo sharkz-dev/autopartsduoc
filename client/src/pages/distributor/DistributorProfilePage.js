@@ -33,9 +33,10 @@ const DistributorProfilePage = () => {
   
   const [passwordError, setPasswordError] = useState('');
   
-  // Cargar datos del usuario
+  // CORREGIDO: Cargar datos del usuario con validación
   useEffect(() => {
     if (user) {
+      console.log('👤 Cargando datos del usuario en perfil:', user);
       setProfileForm({
         name: user.name || '',
         email: user.email || '',
@@ -100,18 +101,21 @@ const DistributorProfilePage = () => {
     }
   };
   
-  // Actualizar perfil
+  // CORREGIDO: Actualizar perfil con refresh automático
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     
     try {
       setLoading(true);
       
+      console.log('🔄 Actualizando perfil del distribuidor...');
+      
       // Actualizar datos de perfil
       await updateProfile(profileForm);
       
       // Subir logo si se seleccionó una nueva imagen
       if (selectedImage && user) {
+        console.log('📸 Subiendo nueva imagen de logo...');
         const formData = new FormData();
         formData.append('file', selectedImage);
         
@@ -122,7 +126,9 @@ const DistributorProfilePage = () => {
           }
         });
         
-        // IMPORTANTE: Refrescar los datos del usuario después de subir la imagen
+        console.log('✅ Logo subido exitosamente');
+        
+        // CRÍTICO: Refrescar los datos del usuario después de subir la imagen
         await refreshUser();
       }
       
@@ -133,7 +139,7 @@ const DistributorProfilePage = () => {
       toast.success('Perfil actualizado correctamente');
       
     } catch (err) {
-      console.error('Error al actualizar perfil:', err);
+      console.error('❌ Error al actualizar perfil:', err);
       toast.error(err.response?.data?.error || 'Error al actualizar perfil');
     } finally {
       setLoading(false);
@@ -179,6 +185,15 @@ const DistributorProfilePage = () => {
       setLoading(false);
     }
   };
+
+  // NUEVO: Mostrar indicador de carga si no hay usuario
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -256,36 +271,6 @@ const DistributorProfilePage = () => {
                   name="companyName"
                   id="companyName"
                   value={profileForm.companyName}
-                  onChange={handleProfileChange}
-                  required
-                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-              
-              <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Nombre Completo
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  id="name"
-                  value={profileForm.name}
-                  onChange={handleProfileChange}
-                  required
-                  className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
-              
-              <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  value={profileForm.email}
                   onChange={handleProfileChange}
                   required
                   className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"

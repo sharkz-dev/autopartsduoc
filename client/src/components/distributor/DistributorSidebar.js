@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// client/src/components/distributor/DistributorSidebar.js - VERSIÓN CON FORZADO DE ACTUALIZACIÓN
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getImageUrl } from '../../utils/imageHelpers';
@@ -14,9 +15,69 @@ import {
 } from '@heroicons/react/24/outline';
 
 const DistributorSidebar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // NUEVO: Estado local para forzar re-render
+  const [userState, setUserState] = useState(user);
+  const [imageKey, setImageKey] = useState(Date.now());
+
+  // CRÍTICO: Efecto para actualizar estado local cuando cambia el usuario del contexto
+  useEffect(() => {
+    console.log('🔄 DistributorSidebar - Usuario del contexto cambió:', user);
+    if (user) {
+      setUserState(user);
+      setImageKey(Date.now()); // Forzar re-render de la imagen
+      console.log('✅ Estado local del sidebar actualizado');
+    }
+  }, [user]);
+
+  // NUEVO: Efecto para refrescar usuario al montar el componente
+  useEffect(() => {
+    const refreshUserData = async () => {
+      if (user && !user.companyLogo) {
+        console.log('🔄 Sidebar montado - Refrescando datos del usuario...');
+        try {
+          await refreshUser();
+        } catch (error) {
+          console.error('❌ Error al refrescar usuario en sidebar:', error);
+        }
+      }
+    };
+
+    refreshUserData();
+  }, []);
+
+  // NUEVO: Efecto para verificar cambios en localStorage (fallback)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('📦 Cambio detectado en localStorage');
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      if (storedUser && JSON.stringify(storedUser) !== JSON.stringify(userState)) {
+        console.log('🔄 Actualizando desde localStorage:', storedUser);
+        setUserState(storedUser);
+        setImageKey(Date.now());
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // También verificar cada 2 segundos como fallback
+    const interval = setInterval(() => {
+      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      if (storedUser && storedUser.companyLogo !== userState?.companyLogo) {
+        console.log('⏰ Verificación periódica - Usuario actualizado');
+        setUserState(storedUser);
+        setImageKey(Date.now());
+      }
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [userState]);
   
   const navigation = [
     { name: 'Dashboard', href: '/distributor', icon: HomeIcon },
@@ -37,6 +98,87 @@ const DistributorSidebar = () => {
     logout();
     window.location.href = '/';
   };
+
+  // NUEVO: Función para renderizar logo con key única para forzar re-render
+  const renderCompanyLogo = (className = "h-10 w-10 rounded-full object-cover bg-white p-0.5") => {
+    const currentUser = userState || user;
+    
+    if (currentUser?.companyLogo) {
+      const logoUrl = getImageUrl(currentUser.companyLogo);
+      console.log('🖼️ Renderizando logo:', logoUrl, 'Key:', imageKey);
+      
+      return (
+        <img 
+          key={`logo-${imageKey}`} // CRÍTICO: Key única para forzar re-render
+          src={`${logoUrl}?t=${imageKey}`} // CRÍTICO: Cache busting
+          alt={currentUser.companyName || currentUser.name}
+          className={className}
+          onLoad={() => {
+            console.log('✅ Logo cargado exitosamente');
+          }}
+          onError={(e) => {
+            console.warn('❌ Error al cargar logo:', e.target.src);
+            e.target.style.display = 'none';
+            const iconContainer = e.target.parentElement;
+            if (iconContainer) {
+              const icon = iconContainer.querySelector('.fallback-icon');
+              if (icon) icon.style.display = 'flex';
+            }
+          }}
+        />
+      );
+    }
+    return null;
+  };
+
+  // NUEVO: Función para renderizar icono de fallback
+  const renderFallbackIcon = (className = "h-6 w-6 text-blue-200") => {
+    const currentUser = userState || user;
+    return (
+      <div 
+        className="fallback-icon h-10 w-10 rounded-full bg-blue-700 flex items-center justify-center" 
+        style={{ display: currentUser?.companyLogo ? 'none' : 'flex' }}
+      >
+        <UserIcon className={className} />
+      </div>
+    );
+  };
+
+  // Usar userState en lugar de user directamente
+  const currentUser = userState || user;
+
+  // NUEVO: Mostrar indicador de carga si no hay usuario
+  if (!currentUser) {
+    return (
+      <div className="hidden md:flex md:flex-col h-full bg-gradient-to-b from-blue-900 to-blue-800 text-gray-100">
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div className="flex items-center justify-center flex-shrink-0 px-4 py-6 bg-blue-900">
+            <div className="animate-pulse">
+              <div className="h-8 w-32 bg-blue-700 rounded"></div>
+            </div>
+          </div>
+          <div className="mt-4 px-4">
+            <div className="bg-blue-800 bg-opacity-40 p-4 rounded-lg">
+              <div className="animate-pulse flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-full bg-blue-700"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-blue-700 rounded mb-2"></div>
+                  <div className="h-3 bg-blue-700 rounded w-3/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('🎨 Renderizando sidebar con usuario:', {
+    name: currentUser.name,
+    companyName: currentUser.companyName,
+    companyLogo: currentUser.companyLogo,
+    imageKey: imageKey
+  });
   
   return (
     <>
@@ -54,23 +196,16 @@ const DistributorSidebar = () => {
           <div className="mx-6 my-1 h-px bg-blue-700"></div>
           
           {/* Información del distribuidor */}
-          <div className="mt-4 px-4">
+          <div className="mt-4 px-4" key={`user-info-${imageKey}`}>
             <div className="bg-blue-800 bg-opacity-40 p-4 rounded-lg border border-blue-600 border-opacity-40">
               <div className="flex items-center space-x-3">
-                {user.companyLogo ? (
-                  <img 
-                    src={getImageUrl(user.companyLogo)}
-                    alt={user.companyName}
-                    className="h-10 w-10 rounded-full object-cover bg-white p-0.5"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-blue-700 flex items-center justify-center">
-                    <UserIcon className="h-6 w-6 text-blue-200" />
-                  </div>
-                )}
+                <div className="relative">
+                  {renderCompanyLogo()}
+                  {renderFallbackIcon()}
+                </div>
                 <div>
                   <p className="text-sm font-medium text-white truncate">
-                    {user?.companyName || 'Mi Empresa'}
+                    {currentUser?.companyName || 'Mi Empresa'}
                   </p>
                   <p className="text-xs text-blue-200 mt-0.5 truncate">
                     Panel de Distribuidor
@@ -168,24 +303,17 @@ const DistributorSidebar = () => {
             {/* Línea divisora */}
             <div className="mx-6 my-2 h-px bg-blue-700"></div>
             
-            {/* Información del distribuidor */}
-            <div className="mt-3 px-4">
+            {/* Información del distribuidor en móvil */}
+            <div className="mt-3 px-4" key={`mobile-user-info-${imageKey}`}>
               <div className="bg-blue-800 bg-opacity-40 p-4 rounded-lg border border-blue-600 border-opacity-40">
                 <div className="flex items-center space-x-3">
-                  {user.companyLogo ? (
-                    <img 
-                      src={`/uploads/${user.companyLogo}`}
-                      alt={user.companyName}
-                      className="h-10 w-10 rounded-full object-cover bg-white p-0.5"
-                    />
-                  ) : (
-                    <div className="h-10 w-10 rounded-full bg-blue-700 flex items-center justify-center">
-                      <UserIcon className="h-6 w-6 text-blue-200" />
-                    </div>
-                  )}
+                  <div className="relative">
+                    {renderCompanyLogo()}
+                    {renderFallbackIcon()}
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-white truncate">
-                      {user?.companyName || 'Mi Empresa'}
+                      {currentUser?.companyName || 'Mi Empresa'}
                     </p>
                     <p className="text-xs text-blue-200 mt-0.5 truncate">
                       Panel de Distribuidor
