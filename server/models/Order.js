@@ -21,12 +21,6 @@ const OrderSchema = new mongoose.Schema({
       price: {
         type: Number,
         required: true
-      },
-      // Guardar distribuidor para referencias
-      distributor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
       }
     }
   ],

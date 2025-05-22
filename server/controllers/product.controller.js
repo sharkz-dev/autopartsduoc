@@ -11,8 +11,7 @@ const findProductBySlugOrId = async (identifier, populate = true) => {
     // Primero intentar por slug
     if (populate) {
       product = await Product.findOne({ slug: identifier })
-        .populate('category', 'name slug')
-        .populate('distributor', 'name companyName');
+        .populate('category', 'name slug');
     } else {
       product = await Product.findOne({ slug: identifier });
     }
@@ -23,8 +22,7 @@ const findProductBySlugOrId = async (identifier, populate = true) => {
       if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
         if (populate) {
           product = await Product.findById(identifier)
-            .populate('category', 'name slug')
-            .populate('distributor', 'name companyName');
+            .populate('category', 'name slug');
         } else {
           product = await Product.findById(identifier);
         }
@@ -131,8 +129,7 @@ exports.getProducts = async (req, res, next) => {
 
     // Crear query base con los filtros construidos
     let query = Product.find(mongoQuery)
-      .populate('category', 'name slug')
-      .populate('distributor', 'name companyName');
+      .populate('category', 'name slug');
 
     // Ordenar
     if (req.query.sort) {
@@ -202,7 +199,6 @@ exports.getProductsOnSale = async (req, res, next) => {
     
     const products = await Product.find(query)
       .populate('category', 'name slug')
-      .populate('distributor', 'name companyName')
       .sort(sort)
       .skip(startIndex)
       .limit(limit);
@@ -264,18 +260,6 @@ exports.getProduct = async (req, res, next) => {
 // @access  Private (distribuidores y admin)
 exports.createProduct = async (req, res, next) => {
   try {
-    // Asignar el distribuidor
-    if (req.user.role === 'admin') {
-      if (!req.body.distributor) {
-        return res.status(400).json({
-          success: false,
-          error: 'Debe seleccionar un distribuidor'
-        });
-      }
-    } else {
-      req.body.distributor = req.user.id;
-    }
-    
     // Generar slug único
     req.body.slug = await generateUniqueSlug(req.body.name);
     
@@ -317,17 +301,6 @@ exports.updateProduct = async (req, res, next) => {
 
     console.log(`📝 Producto encontrado para actualizar: ${product.name} (ID: ${product._id})`);
 
-    // Verificar permisos
-    if (
-      product.distributor.toString() !== req.user.id &&
-      req.user.role !== 'admin'
-    ) {
-      return res.status(401).json({
-        success: false,
-        error: 'No está autorizado para actualizar este producto'
-      });
-    }
-
     // Si se cambia el nombre, generar nuevo slug
     if (req.body.name && req.body.name !== product.name) {
       req.body.slug = await generateUniqueSlug(req.body.name, product._id);
@@ -351,8 +324,7 @@ exports.updateProduct = async (req, res, next) => {
         new: true,
         runValidators: true
       }
-    ).populate('category', 'name slug')
-     .populate('distributor', 'name companyName');
+    ).populate('category', 'name slug');
 
     console.log(`✅ Producto actualizado exitosamente: ${product.name}`);
 
@@ -438,18 +410,6 @@ exports.uploadProductImages = async (req, res, next) => {
         error: 'Producto no encontrado'
       });
     }
-
-    // Verificar permisos
-    if (
-      product.distributor.toString() !== req.user.id &&
-      req.user.role !== 'admin'
-    ) {
-      return res.status(401).json({
-        success: false,
-        error: 'No está autorizado para actualizar este producto'
-      });
-    }
-
     if (!req.files || !req.files.file) {
       return res.status(400).json({
         success: false,
@@ -514,8 +474,7 @@ exports.uploadProductImages = async (req, res, next) => {
 exports.getProductsByDistributor = async (req, res, next) => {
   try {
     const products = await Product.find({ distributor: req.params.id })
-      .populate('category', 'name slug')
-      .populate('distributor', 'name companyName');
+      .populate('category', 'name slug');
 
     res.status(200).json({
       success: true,

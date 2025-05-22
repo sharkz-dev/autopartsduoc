@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const {
   getAdminStats,
-  getDistributorStats,
   getPublicStats
 } = require('../controllers/stats.controller');
 
@@ -13,6 +12,5 @@ router.get('/public', getPublicStats);
 
 // Rutas privadas
 router.get('/admin', protect, authorize('admin'), getAdminStats);
-router.get('/distributor', protect, authorize('distributor'), getDistributorStats);
 
 module.exports = router;

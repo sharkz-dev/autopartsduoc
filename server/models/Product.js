@@ -24,7 +24,7 @@ const ProductSchema = new mongoose.Schema({
     type: Number,
     min: [0, 'El precio mayorista no puede ser negativo']
   },
-  // Nuevos campos para descuentos
+  // Campos para descuentos
   onSale: {
     type: Boolean,
     default: false
@@ -79,11 +79,6 @@ const ProductSchema = new mongoose.Schema({
   featured: {
     type: Boolean,
     default: false
-  },
-  distributor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Por favor indique el distribuidor']
   },
   ratings: [
     {

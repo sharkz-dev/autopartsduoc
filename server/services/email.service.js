@@ -3,7 +3,7 @@ const nodemailer = require('nodemailer');
 /**
  * Configuración del transporter de nodemailer
  */
-const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransporter({
   service: process.env.EMAIL_SERVICE,
   auth: {
     user: process.env.EMAIL_USERNAME,
@@ -104,10 +104,10 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
         Estado de la Orden: ${order.status}
 
         Dirección de Envío:
-        ${order.shippingAddress.street}
-        ${order.shippingAddress.city}, ${order.shippingAddress.state}
-        ${order.shippingAddress.postalCode}
-        ${order.shippingAddress.country}
+        ${order.shippingAddress?.street || 'Retiro en tienda'}
+        ${order.shippingAddress ? `${order.shippingAddress.city}, ${order.shippingAddress.state}` : ''}
+        ${order.shippingAddress ? `${order.shippingAddress.postalCode}` : ''}
+        ${order.shippingAddress ? `${order.shippingAddress.country}` : ''}
 
         Método de Pago: ${order.paymentMethod}
 
@@ -136,13 +136,18 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
             <p><strong>Estado de la Orden:</strong> ${order.status}</p>
           </div>
           
-          <h3 style="color: #4b5563;">Dirección de Envío</h3>
-          <p>
-            ${order.shippingAddress.street}<br>
-            ${order.shippingAddress.city}, ${order.shippingAddress.state}<br>
-            ${order.shippingAddress.postalCode}<br>
-            ${order.shippingAddress.country}
-          </p>
+          ${order.shippingAddress ? `
+            <h3 style="color: #4b5563;">Dirección de Envío</h3>
+            <p>
+              ${order.shippingAddress.street}<br>
+              ${order.shippingAddress.city}, ${order.shippingAddress.state}<br>
+              ${order.shippingAddress.postalCode}<br>
+              ${order.shippingAddress.country}
+            </p>
+          ` : `
+            <h3 style="color: #4b5563;">Retiro en Tienda</h3>
+            <p>Tu orden está lista para ser retirada en nuestra tienda.</p>
+          `}
           
           <h3 style="color: #4b5563;">Método de Pago</h3>
           <p>${order.paymentMethod}</p>
@@ -205,6 +210,10 @@ exports.sendOrderStatusUpdateEmail = async (order, user) => {
         statusText = 'Tu orden ha sido entregada';
         statusColor = '#047857'; // Verde oscuro
         break;
+      case 'ready_for_pickup':
+        statusText = 'Tu orden está lista para retiro';
+        statusColor = '#10b981'; // Verde
+        break;
       case 'cancelled':
         statusText = 'Tu orden ha sido cancelada';
         statusColor = '#ef4444'; // Rojo
@@ -223,6 +232,7 @@ exports.sendOrderStatusUpdateEmail = async (order, user) => {
         Queremos informarte que el estado de tu orden #${order._id} ha sido actualizado a: ${order.status}.
 
         ${order.status === 'shipped' ? `Tu orden está en camino y será entregada pronto.` : ''}
+        ${order.status === 'ready_for_pickup' ? `Tu orden está lista para ser retirada en nuestra tienda.` : ''}
         ${order.status === 'delivered' ? `Tu orden ha sido entregada. ¡Gracias por tu compra!` : ''}
         ${order.status === 'cancelled' ? `Lamentamos que hayas cancelado tu orden. Si tienes alguna pregunta, no dudes en contactarnos.` : ''}
 
@@ -240,6 +250,11 @@ exports.sendOrderStatusUpdateEmail = async (order, user) => {
           ${order.status === 'shipped' ? `
             <p>Tu orden está en camino y será entregada pronto.</p>
             ${order.trackingNumber ? `<p>Número de seguimiento: <strong>${order.trackingNumber}</strong></p>` : ''}
+          ` : ''}
+          
+          ${order.status === 'ready_for_pickup' ? `
+            <p>Tu orden está lista para ser retirada en nuestra tienda.</p>
+            <p>Por favor, acércate durante nuestro horario de atención con tu número de orden.</p>
           ` : ''}
           
           ${order.status === 'delivered' ? `
@@ -263,94 +278,6 @@ exports.sendOrderStatusUpdateEmail = async (order, user) => {
     return await exports.sendEmail(options);
   } catch (error) {
     console.error('Error al enviar email de actualización de estado:', error);
-  }
-};
-
-/**
- * Envía un email de notificación a distribuidor por nueva orden
- * @param {Object} order - Orden creada
- * @param {Object} distributor - Distribuidor que debe recibir la notificación
- * @param {Array} items - Items específicos de este distribuidor en la orden
- */
-exports.sendDistributorOrderNotification = async (order, distributor, items) => {
-  try {
-    const itemsList = items.map(item => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.product.name}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.product.sku || 'N/A'}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${item.quantity}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">$${item.price.toFixed(2)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">$${(item.price * item.quantity).toFixed(2)}</td>
-      </tr>
-    `).join('');
-
-    // Calcular el subtotal para este distribuidor
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    const options = {
-      to: distributor.email,
-      subject: `AutoRepuestos - Nueva Orden #${order._id}`,
-      text: `
-        Hola ${distributor.name},
-
-        Has recibido una nueva orden en AutoRepuestos. A continuación los detalles:
-
-        Número de Orden: ${order._id}
-        Fecha: ${new Date(order.createdAt).toLocaleString()}
-        
-        Productos solicitados:
-        ${items.map(item => `${item.product.name} (SKU: ${item.product.sku || 'N/A'}) x ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`).join('\n')}
-
-        Subtotal de tus productos: $${subtotal.toFixed(2)}
-
-        Por favor, procesa esta orden lo antes posible. Puedes actualizar el estado de la orden en tu panel de control.
-
-        Saludos,
-        El equipo de AutoRepuestos
-      `,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #3b82f6;">Nueva Orden Recibida</h2>
-          <p>Hola ${distributor.name},</p>
-          <p>Has recibido una nueva orden en AutoRepuestos. A continuación los detalles:</p>
-          
-          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 15px 0;">
-            <p><strong>Número de Orden:</strong> ${order._id}</p>
-            <p><strong>Fecha:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
-          </div>
-          
-          <h3 style="color: #4b5563;">Productos Solicitados</h3>
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background-color: #f3f4f6;">
-                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Producto</th>
-                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">SKU</th>
-                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Cantidad</th>
-                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Precio</th>
-                <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsList}
-            </tbody>
-          </table>
-          
-          <div style="margin-top: 20px; text-align: right;">
-            <p style="font-size: 18px; color: #3b82f6;"><strong>Subtotal de tus productos:</strong> $${subtotal.toFixed(2)}</p>
-          </div>
-          
-          <div style="margin-top: 20px; padding: 15px; background-color: #f3f4f6; border-radius: 5px;">
-            <p style="margin: 0;">Por favor, procesa esta orden lo antes posible. Puedes actualizar el estado de la orden en tu panel de control.</p>
-          </div>
-          
-          <p style="margin-top: 20px;">Saludos,<br>El equipo de AutoRepuestos</p>
-        </div>
-      `
-    };
-
-    return await exports.sendEmail(options);
-  } catch (error) {
-    console.error('Error al enviar notificación a distribuidor:', error);
   }
 };
 

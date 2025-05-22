@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role, companyName, address, phone } = req.body;
+    const { name, email, password, role, address, phone } = req.body;
 
     // Verificar si el usuario ya existe
     let user = await User.findOne({ email });
@@ -25,7 +25,6 @@ exports.register = async (req, res, next) => {
       email,
       password,
       role,
-      companyName,
       address,
       phone
     });
@@ -121,9 +120,6 @@ exports.updateDetails = async (req, res, next) => {
 
     if (req.body.address) fieldsToUpdate.address = req.body.address;
     if (req.body.phone) fieldsToUpdate.phone = req.body.phone;
-    if (req.body.companyName && req.user.role === 'distributor') {
-      fieldsToUpdate.companyName = req.body.companyName;
-    }
 
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
       new: true,
@@ -201,8 +197,7 @@ const sendTokenResponse = (user, statusCode, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
-        companyName: user.companyName || null
+        role: user.role
       }
     });
 };

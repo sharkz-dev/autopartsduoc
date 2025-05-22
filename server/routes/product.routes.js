@@ -7,8 +7,6 @@ const {
   updateProduct,
   deleteProduct,
   uploadProductImages,
-  getProductsByDistributor,
-  getMyProducts,
   addProductRating,
   getProductsOnSale,
   getProductRatings
@@ -25,39 +23,30 @@ router.get('/', getProducts);
 // Obtener productos en oferta - DEBE ir antes de /:slug
 router.get('/on-sale', getProductsOnSale);
 
-// ============ RUTAS PRIVADAS CON PATRONES ESPECÍFICOS ============
-// Estas también DEBEN ir antes de /:slug para evitar conflictos
-
-// Obtener productos del distribuidor actual - DEBE ir antes de /:slug  
-router.get('/my/products', protect, authorize('distributor', 'admin'), getMyProducts);
-
-// Obtener productos por distribuidor específico - DEBE ir antes de /:slug
-router.get('/distributor/:id', getProductsByDistributor);
-
 // ============ RUTAS DE CREACIÓN ============
-// Crear nuevo producto
-router.post('/', protect, authorize('distributor', 'admin'), createProduct);
+// Crear nuevo producto (solo admin)
+router.post('/', protect, authorize('admin'), createProduct);
 
 // ============ RUTAS CON SLUGS/IDs DINÁMICOS (AL FINAL) ============
 // CRÍTICO: Estas rutas deben ir AL FINAL para evitar que capturen 
-// las rutas específicas de arriba como "on-sale", "my", "distributor"
+// las rutas específicas de arriba como "on-sale"
 
 // Obtener un producto específico por slug o ID
 router.get('/:slug', getProduct);
 
-// Actualizar producto por slug o ID
-router.put('/:slug', protect, authorize('distributor', 'admin'), updateProduct);
+// Actualizar producto por slug o ID (solo admin)
+router.put('/:slug', protect, authorize('admin'), updateProduct);
 
-// Eliminar producto por slug o ID  
-router.delete('/:slug', protect, authorize('distributor', 'admin'), deleteProduct);
+// Eliminar producto por slug o ID (solo admin)
+router.delete('/:slug', protect, authorize('admin'), deleteProduct);
 
-// Subir imágenes de producto por slug o ID
-router.put('/:slug/images', protect, authorize('distributor', 'admin'), uploadProductImages);
+// Subir imágenes de producto por slug o ID (solo admin)
+router.put('/:slug/images', protect, authorize('admin'), uploadProductImages);
 
 // Obtener valoraciones de producto por slug o ID
 router.get('/:slug/ratings', getProductRatings);
 
-// Añadir valoración a producto por slug o ID
+// Añadir valoración a producto por slug o ID (solo clientes)
 router.post('/:slug/ratings', protect, authorize('client'), addProductRating);
 
 module.exports = router;

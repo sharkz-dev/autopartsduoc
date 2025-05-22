@@ -50,13 +50,6 @@ import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminDistributorsPage from './pages/admin/AdminDistributorsPage';
 
-// Páginas de distribuidor
-import DistributorDashboardPage from './pages/distributor/DistributorDashboardPage';
-import DistributorProductsPage from './pages/distributor/DistributorProductsPage';
-import DistributorAddProductPage from './pages/distributor/DistributorAddProductPage';
-import DistributorEditProductPage from './pages/distributor/DistributorEditProductPage';
-import DistributorOrdersPage from './pages/distributor/DistributorOrdersPage';
-import DistributorProfilePage from './pages/distributor/DistributorProfilePage';
 
 function App() {
   return (
@@ -75,7 +68,6 @@ function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="register" element={<RegisterPage />} />
-            <Route path="register-distributor" element={<RegisterDistributorPage />} />
             <Route path="/checkout" element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
 <Route path="/order-confirmation/:orderId" element={<PrivateRoute><OrderConfirmationPage /></PrivateRoute>} />
 <Route path="/payment/success" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
@@ -108,20 +100,6 @@ function App() {
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="distributors" element={<AdminDistributorsPage />} />
-          </Route>
-
-          {/* Rutas de distribuidor */}
-          <Route path="/distributor" element={
-            <PrivateRoute allowedRoles={['distributor']}>
-              <DistributorLayout />
-            </PrivateRoute>
-          }>
-            <Route index element={<DistributorDashboardPage />} />
-            <Route path="products" element={<DistributorProductsPage />} />
-            <Route path="product/add" element={<DistributorAddProductPage />} />
-            <Route path="product/edit/:id" element={<DistributorEditProductPage />} />
-            <Route path="orders" element={<DistributorOrdersPage />} />
-            <Route path="profile" element={<DistributorProfilePage />} />
           </Route>
         </Routes>
       </CartProvider>
