@@ -77,7 +77,10 @@ export const productService = {
   getMyProducts: () => api.get('/products/my/products'),
   getProductsByDistributor: (id) => api.get(`/products/distributor/${id}`),
   addProductRating: (id, ratingData) => api.post(`/products/${id}/ratings`, ratingData),
-  getProductsOnSale: (params) => api.get('/products/on-sale', { params })
+  getProductsOnSale: (params) => api.get('/products/on-sale', { params }),
+  // Nuevas funciones para valoraciones
+  getProductReviews: (id) => api.get(`/products/${id}/ratings`),
+  addProductReview: (id, reviewData) => api.post(`/products/${id}/ratings`, reviewData)
 };
 
 // Servicios de categorías

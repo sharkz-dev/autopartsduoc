@@ -96,6 +96,7 @@ const ProductSchema = new mongoose.Schema({
         max: 5
       },
       comment: String,
+      userName: String, // Campo agregado para almacenar nombres de usuario personalizados
       date: {
         type: Date,
         default: Date.now

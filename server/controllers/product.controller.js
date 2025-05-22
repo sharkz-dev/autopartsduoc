@@ -445,12 +445,69 @@ exports.getMyProducts = async (req, res, next) => {
   }
 };
 
+// @desc    Obtener valoraciones de un producto
+// @route   GET /api/products/:id/ratings
+// @access  Public
+exports.getProductRatings = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'Producto no encontrado'
+      });
+    }
+
+    // Obtener las valoraciones con información de usuario
+    const ratings = await Promise.all(
+      product.ratings.map(async (rating) => {
+        // Por seguridad, no enviamos información sensible del usuario
+        // Solo obtenemos el nombre para mostrar
+        let userName = 'Usuario';
+        if (rating.user) {
+          try {
+            const user = await User.findById(rating.user).select('name');
+            if (user) {
+              userName = user.name;
+            }
+          } catch (err) {
+            console.error('Error al obtener usuario para la valoración:', err);
+          }
+        }
+
+        return {
+          _id: rating._id,
+          rating: rating.rating,
+          comment: rating.comment,
+          userName: rating.userName || userName, // Usar nombre personalizado si se proporcionó
+          createdAt: rating.date
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      data: ratings
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // @desc    Añadir una valoración a un producto
 // @route   POST /api/products/:id/ratings
 // @access  Private (clientes)
 exports.addProductRating = async (req, res, next) => {
   try {
-    const { rating, comment } = req.body;
+    const { rating, comment, userName } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'La valoración debe estar entre 1 y 5'
+      });
+    }
 
     const product = await Product.findById(req.params.id);
 
@@ -463,16 +520,17 @@ exports.addProductRating = async (req, res, next) => {
 
     // Verificar si el usuario ya hizo una valoración
     const alreadyRated = product.ratings.find(
-      r => r.user.toString() === req.user.id
+      r => r.user && r.user.toString() === req.user.id
     );
 
     if (alreadyRated) {
       // Actualizar valoración existente
-      product.ratings.forEach(rating => {
-        if (rating.user.toString() === req.user.id) {
-          rating.rating = Number(rating);
-          rating.comment = comment;
-          rating.date = Date.now();
+      product.ratings.forEach(r => {
+        if (r.user && r.user.toString() === req.user.id) {
+          r.rating = Number(rating);
+          r.comment = comment;
+          r.userName = userName; // Guardar nombre personalizado si se proporciona
+          r.date = Date.now();
         }
       });
     } else {
@@ -481,6 +539,7 @@ exports.addProductRating = async (req, res, next) => {
         user: req.user.id,
         rating: Number(rating),
         comment,
+        userName, // Guardar nombre personalizado si se proporciona
         date: Date.now()
       });
     }
@@ -492,7 +551,7 @@ exports.addProductRating = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: product
+      data: product.ratings
     });
   } catch (err) {
     next(err);
