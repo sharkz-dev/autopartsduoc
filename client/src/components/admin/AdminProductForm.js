@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { categoryService, productService, userService } from '../../services/api';
+import { categoryService, productService } from '../../services/api';
 import { 
   XMarkIcon, 
   ArrowUpTrayIcon,
@@ -21,38 +21,31 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
     sku: '',
     partNumber: '',
     featured: false,
-    distributor: '',
     compatibleModels: [],
     images: [],
     onSale: false,
-  discountPercentage: '',
-  salePrice: '',
-  saleEndDate: ''
+    discountPercentage: '',
+    salePrice: '',
+    saleEndDate: ''
   });
   
   const [categories, setCategories] = useState([]);
-  const [distributors, setDistributors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [uploadedImages, setUploadedImages] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
   const [tempCompatibleModel, setTempCompatibleModel] = useState({ make: '', model: '', year: '' });
   
-  // Cargar categorías y distribuidores
+  // Cargar categorías
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Cargar categorías
         const categoriesResponse = await categoryService.getCategories();
         setCategories(categoriesResponse.data.data);
-        
-        // Cargar distribuidores
-        const usersResponse = await userService.getUsers();
-        const distributorsList = usersResponse.data.data.filter(user => user.role === 'distributor');
-        setDistributors(distributorsList);
       } catch (err) {
         console.error('Error al cargar datos iniciales:', err);
-        setError('Error al cargar categorías o distribuidores. Por favor, intente de nuevo más tarde.');
+        setError('Error al cargar categorías. Por favor, intente de nuevo más tarde.');
       }
     };
     
@@ -64,7 +57,7 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
     if (isEditing && product) {
       const { 
         name, description, price, wholesalePrice, stockQuantity, 
-        category, brand, sku, partNumber, featured, distributor, 
+        category, brand, sku, partNumber, featured, 
         compatibleModels, images 
       } = product;
       
@@ -79,70 +72,69 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
         sku: sku || '',
         partNumber: partNumber || '',
         featured: featured || false,
-        distributor: distributor?._id || distributor || '',
         compatibleModels: compatibleModels || [],
         images: images || [],
-              onSale: product.onSale || false,
-      discountPercentage: product.discountPercentage || '',
-      salePrice: product.salePrice || '',
-      saleEndDate: product.saleEndDate ? product.saleEndDate.split('T')[0] : ''
+        onSale: product.onSale || false,
+        discountPercentage: product.discountPercentage || '',
+        salePrice: product.salePrice || '',
+        saleEndDate: product.saleEndDate ? product.saleEndDate.split('T')[0] : ''
       });
       
       // Mostrar imágenes existentes
-if (images && images.length > 0) {
-      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      
-      setUploadedImages(
-        images.map((image, index) => {
-          // Construir la URL correcta para la imagen
-          let imageUrl = '';
-          if (image.startsWith('http://') || image.startsWith('https://')) {
-            imageUrl = image;
-          } else if (image.startsWith('/uploads/')) {
-            imageUrl = `${baseURL}${image}`;
-          } else {
-            imageUrl = `${baseURL}/uploads/${image}`;
-          }
-          
-          return {
-            id: `existing-${index}`,
-            name: image,
-            preview: imageUrl,
-            existing: true
-          };
-        })
-      );
+      if (images && images.length > 0) {
+        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        
+        setUploadedImages(
+          images.map((image, index) => {
+            // Construir la URL correcta para la imagen
+            let imageUrl = '';
+            if (image.startsWith('http://') || image.startsWith('https://')) {
+              imageUrl = image;
+            } else if (image.startsWith('/uploads/')) {
+              imageUrl = `${baseURL}${image}`;
+            } else {
+              imageUrl = `${baseURL}/uploads/${image}`;
+            }
+            
+            return {
+              id: `existing-${index}`,
+              name: image,
+              preview: imageUrl,
+              existing: true
+            };
+          })
+        );
+      }
     }
-  }
-}, [isEditing, product]);
+  }, [isEditing, product]);
   
   // Manejar cambios en formulario
   const handleChange = (e) => {
-  const { name, value, type, checked } = e.target;
-  
-  let newFormData = {
-    ...formData,
-    [name]: type === 'checkbox' ? checked : value
-  };
-  
-  // Calcular precio de oferta automáticamente
-  if ((name === 'price' || name === 'discountPercentage') && newFormData.onSale) {
-    const price = parseFloat(newFormData.price) || 0;
-    const discount = parseFloat(newFormData.discountPercentage) || 0;
-    if (price > 0 && discount > 0) {
-      newFormData.salePrice = Math.round(price * (1 - discount / 100));
+    const { name, value, type, checked } = e.target;
+    
+    let newFormData = {
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    };
+    
+    // Calcular precio de oferta automáticamente
+    if ((name === 'price' || name === 'discountPercentage') && newFormData.onSale) {
+      const price = parseFloat(newFormData.price) || 0;
+      const discount = parseFloat(newFormData.discountPercentage) || 0;
+      if (price > 0 && discount > 0) {
+        newFormData.salePrice = Math.round(price * (1 - discount / 100));
+      }
     }
-  }
-  
-  // Si se desmarca la oferta, limpiar campos relacionados
-  if (name === 'onSale' && !checked) {
-    newFormData.discountPercentage = '';
-    newFormData.salePrice = '';
-    newFormData.saleEndDate = '';
-  }
-  
-  setFormData(newFormData);
-};
+    
+    // Si se desmarca la oferta, limpiar campos relacionados
+    if (name === 'onSale' && !checked) {
+      newFormData.discountPercentage = '';
+      newFormData.salePrice = '';
+      newFormData.saleEndDate = '';
+    }
+    
+    setFormData(newFormData);
+  };
   
   // Manejar cambios en modelo compatible temporal
   const handleCompatibleModelChange = (e) => {
@@ -257,23 +249,9 @@ if (images && images.length > 0) {
     return uploadedImageNames;
   };
   
-  // Validar formulario
-  const validateForm = () => {
-    if (!formData.distributor) {
-      setError('Debe seleccionar un distribuidor para el producto');
-      return false;
-    }
-    return true;
-  };
-  
   // Enviar formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validar formulario
-    if (!validateForm()) {
-      return;
-    }
     
     setLoading(true);
     setError('');
@@ -326,30 +304,8 @@ if (images && images.length > 0) {
         <h2 className="text-lg font-medium text-gray-900 mb-4">Información básica del producto</h2>
         
         <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-          {/* Seleccionar distribuidor */}
-          <div className="sm:col-span-3">
-            <label htmlFor="distributor" className="block text-sm font-medium text-gray-700">
-              Distribuidor *
-            </label>
-            <select
-              id="distributor"
-              name="distributor"
-              value={formData.distributor}
-              onChange={handleChange}
-              required
-              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-              <option value="">Seleccionar distribuidor</option>
-              {distributors.map((distributor) => (
-                <option key={distributor._id} value={distributor._id}>
-                  {distributor.companyName || distributor.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
           {/* Categoría */}
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-6">
             <label htmlFor="category" className="block text-sm font-medium text-gray-700">
               Categoría *
             </label>
@@ -502,7 +458,6 @@ if (images && images.length > 0) {
             </div>
             <p className="mt-1 text-xs text-gray-500">Dejar en blanco para usar el precio regular en B2B</p>
           </div>
-      
 
           {/* Stock */}
           <div className="sm:col-span-2">
@@ -522,106 +477,106 @@ if (images && images.length > 0) {
             />
           </div>
           
-{/* Producto en oferta */}
-<div className="sm:col-span-6">
-  <div className="flex items-start">
-    <div className="flex items-center h-5">
-      <input
-        id="onSale"
-        name="onSale"
-        type="checkbox"
-        checked={formData.onSale}
-        onChange={handleChange}
-        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-      />
-    </div>
-    <div className="ml-3 text-sm">
-      <label htmlFor="onSale" className="font-medium text-gray-700">
-        Producto en oferta
-      </label>
-      <p className="text-gray-500">
-        Marque esta opción si el producto está en oferta con descuento.
-      </p>
-    </div>
-  </div>
-</div>
+          {/* Producto en oferta */}
+          <div className="sm:col-span-6">
+            <div className="flex items-start">
+              <div className="flex items-center h-5">
+                <input
+                  id="onSale"
+                  name="onSale"
+                  type="checkbox"
+                  checked={formData.onSale}
+                  onChange={handleChange}
+                  className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                />
+              </div>
+              <div className="ml-3 text-sm">
+                <label htmlFor="onSale" className="font-medium text-gray-700">
+                  Producto en oferta
+                </label>
+                <p className="text-gray-500">
+                  Marque esta opción si el producto está en oferta con descuento.
+                </p>
+              </div>
+            </div>
+          </div>
 
-{/* Porcentaje de descuento - Solo mostrar si está en oferta */}
-{formData.onSale && (
-  <div className="sm:col-span-2">
-    <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700">
-      Porcentaje de Descuento *
-    </label>
-    <div className="mt-1 relative rounded-md shadow-sm">
-      <input
-        type="number"
-        name="discountPercentage"
-        id="discountPercentage"
-        value={formData.discountPercentage}
-        onChange={handleChange}
-        required={formData.onSale}
-        min="1"
-        max="100"
-        step="1"
-        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
-        placeholder="0"
-      />
-      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-        <span className="text-gray-500 sm:text-sm">%</span>
-      </div>
-    </div>
-  </div>
-)}
+          {/* Porcentaje de descuento - Solo mostrar si está en oferta */}
+          {formData.onSale && (
+            <div className="sm:col-span-2">
+              <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700">
+                Porcentaje de Descuento *
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <input
+                  type="number"
+                  name="discountPercentage"
+                  id="discountPercentage"
+                  value={formData.discountPercentage}
+                  onChange={handleChange}
+                  required={formData.onSale}
+                  min="1"
+                  max="100"
+                  step="1"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="0"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">%</span>
+                </div>
+              </div>
+            </div>
+          )}
 
-{/* Precio de oferta - Solo mostrar si está en oferta */}
-{formData.onSale && (
-  <div className="sm:col-span-2">
-    <label htmlFor="salePrice" className="block text-sm font-medium text-gray-700">
-      Precio de Oferta
-    </label>
-    <div className="mt-1 relative rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <span className="text-gray-500 sm:text-sm">$</span>
-      </div>
-      <input
-        type="number"
-        name="salePrice"
-        id="salePrice"
-        value={formData.salePrice}
-        onChange={handleChange}
-        min="0"
-        step="1"
-        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-        placeholder="0"
-        readOnly
-      />
-      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-        <span className="text-gray-500 sm:text-sm">CLP</span>
-      </div>
-    </div>
-    <p className="mt-1 text-xs text-gray-500">
-      Se calcula automáticamente basado en el precio y porcentaje de descuento
-    </p>
-  </div>
-)}
+          {/* Precio de oferta - Solo mostrar si está en oferta */}
+          {formData.onSale && (
+            <div className="sm:col-span-2">
+              <label htmlFor="salePrice" className="block text-sm font-medium text-gray-700">
+                Precio de Oferta
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">$</span>
+                </div>
+                <input
+                  type="number"
+                  name="salePrice"
+                  id="salePrice"
+                  value={formData.salePrice}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                  placeholder="0"
+                  readOnly
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">CLP</span>
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Se calcula automáticamente basado en el precio y porcentaje de descuento
+              </p>
+            </div>
+          )}
 
-{/* Fecha de fin de oferta - Solo mostrar si está en oferta */}
-{formData.onSale && (
-  <div className="sm:col-span-2">
-    <label htmlFor="saleEndDate" className="block text-sm font-medium text-gray-700">
-      Fecha de Fin de Oferta
-    </label>
-    <input
-      type="date"
-      name="saleEndDate"
-      id="saleEndDate"
-      value={formData.saleEndDate}
-      onChange={handleChange}
-      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-    />
-    <p className="mt-1 text-xs text-gray-500">Opcional. Dejar vacío para oferta sin fecha límite</p>
-  </div>
-)}
+          {/* Fecha de fin de oferta - Solo mostrar si está en oferta */}
+          {formData.onSale && (
+            <div className="sm:col-span-2">
+              <label htmlFor="saleEndDate" className="block text-sm font-medium text-gray-700">
+                Fecha de Fin de Oferta
+              </label>
+              <input
+                type="date"
+                name="saleEndDate"
+                id="saleEndDate"
+                value={formData.saleEndDate}
+                onChange={handleChange}
+                className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              />
+              <p className="mt-1 text-xs text-gray-500">Opcional. Dejar vacío para oferta sin fecha límite</p>
+            </div>
+          )}
 
           {/* Producto destacado */}
           <div className="sm:col-span-6">
@@ -765,60 +720,60 @@ if (images && images.length > 0) {
           </div>
         </div>
         
-{/* Vista previa de imágenes */}
-{uploadedImages.length > 0 && (
-  <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-    {uploadedImages.map((image) => (
-      <div key={image.id} className="relative group">
-        <div className="aspect-w-1 aspect-h-1 rounded-md overflow-hidden bg-gray-100">
-          <img
-            src={image.preview}
-            alt={image.name}
-            className="object-cover w-full h-32"
-            onError={(e) => {
-              console.error('Error cargando imagen:', e.target.src);
-              // Intentar con diferentes rutas
-              if (!e.target.dataset.retried) {
-                e.target.dataset.retried = 'true';
-                // Si la imagen no carga, intentar con /uploads/
-                if (!e.target.src.includes('/uploads/')) {
-                  e.target.src = `/uploads/${image.name}`;
-                } else {
-                  // Si aún falla, mostrar placeholder
-                  e.target.src = 'https://via.placeholder.com/150?text=Error';
-                }
-              }
-            }}
-          />
-          
-          {/* Barra de progreso */}
-          {uploadProgress[image.id] !== undefined && uploadProgress[image.id] < 100 && (
-            <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-              <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
-                <div 
-                  className="bg-indigo-600 h-full rounded-full transition-all duration-300" 
-                  style={{ width: `${uploadProgress[image.id]}%` }}
-                ></div>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Botón para eliminar imagen */}
-        <button
-          type="button"
-          onClick={() => removeImage(image.id)}
-          className="absolute top-1 right-1 bg-red-100 text-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
-        >
-          <XMarkIcon className="h-5 w-5" />
-        </button>
-        
-        {/* Etiqueta de imagen principal */}
-        {uploadedImages.indexOf(image) === 0 && (
-          <div className="absolute top-1 left-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
-            Principal
-          </div>
-        )}
+        {/* Vista previa de imágenes */}
+        {uploadedImages.length > 0 && (
+          <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {uploadedImages.map((image) => (
+              <div key={image.id} className="relative group">
+                <div className="aspect-w-1 aspect-h-1 rounded-md overflow-hidden bg-gray-100">
+                  <img
+                    src={image.preview}
+                    alt={image.name}
+                    className="object-cover w-full h-32"
+                    onError={(e) => {
+                      console.error('Error cargando imagen:', e.target.src);
+                      // Intentar con diferentes rutas
+                      if (!e.target.dataset.retried) {
+                        e.target.dataset.retried = 'true';
+                        // Si la imagen no carga, intentar con /uploads/
+                        if (!e.target.src.includes('/uploads/')) {
+                          e.target.src = `/uploads/${image.name}`;
+                        } else {
+                          // Si aún falla, mostrar placeholder
+                          e.target.src = 'https://via.placeholder.com/150?text=Error';
+                        }
+                      }
+                    }}
+                  />
+                  
+                  {/* Barra de progreso */}
+                  {uploadProgress[image.id] !== undefined && uploadProgress[image.id] < 100 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
+                      <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-indigo-600 h-full rounded-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress[image.id]}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Botón para eliminar imagen */}
+                <button
+                  type="button"
+                  onClick={() => removeImage(image.id)}
+                  className="absolute top-1 right-1 bg-red-100 text-red-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+                
+                {/* Etiqueta de imagen principal */}
+                {uploadedImages.indexOf(image) === 0 && (
+                  <div className="absolute top-1 left-1 bg-indigo-600 text-white text-xs px-2 py-1 rounded">
+                    Principal
+                  </div>
+                )}
               </div>
             ))}
           </div>

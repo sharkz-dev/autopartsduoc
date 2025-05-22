@@ -58,7 +58,6 @@ const ProductCard = ({ product }) => {
         )}
       </div>
       
-      {/* CAMBIO PRINCIPAL: Usar slug en lugar de _id */}
       <Link to={`/product/${product.slug || product._id}`} className="block">
         <div className="h-48 overflow-hidden bg-gray-100">
           <img 
@@ -123,7 +122,7 @@ const ProductCard = ({ product }) => {
           
           <div className="mt-3 flex justify-between items-center">
             <span className="text-xs text-gray-500 truncate max-w-[60%]">
-              Distribuidor: {product.distributor?.companyName || 'N/A'}
+              SKU: {product.sku}
             </span>
             
             <button

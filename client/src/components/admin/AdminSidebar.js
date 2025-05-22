@@ -7,7 +7,6 @@ import {
   UserGroupIcon, 
   TagIcon, 
   ShoppingBagIcon,
-  BuildingStorefrontIcon,
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
@@ -25,7 +24,6 @@ const AdminSidebar = () => {
     { name: 'Categorías', href: '/admin/categories', icon: TagIcon },
     { name: 'Pedidos', href: '/admin/orders', icon: ShoppingBagIcon },
     { name: 'Usuarios', href: '/admin/users', icon: UserGroupIcon },
-    { name: 'Distribuidores', href: '/admin/distributors', icon: BuildingStorefrontIcon },
   ];
 
   const isActive = (path) => {

@@ -8,7 +8,6 @@ import {
   Bars3Icon, 
   XMarkIcon,
   ChevronDownIcon,
-  BuildingStorefrontIcon,
   CogIcon,
   PhoneIcon,
   EnvelopeIcon,
@@ -26,11 +25,11 @@ const Header = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // NUEVO: Estados para manejar la validación del usuario
+  // Estados para manejar la validación del usuario
   const [userValidated, setUserValidated] = useState(false);
   const [userError, setUserError] = useState(false);
 
-  // NUEVO: Efecto para validar usuario y manejar casos edge
+  // Efecto para validar usuario y manejar casos edge
   useEffect(() => {
     if (!loading) {
       if (isAuthenticated && user) {
@@ -88,7 +87,7 @@ const Header = () => {
   };
 
   const redirectToDashboard = () => {
-    // VALIDACIÓN MEJORADA: Verificar que user existe antes de acceder a role
+    // Verificar que user existe antes de acceder a role
     if (!user) {
       console.error('❌ No se puede redirigir: usuario no disponible');
       return;
@@ -96,8 +95,6 @@ const Header = () => {
 
     if (user.role === 'admin') {
       navigate('/admin');
-    } else if (user.role === 'distributor') {
-      navigate('/distributor');
     }
     setIsUserMenuOpen(false);
     setIsMenuOpen(false);
@@ -106,28 +103,26 @@ const Header = () => {
   // Verificar si la ruta actual coincide con la del link
   const isActive = (path) => location.pathname === path;
 
-  // NUEVO: Función para obtener el nombre del usuario de forma segura
+  // Función para obtener el nombre del usuario de forma segura
   const getUserName = () => {
     if (!user || !user.name) return 'Usuario';
     return user.name.split(' ')[0] || 'Usuario';
   };
 
-  // NUEVO: Función para obtener el rol del usuario de forma segura
+  // Función para obtener el rol del usuario de forma segura
   const getUserRole = () => {
     if (!user || !user.role) return 'Cliente';
     
     switch (user.role) {
       case 'admin':
         return 'Administrador';
-      case 'distributor':
-        return 'Distribuidor';
       case 'client':
       default:
         return 'Cliente';
     }
   };
 
-  // NUEVO: Si hay un error de usuario, mostrar un mensaje de carga o error
+  // Si hay un error de usuario, mostrar un mensaje de carga o error
   if (userError) {
     return (
       <header className="bg-red-600 text-white py-2">
@@ -193,7 +188,6 @@ const Header = () => {
               {[
                 { path: '/', label: 'Inicio', icon: <HomeIcon className="h-4 w-4 mr-1" /> },
                 { path: '/catalog', label: 'Catálogo', icon: <TagIcon className="h-4 w-4 mr-1" /> },
-                { path: '/distributors', label: 'Distribuidores', icon: <BuildingStorefrontIcon className="h-4 w-4 mr-1" /> },
                 { path: '/about', label: 'Nosotros' },
                 { path: '/contact', label: 'Contacto' }
               ].map(item => (
@@ -289,23 +283,14 @@ const Header = () => {
                         </Link>
                       </div>
                       
-                      {user && (user.role === 'admin' || user.role === 'distributor') && (
+                      {user && user.role === 'admin' && (
                         <div className="py-1 border-t border-gray-100">
                           <button
                             onClick={redirectToDashboard}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
                           >
-                            {user.role === 'admin' ? (
-                              <>
-                                <CogIcon className="h-4 w-4 mr-2 text-blue-600" />
-                                Panel de Administración
-                              </>
-                            ) : (
-                              <>
-                                <BuildingStorefrontIcon className="h-4 w-4 mr-2 text-blue-600" />
-                                Panel de Distribuidor
-                              </>
-                            )}
+                            <CogIcon className="h-4 w-4 mr-2 text-blue-600" />
+                            Panel de Administración
                           </button>
                         </div>
                       )}
@@ -369,7 +354,6 @@ const Header = () => {
               {[
                 { path: '/', label: 'Inicio', icon: <HomeIcon className="h-5 w-5 mr-2" /> },
                 { path: '/catalog', label: 'Catálogo', icon: <TagIcon className="h-5 w-5 mr-2" /> },
-                { path: '/distributors', label: 'Distribuidores', icon: <BuildingStorefrontIcon className="h-5 w-5 mr-2" /> },
                 { path: '/about', label: 'Nosotros', icon: <UserIcon className="h-5 w-5 mr-2" /> },
                 { path: '/contact', label: 'Contacto', icon: <EnvelopeIcon className="h-5 w-5 mr-2" /> }
               ].map(item => (
@@ -438,22 +422,13 @@ const Header = () => {
                         Mis Pedidos
                       </Link>
                       
-                      {user && (user.role === 'admin' || user.role === 'distributor') && (
+                      {user && user.role === 'admin' && (
                         <button
                           onClick={redirectToDashboard}
                           className="w-full text-left flex items-center py-2 px-3 rounded-md hover:bg-blue-600/40 transition-colors"
                         >
-                          {user.role === 'admin' ? (
-                            <>
-                              <CogIcon className="h-5 w-5 mr-2" />
-                              Panel de Administración
-                            </>
-                          ) : (
-                            <>
-                              <BuildingStorefrontIcon className="h-5 w-5 mr-2" />
-                              Panel de Distribuidor
-                            </>
-                          )}
+                          <CogIcon className="h-5 w-5 mr-2" />
+                          Panel de Administración
                         </button>
                       )}
                       

@@ -10,7 +10,6 @@ import { CartProvider } from './context/CartContext';
 // Layouts
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
-import DistributorLayout from './layouts/DistributorLayout';
 
 // Rutas protegidas
 import PrivateRoute from './components/routing/PrivateRoute';
@@ -21,17 +20,14 @@ import CatalogPage from './pages/public/CatalogPage';
 import ProductDetailsPage from './pages/public/ProductDetailsPage';
 import CartPage from './pages/public/CartPage';
 import CheckoutPage from './pages/public/CheckoutPage';
-import DistributorListPage from './pages/public/DistributorListPage';
 import AboutPage from './pages/public/AboutPage';
 import ContactPage from './pages/public/ContactPage';
 import NotFoundPage from './pages/public/NotFoundPage';
 import UnauthorizedPage from './pages/public/UnauthorizedPage';
 
-
 // Páginas de autenticación
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import RegisterDistributorPage from './pages/auth/RegisterDistributorPage';
 
 // Páginas de cliente
 import ProfilePage from './pages/client/ProfilePage';
@@ -48,8 +44,6 @@ import AdminAddCategoryPage from './pages/admin/AdminAddCategoryPage';
 import AdminEditCategoryPage from './pages/admin/AdminEditCategoryPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminDistributorsPage from './pages/admin/AdminDistributorsPage';
-
 
 function App() {
   return (
@@ -62,17 +56,16 @@ function App() {
             <Route path="catalog" element={<CatalogPage />} />
             <Route path="product/:id" element={<ProductDetailsPage />} />
             <Route path="cart" element={<CartPage />} />
-            <Route path="distributors" element={<DistributorListPage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="/checkout" element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
-<Route path="/order-confirmation/:orderId" element={<PrivateRoute><OrderConfirmationPage /></PrivateRoute>} />
-<Route path="/payment/success" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
-<Route path="/payment/failure" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
-<Route path="/payment/pending" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
+            <Route path="/order-confirmation/:orderId" element={<PrivateRoute><OrderConfirmationPage /></PrivateRoute>} />
+            <Route path="/payment/success" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
+            <Route path="/payment/failure" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
+            <Route path="/payment/pending" element={<PrivateRoute><PaymentReturnPage /></PrivateRoute>} />
             <Route path="*" element={<NotFoundPage />} />
             
             {/* Rutas protegidas para cualquier usuario autenticado */}
@@ -99,7 +92,6 @@ function App() {
             <Route path="categories/edit/:id" element={<AdminEditCategoryPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="users" element={<AdminUsersPage />} />
-            <Route path="distributors" element={<AdminDistributorsPage />} />
           </Route>
         </Routes>
       </CartProvider>

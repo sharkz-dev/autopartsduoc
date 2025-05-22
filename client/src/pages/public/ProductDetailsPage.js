@@ -12,7 +12,6 @@ import {
   StarIcon
 } from '@heroicons/react/24/solid';
 import { Swiper, SwiperSlide } from 'swiper/react';
-// Cambio en la forma de importar los módulos de Swiper
 import { FreeMode, Navigation, Thumbs } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
@@ -22,7 +21,7 @@ import ProductRating from '../../components/catalog/ProductRating';
 
 const ProductDetailsPage = () => {
   const { id } = useParams();
-  const { addToCart, cartType, calculateProductPrice } = useCart();
+  const { addToCart, cartType } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -168,21 +167,21 @@ const ProductDetailsPage = () => {
                   </div>
                 )}
                 
-{product.images.map((image, index) => (
-  <SwiperSlide key={index}>
-    <div className="h-80 flex items-center justify-center bg-gray-100">
-      <img
-        src={getImageUrl(image)}  // CAMBIAR AQUÍ
-        alt={`${product.name} - Imagen ${index + 1}`}
-        className="w-full h-full object-contain"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = '/placeholder-product.png';
-        }}
-      />
-    </div>
-  </SwiperSlide>
-))}
+                {product.images.map((image, index) => (
+                  <SwiperSlide key={index}>
+                    <div className="h-80 flex items-center justify-center bg-gray-100">
+                      <img
+                        src={getImageUrl(image)}
+                        alt={`${product.name} - Imagen ${index + 1}`}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder-product.png';
+                        }}
+                      />
+                    </div>
+                  </SwiperSlide>
+                ))}
               </Swiper>
 
               {/* Miniaturas */}
@@ -196,21 +195,21 @@ const ProductDetailsPage = () => {
                   modules={[FreeMode, Navigation, Thumbs]}
                   className="thumbs-swiper"
                 >
-{product.images.map((image, index) => (
-  <SwiperSlide key={index}>
-    <div className="h-20 cursor-pointer border border-gray-200 rounded overflow-hidden">
-      <img
-        src={getImageUrl(image)}  // CAMBIAR AQUÍ
-        alt={`Miniatura ${index + 1}`}
-        className="w-full h-full object-cover"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = '/placeholder-product.png';
-        }}
-      />
-    </div>
-  </SwiperSlide>
-))}
+                  {product.images.map((image, index) => (
+                    <SwiperSlide key={index}>
+                      <div className="h-20 cursor-pointer border border-gray-200 rounded overflow-hidden">
+                        <img
+                          src={getImageUrl(image)}
+                          alt={`Miniatura ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/placeholder-product.png';
+                          }}
+                        />
+                      </div>
+                    </SwiperSlide>
+                  ))}
                 </Swiper>
               )}
             </>
@@ -307,20 +306,11 @@ const ProductDetailsPage = () => {
               )}
             </div>
             
-            {/* Marca y distribuidor */}
+            {/* Marca y otros detalles */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-sm text-gray-500">Marca</p>
                 <p className="font-medium">{product.brand}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Distribuidor</p>
-                <Link 
-                  to={`/catalog?distributor=${product.distributor?._id}`} 
-                  className="font-medium text-blue-600 hover:underline"
-                >
-                  {product.distributor?.companyName || product.distributor?.name || 'N/A'}
-                </Link>
               </div>
               {product.partNumber && (
                 <div>
@@ -354,7 +344,7 @@ const ProductDetailsPage = () => {
                         setQuantity(val);
                       }
                     }}
-                    className="w-12 text-center border-0 focus:ring-0"
+                    className="w-12 text-center border-0 focus:ring-0 p-1 text-gray-900"
                   />
                   <button
                     onClick={incrementQuantity}
@@ -469,7 +459,6 @@ const ProductDetailsPage = () => {
                     <th className="px-6 py-4 text-sm font-medium text-gray-500 bg-gray-50 text-left">Categoría</th>
                     <td className="px-6 py-4 text-sm text-gray-900">{product.category?.name || 'N/A'}</td>
                   </tr>
-                  {/* Se pueden agregar más especificaciones aquí */}
                 </tbody>
               </table>
             </div>
@@ -511,8 +500,6 @@ const ProductDetailsPage = () => {
           )}
         </div>
       </div>
-
-      {/* Productos relacionados se cargarían aquí */}
     </div>
   );
 };
