@@ -26,21 +26,23 @@ const AdminOrdersPage = () => {
   // Estado para modal de detalles y actualización
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  
-useEffect(() => {
-  function handleClickOutside(event) {
-    if (showStatusMenu) {
-      setShowStatusMenu(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(null); // Cambiar a null para controlar cuál menú está abierto
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Cambiar a null para controlar cuál orden se está actualizando
+
+  // Cerrar menús al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event) {
+      // Si el clic no fue en un botón de menú o en el menú mismo, cerrar todos los menús
+      if (!event.target.closest('.status-menu-container')) {
+        setShowStatusMenu(null);
+      }
     }
-  }
-  
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => {
-    document.removeEventListener('mousedown', handleClickOutside);
-  };
-}, [showStatusMenu]);
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
@@ -61,62 +63,66 @@ useEffect(() => {
     }
   };
   
-  // Actualizar estado de una orden
-  // En AdminOrdersPage.js o DistributorOrdersPage.js
-const updateOrderStatus = async (orderId, status) => {
-  try {
-    // Mostrar estado de carga
-    setUpdatingStatus(true);
-    
-    // Mostrar toast de carga
-    const loadingToast = toast.loading('Actualizando estado...');
-    
-    // Log para depuración
-    console.log('Intentando actualizar estado:', orderId, status);
-    
-    // Llamar a la API con los datos correctos
-    const response = await orderService.updateOrderStatus(orderId, { status });
-    
-    // Log para depuración
-    console.log('Respuesta recibida:', response);
-    
-    // Verificar que la respuesta sea exitosa
-    if (response.data.success) {
-      // Actualizar el estado local de la orden seleccionada
-      if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({
-          ...selectedOrder,
-          status: status
-        });
+  // Actualizar estado de una orden - VERSIÓN CORREGIDA
+  const updateOrderStatus = async (orderId, status) => {
+    try {
+      console.log(`🔄 Iniciando actualización de estado:`);
+      console.log(`   - Orden ID: ${orderId}`);
+      console.log(`   - Nuevo estado: ${status}`);
+      
+      // Mostrar estado de carga para esta orden específica
+      setUpdatingStatus(orderId);
+      
+      // Mostrar toast de carga
+      const loadingToast = toast.loading('Actualizando estado...');
+      
+      // Llamar a la API
+      const response = await orderService.updateOrderStatus(orderId, { status });
+      
+      console.log(`✅ Respuesta de la API:`, response.data);
+      
+      // Verificar que la respuesta sea exitosa
+      if (response.data.success) {
+        // Actualizar el estado local de la orden seleccionada (si está abierto el modal)
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder({
+            ...selectedOrder,
+            status: status
+          });
+          console.log(`✅ Orden seleccionada actualizada en modal`);
+        }
+        
+        // Actualizar la lista de órdenes
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId ? { ...order, status } : order
+          )
+        );
+        console.log(`✅ Lista de órdenes actualizada`);
+        
+        // Mostrar mensaje de éxito
+        toast.dismiss(loadingToast);
+        toast.success(`Estado actualizado a: ${getStatusTranslation(status)}`);
+      } else {
+        // Manejar respuesta no exitosa
+        console.error(`❌ Error en respuesta:`, response.data);
+        toast.dismiss(loadingToast);
+        toast.error('Error al actualizar estado: ' + (response.data.error || 'Error desconocido'));
       }
+    } catch (err) {
+      // Manejar errores
+      console.error('💥 Error al actualizar estado:', err);
+      console.error('   - Error completo:', err.response || err);
       
-      // Actualizar la lista de órdenes
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order._id === orderId ? { ...order, status } : order
-        )
-      );
-      
-      // Mostrar mensaje de éxito
-      toast.dismiss(loadingToast);
-      toast.success(`Estado actualizado a: ${getStatusTranslation(status)}`);
-    } else {
-      // Manejar respuesta no exitosa
-      toast.dismiss(loadingToast);
-      toast.error('Error al actualizar estado: ' + (response.data.error || 'Error desconocido'));
+      toast.dismiss();
+      const errorMessage = err.response?.data?.error || err.message || 'Error al actualizar estado';
+      toast.error(errorMessage);
+    } finally {
+      // Siempre finalizar el estado de carga y cerrar menú
+      setUpdatingStatus(null);
+      setShowStatusMenu(null);
     }
-  } catch (err) {
-    // Manejar errores
-    console.error('Error al actualizar estado:', err);
-    toast.dismiss();
-    toast.error(err.response?.data?.error || 'Error al actualizar estado');
-  } finally {
-    // Siempre finalizar el estado de carga
-    setUpdatingStatus(false);
-    // Cerrar el menú desplegable
-    setShowStatusMenu(false);
-  }
-};
+  };
   
   // Manejar cambio de filtro
   const handleFilterChange = (e) => {
@@ -180,6 +186,8 @@ const updateOrderStatus = async (orderId, status) => {
         return 'bg-blue-100 text-blue-800';
       case 'shipped':
         return 'bg-purple-100 text-purple-800';
+      case 'ready_for_pickup':
+        return 'bg-indigo-100 text-indigo-800';
       case 'delivered':
         return 'bg-green-100 text-green-800';
       case 'cancelled':
@@ -195,6 +203,7 @@ const updateOrderStatus = async (orderId, status) => {
       'pending': 'Pendiente',
       'processing': 'Procesando',
       'shipped': 'Enviado',
+      'ready_for_pickup': 'Listo para Retiro',
       'delivered': 'Entregado',
       'cancelled': 'Cancelado'
     };
@@ -268,6 +277,7 @@ const updateOrderStatus = async (orderId, status) => {
               <option value="pending">Pendiente</option>
               <option value="processing">Procesando</option>
               <option value="shipped">Enviado</option>
+              <option value="ready_for_pickup">Listo para Retiro</option>
               <option value="delivered">Entregado</option>
               <option value="cancelled">Cancelado</option>
             </select>
@@ -319,9 +329,98 @@ const updateOrderStatus = async (orderId, status) => {
                       {formatCurrency(order.totalPrice)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                        {getStatusTranslation(order.status)}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
+                          {getStatusTranslation(order.status)}
+                        </span>
+                        
+                        {/* Menú desplegable de estado - VERSIÓN CORREGIDA */}
+                        <div className="relative status-menu-container">
+                          <button
+                            onClick={() => {
+                              console.log(`🔘 Toggle menú para orden: ${order._id}`);
+                              setShowStatusMenu(showStatusMenu === order._id ? null : order._id);
+                            }}
+                            disabled={updatingStatus === order._id}
+                            className="inline-flex items-center p-1 text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-50"
+                            title="Cambiar estado"
+                          >
+                            {updatingStatus === order._id ? (
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-indigo-600 rounded-full"></div>
+                            ) : (
+                              <ChevronDownIcon className="h-4 w-4" />
+                            )}
+                          </button>
+                          
+                          {/* Menú desplegable */}
+                          {showStatusMenu === order._id && (
+                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                              <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: pending`);
+                                    updateOrderStatus(order._id, 'pending');
+                                  }}
+                                  disabled={order.status === 'pending' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Pendiente
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: processing`);
+                                    updateOrderStatus(order._id, 'processing');
+                                  }}
+                                  disabled={order.status === 'processing' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Procesando
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: shipped`);
+                                    updateOrderStatus(order._id, 'shipped');
+                                  }}
+                                  disabled={order.status === 'shipped' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Enviado
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: ready_for_pickup`);
+                                    updateOrderStatus(order._id, 'ready_for_pickup');
+                                  }}
+                                  disabled={order.status === 'ready_for_pickup' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Listo para Retiro
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: delivered`);
+                                    updateOrderStatus(order._id, 'delivered');
+                                  }}
+                                  disabled={order.status === 'delivered' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Entregado
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: cancelled`);
+                                    updateOrderStatus(order._id, 'cancelled');
+                                  }}
+                                  disabled={order.status === 'cancelled' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Cancelado
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -498,7 +597,8 @@ const updateOrderStatus = async (orderId, status) => {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-<th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribuidor</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribuidor</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
@@ -512,9 +612,9 @@ const updateOrderStatus = async (orderId, status) => {
                                   <div className="h-10 w-10 flex-shrink-0">
                                     <img 
                                       className="h-10 w-10 rounded-full object-cover" 
-                  src={item.product?.images && item.product.images.length > 0 
-                      ? getProductImageUrl(item.product)  // Usar la función helper
-                      : "https://via.placeholder.com/40"
+                                      src={item.product?.images && item.product.images.length > 0 
+                                        ? getProductImageUrl(item.product)
+                                        : "https://via.placeholder.com/40"
                                       } 
                                       alt={item.product?.name || 'Producto'} 
                                     />
@@ -594,94 +694,6 @@ const updateOrderStatus = async (orderId, status) => {
                           )}
                         </p>
                       </div>
-                      
-<div className="relative inline-block text-left">
-<button
-  type="button"
-  onClick={() => {
-    console.log('Botón de menú clickeado');
-    setShowStatusMenu(!showStatusMenu);
-  }}
-  disabled={updatingStatus}
-  className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
->
-  {updatingStatus ? 'Actualizando...' : 'Actualizar Estado'}
-  <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
-</button>
-  {showStatusMenu && (
-    <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-      <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-        <button
-          onClick={() => {
-            updateOrderStatus(selectedOrder._id, 'pending');
-            setShowStatusMenu(false);
-          }}
-          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-          role="menuitem"
-          disabled={selectedOrder.status === 'pending' || updatingStatus}
-        >
-          Pendiente
-        </button>
-<button
-  onClick={() => {
-    console.log('Botón de estado processing clickeado');
-    updateOrderStatus(selectedOrder._id, 'processing');
-    setShowStatusMenu(false);
-  }}
-  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-  role="menuitem"
-  disabled={selectedOrder.status === 'processing' || updatingStatus}
->
-  Procesando
-</button>
-        <button
-          onClick={() => {
-            updateOrderStatus(selectedOrder._id, 'shipped');
-            setShowStatusMenu(false);
-          }}
-          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-          role="menuitem"
-          disabled={selectedOrder.status === 'shipped' || updatingStatus}
-        >
-          Enviado
-        </button>
-        <button
-          onClick={() => {
-            updateOrderStatus(selectedOrder._id, 'ready_for_pickup');
-            setShowStatusMenu(false);
-          }}
-          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-          role="menuitem"
-          disabled={selectedOrder.status === 'ready_for_pickup' || updatingStatus}
-        >
-          Listo para Retiro
-        </button>
-        <button
-          onClick={() => {
-            updateOrderStatus(selectedOrder._id, 'delivered');
-            setShowStatusMenu(false);
-          }}
-          className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-          role="menuitem"
-          disabled={selectedOrder.status === 'delivered' || updatingStatus}
-        >
-          Entregado
-        </button>
-        <button
-          onClick={() => {
-            updateOrderStatus(selectedOrder._id, 'cancelled');
-            setShowStatusMenu(false);
-          }}
-          className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-700"
-          role="menuitem"
-          disabled={selectedOrder.status === 'cancelled' || updatingStatus}
-        >
-          Cancelado
-        </button>
-      </div>
-    </div>
-  )}
-</div>
                     </div>
                   </div>
                 </div>

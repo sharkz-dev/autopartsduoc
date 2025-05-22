@@ -1,4 +1,4 @@
-// server/controllers/order.controller.js (actualizado)
+// server/controllers/order.controller.js (versión corregida)
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
@@ -238,117 +238,9 @@ exports.getOrder = async (req, res, next) => {
   }
 };
 
-// Mejorar el método getDistributorOrders para incluir subtotales por distribuidor
-exports.getDistributorOrders = async (req, res, next) => {
-  try {
-    // Buscar órdenes que contengan productos del distribuidor actual
-    const orders = await Order.find({
-      'items.distributor': req.user.id
-    })
-      .populate({
-        path: 'user',
-        select: 'name email'
-      })
-      .populate({
-        path: 'items.product',
-        select: 'name images price sku'
-      })
-      .sort('-createdAt');
-
-    // Para cada orden, filtrar solo los items que pertenecen a este distribuidor
-    // y calcular el subtotal adecuadamente
-    const processedOrders = orders.map(order => {
-      const filteredItems = order.items.filter(
-        item => item.distributor && item.distributor.toString() === req.user.id
-      );
-      
-      // Calcular subtotal para este distribuidor
-      const subtotal = filteredItems.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      );
-      
-      // Calcular proporción del subtotal respecto al total para estimar impuestos y envío
-      const ratio = order.itemsPrice > 0 ? subtotal / order.itemsPrice : 0;
-      const estimatedTax = ratio * order.taxPrice;
-      const estimatedShipping = ratio * order.shippingPrice;
-      
-      // Crear objeto con solo los datos relevantes para el distribuidor
-      return {
-        _id: order._id,
-        user: order.user,
-        items: filteredItems,
-        status: order.status,
-        createdAt: order.createdAt,
-        shipmentMethod: order.shipmentMethod,
-        subtotal: subtotal,
-        estimatedTax: estimatedTax,
-        estimatedShipping: estimatedShipping,
-        estimatedTotal: subtotal + estimatedTax + estimatedShipping,
-        isPaid: order.isPaid,
-        paidAt: order.paidAt
-      };
-    });
-
-    res.status(200).json({
-      success: true,
-      count: processedOrders.length,
-      data: processedOrders
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// Mejorar el método updateOrderStatus para manejar mejor los distintos estados
-exports.updateOrderStatus = async (req, res, next) => {
-  try {
-    console.log('Recibida solicitud para actualizar estado. ID:', req.params.id, 'Datos:', req.body);
-    
-    let order = await Order.findById(req.params.id);
-
-    if (!order) {
-      console.log('Orden no encontrada con ID:', req.params.id);
-      return res.status(404).json({
-        success: false,
-        error: 'Orden no encontrada'
-      });
-    }
-
-    // Almacenar el estado anterior para comparar
-    const previousStatus = order.status;
-    
-    // Actualizar según el rol del usuario
-    if (req.user.role === 'admin') {
-      console.log('Usuario admin actualizando estado de', previousStatus, 'a:', req.body.status);
-      order.status = req.body.status;
-      // Resto del código para admin...
-    } else if (req.user.role === 'distributor') {
-      console.log('Usuario distribuidor actualizando estado de', previousStatus, 'a:', req.body.status);
-      // Resto del código para distribuidor...
-      order.status = req.body.status;
-    }
-
-    console.log('Guardando orden con nuevo estado:', order.status);
-    await order.save();
-    console.log('Orden guardada exitosamente. ID:', order._id, 'Nuevo estado:', order.status);
-
-    // Obtener la orden actualizada para devolver al cliente
-    const updatedOrder = await Order.findById(order._id)
-      .populate('user', 'name email')
-      .populate('items.product', 'name images')
-      .populate('items.distributor', 'name companyName');
-
-    res.status(200).json({
-      success: true,
-      data: updatedOrder
-    });
-  } catch (err) {
-    console.error('Error en updateOrderStatus:', err);
-    next(err);
-  }
-};
-
+// @desc    Obtener mis órdenes
+// @route   GET /api/orders/my-orders
+// @access  Private
 exports.getMyOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ user: req.user.id })
@@ -420,7 +312,13 @@ exports.getDistributorOrders = async (req, res, next) => {
     // Para cada orden, filtrar solo los items que pertenecen a este distribuidor
     const filteredOrders = orders.map(order => {
       const filteredItems = order.items.filter(
-        item => item.distributor.toString() === req.user.id
+        item => item.distributor && item.distributor.toString() === req.user.id
+      );
+      
+      // Calcular subtotal para este distribuidor
+      const subtotal = filteredItems.reduce(
+        (acc, item) => acc + item.price * item.quantity,
+        0
       );
       
       // Crear objeto con solo los datos relevantes para el distribuidor
@@ -430,11 +328,12 @@ exports.getDistributorOrders = async (req, res, next) => {
         items: filteredItems,
         status: order.status,
         createdAt: order.createdAt,
-        // Calcular subtotal para este distribuidor
-        subtotal: filteredItems.reduce(
-          (acc, item) => acc + item.price * item.quantity,
-          0
-        )
+        shipmentMethod: order.shipmentMethod,
+        subtotal: subtotal,
+        isPaid: order.isPaid,
+        paidAt: order.paidAt,
+        isDelivered: order.isDelivered,
+        deliveredAt: order.deliveredAt
       };
     });
 
@@ -448,43 +347,67 @@ exports.getDistributorOrders = async (req, res, next) => {
   }
 };
 
-// @desc    Actualizar estado de la orden
+// @desc    Actualizar estado de la orden - VERSIÓN CORREGIDA
 // @route   PUT /api/orders/:id/status
 // @access  Private (admin y distribuidor parcialmente)
 exports.updateOrderStatus = async (req, res, next) => {
   try {
+    console.log(`=== INICIO updateOrderStatus ===`);
+    console.log(`ID de orden: ${req.params.id}`);
+    console.log(`Usuario: ${req.user.name} (${req.user.role})`);
+    console.log(`Nuevo estado solicitado: ${req.body.status}`);
+    
+    // Buscar la orden
     let order = await Order.findById(req.params.id);
 
     if (!order) {
+      console.log(`❌ Orden no encontrada con ID: ${req.params.id}`);
       return res.status(404).json({
         success: false,
         error: 'Orden no encontrada'
       });
     }
 
+    console.log(`✅ Orden encontrada. Estado actual: ${order.status}`);
+
     // Verificar permisos según rol
     if (req.user.role === 'admin') {
+      console.log(`👨‍💼 Usuario admin - puede actualizar cualquier estado`);
+      
       // El admin puede actualizar cualquier estado
+      const previousStatus = order.status;
       order.status = req.body.status;
       
+      console.log(`Cambiando estado de "${previousStatus}" a "${req.body.status}"`);
+      
       // Actualizar isPaid y paidAt si se marca como pagado
-      if (req.body.isPaid) {
-        order.isPaid = true;
-        order.paidAt = Date.now();
+      if (req.body.isPaid !== undefined) {
+        order.isPaid = req.body.isPaid;
+        if (req.body.isPaid) {
+          order.paidAt = Date.now();
+          console.log(`✅ Marcado como pagado`);
+        }
       }
       
       // Actualizar isDelivered y deliveredAt según el estado
       if (['delivered', 'ready_for_pickup'].includes(req.body.status)) {
         order.isDelivered = true;
         order.deliveredAt = Date.now();
+        console.log(`✅ Marcado como entregado`);
       }
+      
     } else if (req.user.role === 'distributor') {
+      console.log(`🏢 Usuario distribuidor - verificando permisos`);
+      
       // Verificar que el distribuidor tiene productos en la orden
       const hasProducts = order.items.some(
-        item => item.distributor.toString() === req.user.id
+        item => item.distributor && item.distributor.toString() === req.user.id
       );
 
+      console.log(`¿Distribuidor tiene productos en la orden? ${hasProducts}`);
+
       if (!hasProducts) {
+        console.log(`❌ Distribuidor no tiene productos en esta orden`);
         return res.status(401).json({
           success: false,
           error: 'No está autorizado para actualizar esta orden'
@@ -494,44 +417,73 @@ exports.updateOrderStatus = async (req, res, next) => {
       // Los distribuidores solo pueden actualizar entre ciertos estados
       const allowedStatusChanges = ['processing', 'shipped', 'ready_for_pickup'];
       if (!allowedStatusChanges.includes(req.body.status)) {
+        console.log(`❌ Estado "${req.body.status}" no permitido para distribuidores`);
         return res.status(400).json({
           success: false,
           error: 'Los distribuidores solo pueden cambiar el estado a: processing, shipped, ready_for_pickup'
         });
       }
 
+      console.log(`✅ Cambio de estado permitido para distribuidor`);
+      const previousStatus = order.status;
       order.status = req.body.status;
+      console.log(`Cambiando estado de "${previousStatus}" a "${req.body.status}"`);
       
       // Si el estado es "listo para retiro" y el método de envío es "pickup"
       if (req.body.status === 'ready_for_pickup' && order.shipmentMethod === 'pickup') {
         order.isDelivered = true;
         order.deliveredAt = Date.now();
+        console.log(`✅ Marcado como listo para retiro`);
       }
     } else {
+      console.log(`❌ Usuario sin permisos: ${req.user.role}`);
       return res.status(401).json({
         success: false,
         error: 'No está autorizado para actualizar el estado de la orden'
       });
     }
 
+    // Guardar cambios
+    console.log(`💾 Guardando cambios en la base de datos...`);
     await order.save();
+    console.log(`✅ Cambios guardados exitosamente`);
 
     // Enviar notificación al cliente sobre cambio de estado
     try {
       const user = await User.findById(order.user);
       if (user) {
+        console.log(`📧 Enviando notificación por email a: ${user.email}`);
         await emailService.sendOrderStatusUpdateEmail(order, user);
+        console.log(`✅ Email enviado exitosamente`);
       }
     } catch (emailError) {
-      console.error('Error al enviar email de actualización de estado:', emailError);
+      console.error('⚠️ Error al enviar email de actualización de estado:', emailError);
       // No interrumpir la actualización por errores de email
     }
 
+    // Obtener orden actualizada con datos poblados para la respuesta
+    const updatedOrder = await Order.findById(order._id)
+      .populate({
+        path: 'user',
+        select: 'name email'
+      })
+      .populate({
+        path: 'items.product',
+        select: 'name images'
+      })
+      .populate({
+        path: 'items.distributor',
+        select: 'name companyName'
+      });
+
+    console.log(`=== FIN updateOrderStatus - ÉXITO ===`);
+    
     res.status(200).json({
       success: true,
-      data: order
+      data: updatedOrder
     });
   } catch (err) {
+    console.error('💥 Error en updateOrderStatus:', err);
     next(err);
   }
 };
