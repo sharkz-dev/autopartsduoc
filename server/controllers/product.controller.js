@@ -200,7 +200,19 @@ exports.getProduct = async (req, res, next) => {
 exports.createProduct = async (req, res, next) => {
   try {
     // Asignar el distribuidor (usuario actual)
-    req.body.distributor = req.user.id;
+    // Asignar el distribuidor: si es admin y seleccionó uno, usar ese; si es distribuidor, usar el usuario actual
+if (req.user.role === 'admin') {
+  // Si es admin, usar el distribuidor seleccionado en el formulario
+  if (!req.body.distributor) {
+    return res.status(400).json({
+      success: false,
+      error: 'Debe seleccionar un distribuidor'
+    });
+  }
+} else {
+  // Si es distribuidor, asignar automáticamente
+  req.body.distributor = req.user.id;
+}
     
     // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
     if (req.body.salePrice && req.body.onSale && !req.body.discountPercentage) {

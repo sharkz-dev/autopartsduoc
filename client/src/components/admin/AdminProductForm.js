@@ -23,7 +23,11 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
     featured: false,
     distributor: '',
     compatibleModels: [],
-    images: []
+    images: [],
+    onSale: false,
+  discountPercentage: '',
+  salePrice: '',
+  saleEndDate: ''
   });
   
   const [categories, setCategories] = useState([]);
@@ -77,7 +81,11 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
         featured: featured || false,
         distributor: distributor?._id || distributor || '',
         compatibleModels: compatibleModels || [],
-        images: images || []
+        images: images || [],
+              onSale: product.onSale || false,
+      discountPercentage: product.discountPercentage || '',
+      salePrice: product.salePrice || '',
+      saleEndDate: product.saleEndDate ? product.saleEndDate.split('T')[0] : ''
       });
       
       // Mostrar imágenes existentes
@@ -110,18 +118,31 @@ if (images && images.length > 0) {
   
   // Manejar cambios en formulario
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    // Manejar correctamente campos numéricos y booleanos
-    const val = type === 'checkbox' ? checked : (
-      type === 'number' ? (value === '' ? '' : parseFloat(value)) : value
-    );
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: val
-    }));
+  const { name, value, type, checked } = e.target;
+  
+  let newFormData = {
+    ...formData,
+    [name]: type === 'checkbox' ? checked : value
   };
+  
+  // Calcular precio de oferta automáticamente
+  if ((name === 'price' || name === 'discountPercentage') && newFormData.onSale) {
+    const price = parseFloat(newFormData.price) || 0;
+    const discount = parseFloat(newFormData.discountPercentage) || 0;
+    if (price > 0 && discount > 0) {
+      newFormData.salePrice = Math.round(price * (1 - discount / 100));
+    }
+  }
+  
+  // Si se desmarca la oferta, limpiar campos relacionados
+  if (name === 'onSale' && !checked) {
+    newFormData.discountPercentage = '';
+    newFormData.salePrice = '';
+    newFormData.saleEndDate = '';
+  }
+  
+  setFormData(newFormData);
+};
   
   // Manejar cambios en modelo compatible temporal
   const handleCompatibleModelChange = (e) => {
@@ -481,7 +502,8 @@ if (images && images.length > 0) {
             </div>
             <p className="mt-1 text-xs text-gray-500">Dejar en blanco para usar el precio regular en B2B</p>
           </div>
-          
+      
+
           {/* Stock */}
           <div className="sm:col-span-2">
             <label htmlFor="stockQuantity" className="block text-sm font-medium text-gray-700">
@@ -500,6 +522,107 @@ if (images && images.length > 0) {
             />
           </div>
           
+{/* Producto en oferta */}
+<div className="sm:col-span-6">
+  <div className="flex items-start">
+    <div className="flex items-center h-5">
+      <input
+        id="onSale"
+        name="onSale"
+        type="checkbox"
+        checked={formData.onSale}
+        onChange={handleChange}
+        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
+      />
+    </div>
+    <div className="ml-3 text-sm">
+      <label htmlFor="onSale" className="font-medium text-gray-700">
+        Producto en oferta
+      </label>
+      <p className="text-gray-500">
+        Marque esta opción si el producto está en oferta con descuento.
+      </p>
+    </div>
+  </div>
+</div>
+
+{/* Porcentaje de descuento - Solo mostrar si está en oferta */}
+{formData.onSale && (
+  <div className="sm:col-span-2">
+    <label htmlFor="discountPercentage" className="block text-sm font-medium text-gray-700">
+      Porcentaje de Descuento *
+    </label>
+    <div className="mt-1 relative rounded-md shadow-sm">
+      <input
+        type="number"
+        name="discountPercentage"
+        id="discountPercentage"
+        value={formData.discountPercentage}
+        onChange={handleChange}
+        required={formData.onSale}
+        min="1"
+        max="100"
+        step="1"
+        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+        placeholder="0"
+      />
+      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+        <span className="text-gray-500 sm:text-sm">%</span>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Precio de oferta - Solo mostrar si está en oferta */}
+{formData.onSale && (
+  <div className="sm:col-span-2">
+    <label htmlFor="salePrice" className="block text-sm font-medium text-gray-700">
+      Precio de Oferta
+    </label>
+    <div className="mt-1 relative rounded-md shadow-sm">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <span className="text-gray-500 sm:text-sm">$</span>
+      </div>
+      <input
+        type="number"
+        name="salePrice"
+        id="salePrice"
+        value={formData.salePrice}
+        onChange={handleChange}
+        min="0"
+        step="1"
+        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+        placeholder="0"
+        readOnly
+      />
+      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+        <span className="text-gray-500 sm:text-sm">CLP</span>
+      </div>
+    </div>
+    <p className="mt-1 text-xs text-gray-500">
+      Se calcula automáticamente basado en el precio y porcentaje de descuento
+    </p>
+  </div>
+)}
+
+{/* Fecha de fin de oferta - Solo mostrar si está en oferta */}
+{formData.onSale && (
+  <div className="sm:col-span-2">
+    <label htmlFor="saleEndDate" className="block text-sm font-medium text-gray-700">
+      Fecha de Fin de Oferta
+    </label>
+    <input
+      type="date"
+      name="saleEndDate"
+      id="saleEndDate"
+      value={formData.saleEndDate}
+      onChange={handleChange}
+      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+    />
+    <p className="mt-1 text-xs text-gray-500">Opcional. Dejar vacío para oferta sin fecha límite</p>
+  </div>
+)}
+
           {/* Producto destacado */}
           <div className="sm:col-span-6">
             <div className="flex items-start">

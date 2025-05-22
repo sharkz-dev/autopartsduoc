@@ -581,13 +581,19 @@ const AdminOrdersPage = () => {
                     </div>
                     
                     {/* Dirección de envío */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="text-md font-medium text-gray-900 mb-2">Dirección de Envío</h4>
-                      <p>{selectedOrder.shippingAddress.street}</p>
-                      <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
-                      <p>{selectedOrder.shippingAddress.postalCode}</p>
-                      <p>{selectedOrder.shippingAddress.country}</p>
-                    </div>
+<div className="bg-gray-50 p-4 rounded-lg">
+  <h4 className="text-md font-medium text-gray-900 mb-2">Dirección de Envío</h4>
+  {selectedOrder.shippingAddress ? (
+    <>
+      <p>{selectedOrder.shippingAddress.street}</p>
+      <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
+      <p>{selectedOrder.shippingAddress.postalCode}</p>
+      <p>{selectedOrder.shippingAddress.country}</p>
+    </>
+  ) : (
+    <p className="text-gray-500">No hay dirección de envío</p>
+  )}
+</div>
                   </div>
                   
                   {/* Lista de productos */}

@@ -25,8 +25,23 @@ const DistributorOrdersPage = () => {
   // Estado para modal de detalles y actualización
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  
+  const [showStatusMenu, setShowStatusMenu] = useState(null); // Control de menús desplegables
+  const [updatingStatus, setUpdatingStatus] = useState(null); // Control de estado de carga
+
+  // Cerrar menús al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!event.target.closest('.status-menu-container')) {
+        setShowStatusMenu(null);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -46,26 +61,64 @@ const DistributorOrdersPage = () => {
     }
   };
   
-  // Actualizar estado de una orden
+  // Actualizar estado de una orden - NUEVA FUNCIONALIDAD
   const updateOrderStatus = async (orderId, status) => {
     try {
-      setUpdatingStatus(true);
-      await orderService.updateOrderStatus(orderId, { status });
-      toast.success(`Estado de la orden actualizado a: ${getStatusTranslation(status)}`);
+      console.log(`🔄 Iniciando actualización de estado:`);
+      console.log(`   - Orden ID: ${orderId}`);
+      console.log(`   - Nuevo estado: ${status}`);
       
-      // Actualizar la orden seleccionada y la lista de órdenes
-      if (selectedOrder && selectedOrder._id === orderId) {
-        setSelectedOrder({ ...selectedOrder, status });
+      // Mostrar estado de carga para esta orden específica
+      setUpdatingStatus(orderId);
+      
+      // Mostrar toast de carga
+      const loadingToast = toast.loading('Actualizando estado...');
+      
+      // Llamar a la API
+      const response = await orderService.updateOrderStatus(orderId, { status });
+      
+      console.log(`✅ Respuesta de la API:`, response.data);
+      
+      // Verificar que la respuesta sea exitosa
+      if (response.data.success) {
+        // Actualizar el estado local de la orden seleccionada (si está abierto el modal)
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder({
+            ...selectedOrder,
+            status: status
+          });
+          console.log(`✅ Orden seleccionada actualizada en modal`);
+        }
+        
+        // Actualizar la lista de órdenes
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId ? { ...order, status } : order
+          )
+        );
+        console.log(`✅ Lista de órdenes actualizada`);
+        
+        // Mostrar mensaje de éxito
+        toast.dismiss(loadingToast);
+        toast.success(`Estado actualizado a: ${getStatusTranslation(status)}`);
+      } else {
+        // Manejar respuesta no exitosa
+        console.error(`❌ Error en respuesta:`, response.data);
+        toast.dismiss(loadingToast);
+        toast.error('Error al actualizar estado: ' + (response.data.error || 'Error desconocido'));
       }
-      
-      setOrders(orders.map(order => 
-        order._id === orderId ? { ...order, status } : order
-      ));
     } catch (err) {
-      console.error('Error al actualizar estado:', err);
-      toast.error(err.response?.data?.error || 'Error al actualizar estado');
+      // Manejar errores
+      console.error('💥 Error al actualizar estado:', err);
+      console.error('   - Error completo:', err.response || err);
+      
+      toast.dismiss();
+      const errorMessage = err.response?.data?.error || err.message || 'Error al actualizar estado';
+      toast.error(errorMessage);
     } finally {
-      setUpdatingStatus(false);
+      // Siempre finalizar el estado de carga y cerrar menú
+      setUpdatingStatus(null);
+      setShowStatusMenu(null);
     }
   };
   
@@ -281,9 +334,98 @@ const DistributorOrdersPage = () => {
                       {formatCurrency(order.subtotal || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                        {getStatusTranslation(order.status)}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
+                          {getStatusTranslation(order.status)}
+                        </span>
+                        
+                        {/* Menú desplegable de estado - NUEVA FUNCIONALIDAD */}
+                        <div className="relative status-menu-container">
+                          <button
+                            onClick={() => {
+                              console.log(`🔘 Toggle menú para orden: ${order._id}`);
+                              setShowStatusMenu(showStatusMenu === order._id ? null : order._id);
+                            }}
+                            disabled={updatingStatus === order._id}
+                            className="inline-flex items-center p-1 text-gray-400 hover:text-gray-600 focus:outline-none disabled:opacity-50"
+                            title="Cambiar estado"
+                          >
+                            {updatingStatus === order._id ? (
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-indigo-600 rounded-full"></div>
+                            ) : (
+                              <ChevronDownIcon className="h-4 w-4" />
+                            )}
+                          </button>
+                          
+                          {/* Menú desplegable - OPCIONES COMPLETAS COMO ADMIN */}
+                          {showStatusMenu === order._id && (
+                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                              <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: pending`);
+                                    updateOrderStatus(order._id, 'pending');
+                                  }}
+                                  disabled={order.status === 'pending' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Pendiente
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: processing`);
+                                    updateOrderStatus(order._id, 'processing');
+                                  }}
+                                  disabled={order.status === 'processing' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Procesando
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: shipped`);
+                                    updateOrderStatus(order._id, 'shipped');
+                                  }}
+                                  disabled={order.status === 'shipped' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Enviado
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: ready_for_pickup`);
+                                    updateOrderStatus(order._id, 'ready_for_pickup');
+                                  }}
+                                  disabled={order.status === 'ready_for_pickup' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Listo para Retiro
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: delivered`);
+                                    updateOrderStatus(order._id, 'delivered');
+                                  }}
+                                  disabled={order.status === 'delivered' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Entregado
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    console.log(`🔄 Cambiar a: cancelled`);
+                                    updateOrderStatus(order._id, 'cancelled');
+                                  }}
+                                  disabled={order.status === 'cancelled' || updatingStatus === order._id}
+                                  className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Cancelado
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -430,41 +572,31 @@ const DistributorOrdersPage = () => {
                       <p><span className="font-medium">Fecha de Orden:</span> {formatDate(selectedOrder.createdAt)}</p>
                     </div>
                     
-                    {/* Información de envío/retiro */}
+                    {/* Dirección de envío */}
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="text-md font-medium text-gray-900 mb-2">
-                        {selectedOrder.shipmentMethod === 'delivery' ? 'Dirección de Envío' : 'Información de Retiro'}
-                      </h4>
-                      
-                      {selectedOrder.shipmentMethod === 'delivery' && selectedOrder.shippingAddress ? (
+                      <h4 className="text-md font-medium text-gray-900 mb-2">Dirección de Envío</h4>
+                      {selectedOrder.shippingAddress ? (
                         <>
                           <p>{selectedOrder.shippingAddress.street}</p>
                           <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
                           <p>{selectedOrder.shippingAddress.postalCode}</p>
                           <p>{selectedOrder.shippingAddress.country}</p>
                         </>
-                      ) : selectedOrder.shipmentMethod === 'pickup' && selectedOrder.pickupLocation ? (
-                        <>
-                          <p><span className="font-medium">Tienda:</span> {selectedOrder.pickupLocation.name}</p>
-                          <p><span className="font-medium">Dirección:</span> {selectedOrder.pickupLocation.address}</p>
-                          {selectedOrder.pickupLocation.notes && (
-                            <p><span className="font-medium">Notas:</span> {selectedOrder.pickupLocation.notes}</p>
-                          )}
-                        </>
                       ) : (
-                        <p className="text-gray-500">Información no disponible</p>
+                        <p className="text-gray-500">No hay dirección de envío</p>
                       )}
                     </div>
                   </div>
                   
-                  {/* Lista de productos - Solo mostrar los productos del distribuidor actual */}
+                  {/* Lista de productos */}
                   <div className="mb-6">
-                    <h4 className="text-md font-medium text-gray-900 mb-2">Tus Productos en esta Orden</h4>
+                    <h4 className="text-md font-medium text-gray-900 mb-2">Productos</h4>
                     <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribuidor</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
@@ -492,6 +624,11 @@ const DistributorOrdersPage = () => {
                                 </div>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                {item.distributor ? (
+                                  item.distributor.companyName || item.distributor.name || 'Distribuidor'
+                                ) : 'Distribuidor Eliminado'}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 {item.quantity}
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
@@ -512,8 +649,20 @@ const DistributorOrdersPage = () => {
                     <div className="col-span-2"></div>
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex justify-between mb-2">
-                        <span className="text-sm text-gray-600">Subtotal de tus productos:</span>
-                        <span className="text-sm font-medium">{formatCurrency(selectedOrder.subtotal || 0)}</span>
+                        <span className="text-sm text-gray-600">Subtotal:</span>
+                        <span className="text-sm font-medium">{formatCurrency(selectedOrder.itemsPrice || 0)}</span>
+                      </div>
+                      <div className="flex justify-between mb-2">
+                        <span className="text-sm text-gray-600">Impuestos:</span>
+                        <span className="text-sm font-medium">{formatCurrency(selectedOrder.taxPrice || 0)}</span>
+                      </div>
+                      <div className="flex justify-between mb-2">
+                        <span className="text-sm text-gray-600">Envío:</span>
+                        <span className="text-sm font-medium">{formatCurrency(selectedOrder.shippingPrice || 0)}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-gray-200">
+                        <span className="font-medium">Total:</span>
+                        <span className="font-bold text-lg">{formatCurrency(selectedOrder.totalPrice || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -545,50 +694,64 @@ const DistributorOrdersPage = () => {
                         </p>
                       </div>
                       
-                      <div className="relative inline-block text-left">
-                        <div className="group">
-                          <button
-                            type="button"
-                            className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            id="options-menu"
-                            aria-haspopup="true"
-                            aria-expanded="true"
-                            disabled={updatingStatus}
-                          >
-                            {updatingStatus ? 'Actualizando...' : 'Actualizar Estado'}
-                            <ChevronDownIcon className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
-                          </button>
-                          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden group-hover:block">
-                            <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                      {/* Menú de actualización de estado en el modal */}
+                      <div className="relative status-menu-container">
+                        
+                        {/* Menú desplegable en el modal - OPCIONES COMPLETAS COMO ADMIN */}
+                        {showStatusMenu === `modal-${selectedOrder._id}` && (
+                          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-30">
+                            <div className="py-1" role="menu" aria-orientation="vertical">
+                              <button
+                                onClick={() => updateOrderStatus(selectedOrder._id, 'pending')}
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                role="menuitem"
+                                disabled={selectedOrder.status === 'pending' || updatingStatus === selectedOrder._id}
+                              >
+                                Pendiente
+                              </button>
                               <button
                                 onClick={() => updateOrderStatus(selectedOrder._id, 'processing')}
-                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                 role="menuitem"
-                                disabled={selectedOrder.status === 'processing' || updatingStatus}
+                                disabled={selectedOrder.status === 'processing' || updatingStatus === selectedOrder._id}
                               >
                                 Procesando
                               </button>
                               <button
                                 onClick={() => updateOrderStatus(selectedOrder._id, 'shipped')}
-                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                 role="menuitem"
-                                disabled={selectedOrder.status === 'shipped' || updatingStatus}
+                                disabled={selectedOrder.status === 'shipped' || updatingStatus === selectedOrder._id}
                               >
                                 Enviado
                               </button>
-                              {selectedOrder.shipmentMethod === 'pickup' && (
-                                <button
-                                  onClick={() => updateOrderStatus(selectedOrder._id, 'ready_for_pickup')}
-                                  className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                                  role="menuitem"
-                                  disabled={selectedOrder.status === 'ready_for_pickup' || updatingStatus}
-                                >
-                                  Listo para Retiro
-                                </button>
-                              )}
+                              <button
+                                onClick={() => updateOrderStatus(selectedOrder._id, 'ready_for_pickup')}
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                role="menuitem"
+                                disabled={selectedOrder.status === 'ready_for_pickup' || updatingStatus === selectedOrder._id}
+                              >
+                                Listo para Retiro
+                              </button>
+                              <button
+                                onClick={() => updateOrderStatus(selectedOrder._id, 'delivered')}
+                                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                role="menuitem"
+                                disabled={selectedOrder.status === 'delivered' || updatingStatus === selectedOrder._id}
+                              >
+                                Entregado
+                              </button>
+                              <button
+                                onClick={() => updateOrderStatus(selectedOrder._id, 'cancelled')}
+                                className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                role="menuitem"
+                                disabled={selectedOrder.status === 'cancelled' || updatingStatus === selectedOrder._id}
+                              >
+                                Cancelado
+                              </button>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
