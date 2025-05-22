@@ -12,17 +12,29 @@ const {
 
 const { protect, authorize } = require('../middleware/auth');
 
-// Rutas públicas
+// ============ RUTAS PÚBLICAS ============
 router.get('/', getCategories);
 
-// Rutas privadas (solo admin) - van antes de las rutas con slug
+// ============ RUTAS PRIVADAS (ADMIN SOLAMENTE) ============
+// Crear nueva categoría - ruta específica sin parámetros
 router.post('/', protect, authorize('admin'), createCategory);
 
-// Rutas que usan slug
+// ============ RUTAS CON SLUGS (AL FINAL) ============
+// Todas estas rutas usan :slug como parámetro
+
+// Obtener una categoría por slug (público)
 router.get('/:slug', getCategory);
-router.put('/:slug', protect, authorize('admin'), updateCategory);
-router.delete('/:slug', protect, authorize('admin'), deleteCategory);
-router.put('/:slug/image', protect, authorize('admin'), uploadCategoryImage);
+
+// Obtener subcategorías de una categoría (público)
 router.get('/:slug/subcategories', getSubcategories);
+
+// Actualizar categoría (admin) - acepta tanto slug como ID
+router.put('/:slug', protect, authorize('admin'), updateCategory);
+
+// Eliminar categoría (admin) - acepta tanto slug como ID
+router.delete('/:slug', protect, authorize('admin'), deleteCategory);
+
+// Subir imagen de categoría (admin) - acepta tanto slug como ID
+router.put('/:slug/image', protect, authorize('admin'), uploadCategoryImage);
 
 module.exports = router;

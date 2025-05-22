@@ -1,7 +1,43 @@
+// server/controllers/product.controller.js - VERSIÓN CORREGIDA CON POPULATE
 const Product = require('../models/Product');
 const User = require('../models/User');
 const path = require('path');
 const fs = require('fs');
+
+// ✅ FUNCIÓN HELPER CORREGIDA - con populate
+const findProductBySlugOrId = async (identifier, populate = true) => {
+  let product = null;
+  
+  try {
+    // Primero intentar por slug
+    if (populate) {
+      product = await Product.findOne({ slug: identifier })
+        .populate('category', 'name slug')
+        .populate('distributor', 'name companyName');
+    } else {
+      product = await Product.findOne({ slug: identifier });
+    }
+    
+    // Si no se encuentra por slug, intentar por ID (para compatibilidad)
+    if (!product) {
+      // Verificar si el identifier parece ser un ObjectId válido
+      if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+        if (populate) {
+          product = await Product.findById(identifier)
+            .populate('category', 'name slug')
+            .populate('distributor', 'name companyName');
+        } else {
+          product = await Product.findById(identifier);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error en findProductBySlugOrId:', error);
+    return null;
+  }
+  
+  return product;
+};
 
 // Función helper para generar slug único
 const generateUniqueSlug = async (name, productId = null) => {
@@ -194,27 +230,32 @@ exports.getProductsOnSale = async (req, res, next) => {
   }
 };
 
-// @desc    Obtener un producto por slug
+// ✅ CORREGIDO: Obtener un producto por slug o ID
+// @desc    Obtener un producto por slug o ID
 // @route   GET /api/products/:slug
 // @access  Public
 exports.getProduct = async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug })
-      .populate('category', 'name slug')
-      .populate('distributor', 'name companyName');
+    console.log(`🔍 Buscando producto con identificador: ${req.params.slug}`);
+    
+    const product = await findProductBySlugOrId(req.params.slug, true);
 
     if (!product) {
+      console.log(`❌ Producto no encontrado: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
 
+    console.log(`✅ Producto encontrado: ${product.name} (ID: ${product._id})`);
+    
     res.status(200).json({
       success: true,
       data: product
     });
   } catch (err) {
+    console.error('💥 Error en getProduct:', err);
     next(err);
   }
 };
@@ -257,19 +298,25 @@ exports.createProduct = async (req, res, next) => {
   }
 };
 
+// ✅ CORREGIDO: Actualizar un producto
 // @desc    Actualizar un producto
 // @route   PUT /api/products/:slug
 // @access  Private (distribuidor dueño y admin)
 exports.updateProduct = async (req, res, next) => {
   try {
-    let product = await Product.findOne({ slug: req.params.slug });
+    console.log(`🔄 Actualizando producto con identificador: ${req.params.slug}`);
+    
+    let product = await findProductBySlugOrId(req.params.slug, false); // Sin populate para actualización
 
     if (!product) {
+      console.log(`❌ Producto no encontrado para actualizar: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
+
+    console.log(`📝 Producto encontrado para actualizar: ${product.name} (ID: ${product._id})`);
 
     // Verificar permisos
     if (
@@ -285,6 +332,7 @@ exports.updateProduct = async (req, res, next) => {
     // Si se cambia el nombre, generar nuevo slug
     if (req.body.name && req.body.name !== product.name) {
       req.body.slug = await generateUniqueSlug(req.body.name, product._id);
+      console.log(`🔗 Nuevo slug generado: ${req.body.slug}`);
     }
 
     // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
@@ -296,37 +344,48 @@ exports.updateProduct = async (req, res, next) => {
 
     req.body.updatedAt = Date.now();
 
-    product = await Product.findOneAndUpdate(
-      { slug: req.params.slug }, 
+    // Actualizar usando el ID del producto encontrado
+    product = await Product.findByIdAndUpdate(
+      product._id, 
       req.body, 
       {
         new: true,
         runValidators: true
       }
-    );
+    ).populate('category', 'name slug')
+     .populate('distributor', 'name companyName');
+
+    console.log(`✅ Producto actualizado exitosamente: ${product.name}`);
 
     res.status(200).json({
       success: true,
       data: product
     });
   } catch (err) {
+    console.error('💥 Error al actualizar producto:', err);
     next(err);
   }
 };
 
+// ✅ CORREGIDO: Eliminar un producto
 // @desc    Eliminar un producto
 // @route   DELETE /api/products/:slug
 // @access  Private (distribuidor dueño y admin)
 exports.deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug });
+    console.log(`🗑️ Eliminando producto con identificador: ${req.params.slug}`);
+    
+    const product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
+      console.log(`❌ Producto no encontrado para eliminar: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
+
+    console.log(`🔍 Producto encontrado para eliminar: ${product.name} (ID: ${product._id})`);
 
     // Verificar permisos
     if (
@@ -345,29 +404,36 @@ exports.deleteProduct = async (req, res, next) => {
         const imagePath = path.join(__dirname, '../uploads', image);
         if (fs.existsSync(imagePath)) {
           fs.unlinkSync(imagePath);
+          console.log(`🖼️ Imagen eliminada: ${image}`);
         }
       });
     }
 
     await product.deleteOne();
+    console.log(`✅ Producto eliminado exitosamente`);
 
     res.status(200).json({
       success: true,
       data: {}
     });
   } catch (err) {
+    console.error('💥 Error al eliminar producto:', err);
     next(err);
   }
 };
 
+// ✅ CORREGIDO: Subir imágenes de producto
 // @desc    Subir imágenes de producto
 // @route   PUT /api/products/:slug/images
 // @access  Private (distribuidor dueño y admin)
 exports.uploadProductImages = async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug });
+    console.log(`📸 Subiendo imagen para producto: ${req.params.slug}`);
+    
+    const product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
+      console.log(`❌ Producto no encontrado para subir imagen: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
@@ -416,19 +482,21 @@ exports.uploadProductImages = async (req, res, next) => {
     // Mover archivo
     file.mv(`${process.env.FILE_UPLOAD_PATH}/${file.name}`, async err => {
       if (err) {
-        console.error(err);
+        console.error('Error al mover archivo:', err);
         return res.status(500).json({
           success: false,
           error: 'Problema al subir el archivo'
         });
       }
 
-      // Actualizar el producto con la nueva imagen
-      await Product.findOneAndUpdate(
-        { slug: req.params.slug },
+      // Actualizar el producto con la nueva imagen usando el ID
+      await Product.findByIdAndUpdate(
+        product._id,
         { $push: { images: file.name } },
         { new: true }
       );
+
+      console.log(`✅ Imagen subida exitosamente: ${file.name}`);
 
       res.status(200).json({
         success: true,
@@ -436,6 +504,7 @@ exports.uploadProductImages = async (req, res, next) => {
       });
     });
   } catch (err) {
+    console.error('💥 Error al subir imagen:', err);
     next(err);
   }
 };
@@ -460,7 +529,7 @@ exports.getProductsByDistributor = async (req, res, next) => {
 };
 
 // @desc    Obtener productos del distribuidor actual
-// @route   GET /api/products/my-products
+// @route   GET /api/products/my/products
 // @access  Private (distribuidor)
 exports.getMyProducts = async (req, res, next) => {
   try {
@@ -477,12 +546,13 @@ exports.getMyProducts = async (req, res, next) => {
   }
 };
 
+// ✅ CORREGIDO: Obtener valoraciones de un producto
 // @desc    Obtener valoraciones de un producto
 // @route   GET /api/products/:slug/ratings
 // @access  Public
 exports.getProductRatings = async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug });
+    const product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
       return res.status(404).json({
@@ -525,6 +595,7 @@ exports.getProductRatings = async (req, res, next) => {
   }
 };
 
+// ✅ CORREGIDO: Añadir una valoración a un producto
 // @desc    Añadir una valoración a un producto
 // @route   POST /api/products/:slug/ratings
 // @access  Private (clientes)
@@ -539,7 +610,7 @@ exports.addProductRating = async (req, res, next) => {
       });
     }
 
-    const product = await Product.findOne({ slug: req.params.slug });
+    const product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
       return res.status(404).json({

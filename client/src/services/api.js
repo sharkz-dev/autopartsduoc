@@ -15,7 +15,6 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Log para debugging
       console.log('Enviando solicitud con token:', token);
       config.headers['Authorization'] = `Bearer ${token}`;
     } else {
@@ -47,7 +46,7 @@ api.interceptors.response.use(
 
 // Servicios de autenticación
 export const authService = {
-    uploadCompanyLogo: (userId, formData) => {
+  uploadCompanyLogo: (userId, formData) => {
     return api.put(`/users/${userId}/logo`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -61,56 +60,70 @@ export const authService = {
   updatePassword: (passwords) => api.put('/auth/updatepassword', passwords)
 };
 
-// Servicios de productos
+// Servicios de productos - VERSIÓN CORREGIDA
 export const productService = {
   getProducts: (params) => api.get('/products', { params }),
-  getProduct: (id) => api.get(`/products/${id}`),
+  
+  // ✅ CORREGIDO: Usar slug o ID para obtener producto individual
+  getProduct: (slugOrId) => api.get(`/products/${slugOrId}`),
+  
   createProduct: (productData) => api.post('/products', productData),
-  updateProduct: (id, productData) => api.put(`/products/${id}`, productData),
-  deleteProduct: (id) => api.delete(`/products/${id}`),
-  uploadProductImage: (id, formData) => 
-    api.put(`/products/${id}/images`, formData, {
+  
+  // ✅ CORREGIDO: Usar slug o ID para actualizar
+  updateProduct: (slugOrId, productData) => api.put(`/products/${slugOrId}`, productData),
+  
+  // ✅ CORREGIDO: Usar slug o ID para eliminar
+  deleteProduct: (slugOrId) => api.delete(`/products/${slugOrId}`),
+  
+  // ✅ CORREGIDO: Usar slug o ID para subir imágenes
+  uploadProductImage: (slugOrId, formData, config = {}) => 
+    api.put(`/products/${slugOrId}/images`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      ...config
     }),
+  
   getMyProducts: () => api.get('/products/my/products'),
   getProductsByDistributor: (id) => api.get(`/products/distributor/${id}`),
-  addProductRating: (id, ratingData) => api.post(`/products/${id}/ratings`, ratingData),
+  
+  // ✅ CORREGIDO: Usar slug o ID para ratings
+  addProductRating: (slugOrId, ratingData) => api.post(`/products/${slugOrId}/ratings`, ratingData),
   getProductsOnSale: (params) => api.get('/products/on-sale', { params }),
-  // Nuevas funciones para valoraciones
-  getProductReviews: (id) => api.get(`/products/${id}/ratings`),
-  addProductReview: (id, reviewData) => api.post(`/products/${id}/ratings`, reviewData)
+  
+  // Nuevas funciones para valoraciones - CORREGIDAS
+  getProductReviews: (slugOrId) => api.get(`/products/${slugOrId}/ratings`),
+  addProductReview: (slugOrId, reviewData) => api.post(`/products/${slugOrId}/ratings`, reviewData)
 };
 
-// Servicios de categorías
+// Servicios de categorías - VERSIÓN CORREGIDA
 export const categoryService = {
   // Obtener todas las categorías
   getCategories: () => api.get('/categories'),
   
-  // Obtener una categoría por ID
-  getCategory: (id) => api.get(`/categories/${id}`),
+  // ✅ CORREGIDO: Usar slug o ID para obtener categoría individual
+  getCategory: (slugOrId) => api.get(`/categories/${slugOrId}`),
   
   // Crear nueva categoría
   createCategory: (data) => api.post('/categories', data),
   
-  // Actualizar categoría
-  updateCategory: (id, data) => api.put(`/categories/${id}`, data),
+  // ✅ CORREGIDO: Usar slug o ID para actualizar
+  updateCategory: (slugOrId, data) => api.put(`/categories/${slugOrId}`, data),
   
-  // Eliminar categoría
-  deleteCategory: (id) => api.delete(`/categories/${id}`),
+  // ✅ CORREGIDO: Usar slug o ID para eliminar
+  deleteCategory: (slugOrId) => api.delete(`/categories/${slugOrId}`),
   
-  // Subir imagen de categoría - ESTA ES LA FUNCIÓN QUE NECESITAS
-  uploadCategoryImage: (categoryId, formData) => {
-    return api.put(`/categories/${categoryId}/image`, formData, {
+  // ✅ CORREGIDO: Subir imagen de categoría usando slug o ID
+  uploadCategoryImage: (slugOrId, formData) => {
+    return api.put(`/categories/${slugOrId}/image`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
   },
   
-  // Obtener subcategorías
-  getSubcategories: (parentId) => api.get(`/categories/${parentId}/subcategories`),
+  // ✅ CORREGIDO: Obtener subcategorías usando slug o ID
+  getSubcategories: (slugOrId) => api.get(`/categories/${slugOrId}/subcategories`),
 };
 
 // Servicios de órdenes

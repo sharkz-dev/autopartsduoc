@@ -75,7 +75,7 @@ const AdminProductsPage = () => {
     fetchData();
   }, []);
 
-  // Eliminar producto
+  // ✅ CORREGIDO: Usar ID para eliminar producto
   const handleDeleteProduct = async (productId) => {
     try {
       await productService.deleteProduct(productId);
@@ -268,7 +268,7 @@ const AdminProductsPage = () => {
               id="distributor"
               value={distributorFilter}
               onChange={handleDistributorFilterChange}
-className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             >
               <option value="">Todos los distribuidores</option>
               {distributors.map((distributor) => (
@@ -347,7 +347,7 @@ className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-5
                         <div className="h-10 w-10 flex-shrink-0">
                           <img 
                             className="h-10 w-10 rounded-full object-cover" 
-src={getProductImageUrl(product)}
+                            src={getProductImageUrl(product)}
                             alt={product.name} 
                           />
                         </div>
@@ -388,13 +388,15 @@ src={getProductImageUrl(product)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
+                        {/* ✅ CORREGIDO: Usar ID para editar */}
                         <Link
-                          to={`/admin/products/edit/${product.slug || product._id}`}
+                          to={`/admin/products/edit/${product._id}`}
                           className="text-indigo-600 hover:text-indigo-900"
                           title="Editar"
                         >
                           <PencilIcon className="h-5 w-5" />
                         </Link>
+                        {/* ✅ CORREGIDO: Usar ID para eliminar */}
                         <button
                           onClick={() => setConfirmDelete(product._id)}
                           className="text-red-600 hover:text-red-900"

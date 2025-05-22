@@ -1,3 +1,4 @@
+// client/src/pages/admin/AdminCategoriesPage.js - VERSIÓN CORREGIDA
 import React, { useState, useEffect } from 'react';
 import { categoryService } from '../../services/api';
 import { getImageUrl } from '../../utils/imageHelpers';
@@ -47,7 +48,7 @@ const AdminCategoriesPage = () => {
     }
   };
   
-  // Eliminar categoría
+  // ✅ CORREGIDO: Usar ID para eliminar categoría
   const handleDeleteCategory = async (categoryId) => {
     try {
       await categoryService.deleteCategory(categoryId);
@@ -101,77 +102,75 @@ const AdminCategoriesPage = () => {
     }
   };
   
-  // Enviar formulario
+  // ✅ CORREGIDO: Usar ID para actualizar categoría
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  try {
-    let savedCategory;
-    // Definir isEditing basándose en si hay una categoría en edición
-    const isEditing = editingCategory !== null;
+    e.preventDefault();
     
-    if (isEditing) {
-      // Actualizar categoría existente (sin la imagen)
-      const categoryData = {
-        name: formData.name,
-        description: formData.description,
-        parent: formData.parent || null
-      };
+    try {
+      let savedCategory;
+      const isEditing = editingCategory !== null;
       
-      const response = await categoryService.updateCategory(editingCategory._id, categoryData);
-      savedCategory = response.data.data;
-      
-      toast.success('Categoría actualizada correctamente');
-    } else {
-      // Crear nueva categoría
-      const categoryData = {
-        name: formData.name,
-        description: formData.description,
-        parent: formData.parent || null
-      };
-      
-      const response = await categoryService.createCategory(categoryData);
-      savedCategory = response.data.data;
-      
-      toast.success('Categoría creada correctamente');
-    }
-    
-    // Si hay una imagen seleccionada, subirla por separado
-    if (selectedImage) {
-      const imageFormData = new FormData();
-      imageFormData.append('file', selectedImage);
-      
-      try {
-        await categoryService.uploadCategoryImage(savedCategory._id, imageFormData);
-        toast.success('Imagen subida correctamente');
-      } catch (imageError) {
-        console.error('Error al subir imagen:', imageError);
-        toast.error('La categoría se guardó pero hubo un error al subir la imagen');
+      if (isEditing) {
+        // Actualizar categoría existente usando ID
+        const categoryData = {
+          name: formData.name,
+          description: formData.description,
+          parent: formData.parent || null
+        };
+        
+        const response = await categoryService.updateCategory(editingCategory._id, categoryData);
+        savedCategory = response.data.data;
+        
+        toast.success('Categoría actualizada correctamente');
+      } else {
+        // Crear nueva categoría
+        const categoryData = {
+          name: formData.name,
+          description: formData.description,
+          parent: formData.parent || null
+        };
+        
+        const response = await categoryService.createCategory(categoryData);
+        savedCategory = response.data.data;
+        
+        toast.success('Categoría creada correctamente');
       }
+      
+      // Si hay una imagen seleccionada, subirla por separado usando ID
+      if (selectedImage) {
+        const imageFormData = new FormData();
+        imageFormData.append('file', selectedImage);
+        
+        try {
+          await categoryService.uploadCategoryImage(savedCategory._id, imageFormData);
+          toast.success('Imagen subida correctamente');
+        } catch (imageError) {
+          console.error('Error al subir imagen:', imageError);
+          toast.error('La categoría se guardó pero hubo un error al subir la imagen');
+        }
+      }
+      
+      // Recargar categorías y cerrar modal
+      fetchCategories();
+      handleCancel();
+      
+    } catch (err) {
+      console.error('Error al guardar categoría:', err);
+      toast.error(err.response?.data?.error || 'Error al guardar categoría');
     }
-    
-    // Recargar categorías y cerrar modal
-    fetchCategories();
-    handleCancel();
-    
-  } catch (err) {
-    console.error('Error al guardar categoría:', err);
-    toast.error(err.response?.data?.error || 'Error al guardar categoría');
-  }
-};
+  };
 
-// También necesitas agregar la función handleCancel si no la tienes:
-const handleCancel = () => {
-  setIsModalOpen(false);
-  setEditingCategory(null);
-  setFormData({
-    name: '',
-    description: '',
-    parent: ''
-  });
-  setSelectedImage(null);
-  setUploadProgress(0);
-};
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null);
+    setFormData({
+      name: '',
+      description: '',
+      parent: ''
+    });
+    setSelectedImage(null);
+    setUploadProgress(0);
+  };
   
   // Renderizar árbol de categorías
   const renderCategoryTree = () => {
@@ -305,7 +304,7 @@ const handleCancel = () => {
                       {(editingCategory && editingCategory.image && !selectedImage) ? (
                         <div className="mr-4">
                           <img
-                            src={`/uploads/${editingCategory.image}`}
+                            src={getImageUrl(editingCategory.image)}
                             alt={editingCategory.name}
                             className="h-20 w-20 object-cover rounded"
                           />
@@ -344,7 +343,7 @@ const handleCancel = () => {
                   <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                     <button
                       type="submit"
-className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
                     >
                       {editingCategory ? 'Actualizar' : 'Crear'}
                     </button>
@@ -414,7 +413,7 @@ className="w-full inline-flex justify-center rounded-md border border-transparen
   );
 };
 
-// Componente para renderizar un ítem de categoría
+// ✅ CORREGIDO: Componente CategoryItem usa IDs para acciones
 const CategoryItem = ({ category, categories, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   
