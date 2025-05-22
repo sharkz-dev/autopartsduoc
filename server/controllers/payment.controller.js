@@ -1,4 +1,3 @@
-// server/controllers/payment.controller.js
 const Order = require('../models/Order');
 const User = require('../models/User');
 const mercadopagoService = require('../services/mercadopago.service');

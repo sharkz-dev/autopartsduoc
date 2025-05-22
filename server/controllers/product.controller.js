@@ -1,4 +1,3 @@
-// server/controllers/product.controller.js - VERSIÓN CORREGIDA CON POPULATE
 const Product = require('../models/Product');
 const User = require('../models/User');
 const path = require('path');

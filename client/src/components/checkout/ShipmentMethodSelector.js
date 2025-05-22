@@ -1,4 +1,3 @@
-// client/src/components/checkout/ShipmentMethodSelector.js
 import React from 'react';
 import { TruckIcon, HomeIcon } from '@heroicons/react/24/outline';
 

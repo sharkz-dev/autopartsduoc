@@ -1,4 +1,3 @@
-// server/controllers/order.controller.js (versión corregida)
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');

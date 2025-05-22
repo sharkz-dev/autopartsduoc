@@ -1,4 +1,3 @@
-// client/src/pages/public/PaymentReturnPage.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';

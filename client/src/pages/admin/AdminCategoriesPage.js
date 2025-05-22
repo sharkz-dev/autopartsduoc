@@ -1,4 +1,3 @@
-// client/src/pages/admin/AdminCategoriesPage.js - VERSIÓN CORREGIDA
 import React, { useState, useEffect } from 'react';
 import { categoryService } from '../../services/api';
 import { getImageUrl } from '../../utils/imageHelpers';

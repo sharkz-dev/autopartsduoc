@@ -1,4 +1,3 @@
-// server/controllers/category.controller.js - VERSIÓN COMPLETA CORREGIDA
 const Category = require('../models/Category');
 const path = require('path');
 const fs = require('fs');

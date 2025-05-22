@@ -1,4 +1,3 @@
-// client/src/components/checkout/ShippingAddressForm.js
 import React from 'react';
 
 const ShippingAddressForm = ({ shippingAddress, setShippingAddress, hidden = false }) => {

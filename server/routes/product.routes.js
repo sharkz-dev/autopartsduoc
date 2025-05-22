@@ -1,4 +1,3 @@
-// server/routes/product.routes.js - ORDEN CORRECTO DE RUTAS
 const express = require('express');
 const router = express.Router();
 const {

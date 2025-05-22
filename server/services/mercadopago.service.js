@@ -1,4 +1,3 @@
-// server/services/mercadopago.service.js
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
 const dotenv = require('dotenv');
 

@@ -1,4 +1,3 @@
-// client/src/components/distributor/DistributorSidebar.js - VERSIÓN CON FORZADO DE ACTUALIZACIÓN
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

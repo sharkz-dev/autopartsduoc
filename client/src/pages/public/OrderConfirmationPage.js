@@ -1,4 +1,3 @@
-// client/src/pages/public/OrderConfirmationPage.js
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

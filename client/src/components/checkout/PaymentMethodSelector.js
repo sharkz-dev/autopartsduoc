@@ -1,4 +1,3 @@
-// client/src/components/checkout/PaymentMethodSelector.js
 import React from 'react';
 import { CreditCardIcon, BanknotesIcon, BuildingLibraryIcon } from '@heroicons/react/24/outline';
 
