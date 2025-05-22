@@ -18,13 +18,43 @@ import {
 } from '@heroicons/react/24/outline';
 
 const Header = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, loading } = useAuth();
   const { cartCount, cartType, toggleCartType } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // NUEVO: Estados para manejar la validación del usuario
+  const [userValidated, setUserValidated] = useState(false);
+  const [userError, setUserError] = useState(false);
+
+  // NUEVO: Efecto para validar usuario y manejar casos edge
+  useEffect(() => {
+    if (!loading) {
+      if (isAuthenticated && user) {
+        // Usuario válido
+        setUserValidated(true);
+        setUserError(false);
+      } else if (isAuthenticated && !user) {
+        // Estado inconsistente - autenticado pero sin datos de usuario
+        console.warn('⚠️ Estado inconsistente: autenticado pero sin datos de usuario');
+        setUserError(true);
+        setUserValidated(false);
+        
+        // Intentar limpiar el estado inconsistente después de un delay
+        setTimeout(() => {
+          console.log('🔄 Limpiando estado inconsistente...');
+          logout();
+        }, 1000);
+      } else {
+        // No autenticado - estado normal
+        setUserValidated(false);
+        setUserError(false);
+      }
+    }
+  }, [user, isAuthenticated, loading, logout]);
 
   // Controlar scroll para efectos del header
   useEffect(() => {
@@ -58,6 +88,12 @@ const Header = () => {
   };
 
   const redirectToDashboard = () => {
+    // VALIDACIÓN MEJORADA: Verificar que user existe antes de acceder a role
+    if (!user) {
+      console.error('❌ No se puede redirigir: usuario no disponible');
+      return;
+    }
+
     if (user.role === 'admin') {
       navigate('/admin');
     } else if (user.role === 'distributor') {
@@ -69,6 +105,40 @@ const Header = () => {
 
   // Verificar si la ruta actual coincide con la del link
   const isActive = (path) => location.pathname === path;
+
+  // NUEVO: Función para obtener el nombre del usuario de forma segura
+  const getUserName = () => {
+    if (!user || !user.name) return 'Usuario';
+    return user.name.split(' ')[0] || 'Usuario';
+  };
+
+  // NUEVO: Función para obtener el rol del usuario de forma segura
+  const getUserRole = () => {
+    if (!user || !user.role) return 'Cliente';
+    
+    switch (user.role) {
+      case 'admin':
+        return 'Administrador';
+      case 'distributor':
+        return 'Distribuidor';
+      case 'client':
+      default:
+        return 'Cliente';
+    }
+  };
+
+  // NUEVO: Si hay un error de usuario, mostrar un mensaje de carga o error
+  if (userError) {
+    return (
+      <header className="bg-red-600 text-white py-2">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm">
+            🔄 Problema con la sesión, reestableciendo...
+          </p>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <>
@@ -87,8 +157,8 @@ const Header = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {isAuthenticated ? (
-                <span className="text-blue-200">¡Bienvenido, {user.name}!</span>
+              {userValidated ? (
+                <span className="text-blue-200">¡Bienvenido, {getUserName()}!</span>
               ) : (
                 <>
                   <Link to="/login" className="hover:text-white transition-colors">Iniciar Sesión</Link>
@@ -174,7 +244,7 @@ const Header = () => {
               </Link>
 
               {/* User Menu */}
-              {isAuthenticated ? (
+              {userValidated ? (
                 <div className="relative">
                   <button 
                     onClick={toggleUserMenu}
@@ -183,19 +253,18 @@ const Header = () => {
                     <div className="bg-blue-500 rounded-full p-1 mr-2">
                       <UserIcon className="h-3 w-3" />
                     </div>
-                    <span className="mr-1 text-sm hidden sm:block">{user.name.split(' ')[0]}</span>
+                    <span className="mr-1 text-sm hidden sm:block">{getUserName()}</span>
                     <ChevronDownIcon className="h-3 w-3" />
                   </button>
                   
                   {isUserMenuOpen && (
                     <div className="absolute right-0 mt-2 w-60 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200">
                       <div className="px-4 py-3 text-sm text-gray-700 border-b">
-                        <p className="font-semibold">{user.name}</p>
-                        <p className="text-gray-500 text-xs">{user.email}</p>
+                        <p className="font-semibold">{user?.name || 'Usuario'}</p>
+                        <p className="text-gray-500 text-xs">{user?.email || 'Sin email'}</p>
                         <div className="mt-1 pt-1 border-t border-gray-100">
                           <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                            {user.role === 'admin' ? 'Administrador' : 
-                            user.role === 'distributor' ? 'Distribuidor' : 'Cliente'}
+                            {getUserRole()}
                           </span>
                         </div>
                       </div>
@@ -220,7 +289,7 @@ const Header = () => {
                         </Link>
                       </div>
                       
-                      {(user.role === 'admin' || user.role === 'distributor') && (
+                      {user && (user.role === 'admin' || user.role === 'distributor') && (
                         <div className="py-1 border-t border-gray-100">
                           <button
                             onClick={redirectToDashboard}
@@ -339,15 +408,14 @@ const Header = () => {
               </div>
               
               <div className="border-t border-blue-600/40 pt-3 mt-3">
-                {isAuthenticated ? (
+                {userValidated ? (
                   <>
                     <div className="bg-blue-600/40 rounded-lg p-3 mb-3">
-                      <p className="text-white font-semibold">{user.name}</p>
-                      <p className="text-blue-200 text-sm">{user.email}</p>
+                      <p className="text-white font-semibold">{user?.name || 'Usuario'}</p>
+                      <p className="text-blue-200 text-sm">{user?.email || 'Sin email'}</p>
                       <div className="mt-2">
                         <span className="text-xs px-2 py-0.5 bg-blue-800 text-blue-200 rounded-full">
-                          {user.role === 'admin' ? 'Administrador' : 
-                          user.role === 'distributor' ? 'Distribuidor' : 'Cliente'}
+                          {getUserRole()}
                         </span>
                       </div>
                     </div>
@@ -370,7 +438,7 @@ const Header = () => {
                         Mis Pedidos
                       </Link>
                       
-                      {(user.role === 'admin' || user.role === 'distributor') && (
+                      {user && (user.role === 'admin' || user.role === 'distributor') && (
                         <button
                           onClick={redirectToDashboard}
                           className="w-full text-left flex items-center py-2 px-3 rounded-md hover:bg-blue-600/40 transition-colors"
@@ -425,7 +493,7 @@ const Header = () => {
         )}
       </header>
       
-      {/* Espacio para compensar el header fijo - MOVIDO FUERA DEL HEADER */}
+      {/* Espacio para compensar el header fijo */}
       <div className={`${scrolled ? 'h-14' : 'h-16'} transition-all duration-300`}></div>
     </>
   );
