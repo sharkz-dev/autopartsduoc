@@ -112,7 +112,8 @@ const ProductCard = ({ product, addToCart, cartType }) => {
         </div>
       )}
       
-      <Link to={`/product/${product._id}`} className="block">
+      {/* CAMBIO PRINCIPAL: Usar slug en lugar de _id */}
+      <Link to={`/product/${product.slug || product._id}`} className="block">
         <div className="h-48 overflow-hidden">
           <img 
             src={product.images && product.images.length > 0 ? `/uploads/${product.images[0]}` : defaultImage} 

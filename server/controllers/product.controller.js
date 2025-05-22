@@ -3,6 +3,34 @@ const User = require('../models/User');
 const path = require('path');
 const fs = require('fs');
 
+// Función helper para generar slug único
+const generateUniqueSlug = async (name, productId = null) => {
+  let baseSlug = name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales
+    .replace(/\s+/g, '_')     // Reemplazar espacios con _
+    .trim();
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  // Verificar si el slug ya existe (excluyendo el producto actual si es una actualización)
+  while (true) {
+    const query = { slug };
+    if (productId) {
+      query._id = { $ne: productId };
+    }
+    
+    const existingProduct = await Product.findOne(query);
+    if (!existingProduct) break;
+    
+    slug = `${baseSlug}_${counter}`;
+    counter++;
+  }
+
+  return slug;
+};
+
 // @desc    Obtener todos los productos
 // @route   GET /api/products
 // @access  Public
@@ -20,12 +48,11 @@ exports.getProducts = async (req, res, next) => {
       ];
     }
 
-    // Manejar filtros de precio - CORREGIDO
+    // Manejar filtros de precio
     if (req.query.minPrice || req.query.maxPrice) {
       mongoQuery.price = {};
       
       if (req.query.minPrice) {
-        // Convertir a número y asegurar que sea válido
         const minPrice = parseFloat(req.query.minPrice);
         if (!isNaN(minPrice)) {
           mongoQuery.price.$gte = minPrice;
@@ -33,7 +60,6 @@ exports.getProducts = async (req, res, next) => {
       }
       
       if (req.query.maxPrice) {
-        // Convertir a número y asegurar que sea válido
         const maxPrice = parseFloat(req.query.maxPrice);
         if (!isNaN(maxPrice)) {
           mongoQuery.price.$lte = maxPrice;
@@ -41,9 +67,14 @@ exports.getProducts = async (req, res, next) => {
       }
     }
 
-    // Manejar filtro de categoría
+    // Manejar filtro de categoría (por slug)
     if (req.query.category) {
-      mongoQuery.category = req.query.category;
+      // Buscar categoría por slug
+      const Category = require('../models/Category');
+      const category = await Category.findOne({ slug: req.query.category });
+      if (category) {
+        mongoQuery.category = category._id;
+      }
     }
 
     // Manejar filtro de marca
@@ -61,11 +92,11 @@ exports.getProducts = async (req, res, next) => {
       mongoQuery.featured = true;
     }
 
-    console.log('Query MongoDB:', JSON.stringify(mongoQuery, null, 2)); // Para debug
+    console.log('Query MongoDB:', JSON.stringify(mongoQuery, null, 2));
 
     // Crear query base con los filtros construidos
     let query = Product.find(mongoQuery)
-      .populate('category', 'name')
+      .populate('category', 'name slug')
       .populate('distributor', 'name companyName');
 
     // Ordenar
@@ -82,7 +113,6 @@ exports.getProducts = async (req, res, next) => {
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
     
-    // Contar documentos con los mismos filtros
     const total = await Product.countDocuments(mongoQuery);
 
     query = query.skip(startIndex).limit(limit);
@@ -125,30 +155,25 @@ exports.getProducts = async (req, res, next) => {
 // @access  Public
 exports.getProductsOnSale = async (req, res, next) => {
   try {
-    // Convertir parámetros de query
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
     const sort = req.query.sort || '-discountPercentage';
     
-    // Crear query para encontrar productos en oferta
     const query = {
       onSale: true,
       salePrice: { $gt: 0 }
     };
     
-    // Ejecutar consulta con paginación y ordenamiento
     const products = await Product.find(query)
-      .populate('category', 'name')
+      .populate('category', 'name slug')
       .populate('distributor', 'name companyName')
       .sort(sort)
       .skip(startIndex)
       .limit(limit);
     
-    // Contar total para paginación
     const total = await Product.countDocuments(query);
     
-    // Preparar información de paginación
     const pagination = {};
     if (startIndex + limit < total) {
       pagination.next = { page: page + 1, limit };
@@ -169,13 +194,13 @@ exports.getProductsOnSale = async (req, res, next) => {
   }
 };
 
-// @desc    Obtener un producto por ID
-// @route   GET /api/products/:id
+// @desc    Obtener un producto por slug
+// @route   GET /api/products/:slug
 // @access  Public
 exports.getProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('category', 'name')
+    const product = await Product.findOne({ slug: req.params.slug })
+      .populate('category', 'name slug')
       .populate('distributor', 'name companyName');
 
     if (!product) {
@@ -199,20 +224,20 @@ exports.getProduct = async (req, res, next) => {
 // @access  Private (distribuidores y admin)
 exports.createProduct = async (req, res, next) => {
   try {
-    // Asignar el distribuidor (usuario actual)
-    // Asignar el distribuidor: si es admin y seleccionó uno, usar ese; si es distribuidor, usar el usuario actual
-if (req.user.role === 'admin') {
-  // Si es admin, usar el distribuidor seleccionado en el formulario
-  if (!req.body.distributor) {
-    return res.status(400).json({
-      success: false,
-      error: 'Debe seleccionar un distribuidor'
-    });
-  }
-} else {
-  // Si es distribuidor, asignar automáticamente
-  req.body.distributor = req.user.id;
-}
+    // Asignar el distribuidor
+    if (req.user.role === 'admin') {
+      if (!req.body.distributor) {
+        return res.status(400).json({
+          success: false,
+          error: 'Debe seleccionar un distribuidor'
+        });
+      }
+    } else {
+      req.body.distributor = req.user.id;
+    }
+    
+    // Generar slug único
+    req.body.slug = await generateUniqueSlug(req.body.name);
     
     // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
     if (req.body.salePrice && req.body.onSale && !req.body.discountPercentage) {
@@ -221,7 +246,6 @@ if (req.user.role === 'admin') {
       );
     }
 
-    // Crear producto
     const product = await Product.create(req.body);
 
     res.status(201).json({
@@ -234,11 +258,11 @@ if (req.user.role === 'admin') {
 };
 
 // @desc    Actualizar un producto
-// @route   PUT /api/products/:id
+// @route   PUT /api/products/:slug
 // @access  Private (distribuidor dueño y admin)
 exports.updateProduct = async (req, res, next) => {
   try {
-    let product = await Product.findById(req.params.id);
+    let product = await Product.findOne({ slug: req.params.slug });
 
     if (!product) {
       return res.status(404).json({
@@ -247,7 +271,7 @@ exports.updateProduct = async (req, res, next) => {
       });
     }
 
-    // Asegurar que el usuario es el distribuidor dueño o un admin
+    // Verificar permisos
     if (
       product.distributor.toString() !== req.user.id &&
       req.user.role !== 'admin'
@@ -258,6 +282,11 @@ exports.updateProduct = async (req, res, next) => {
       });
     }
 
+    // Si se cambia el nombre, generar nuevo slug
+    if (req.body.name && req.body.name !== product.name) {
+      req.body.slug = await generateUniqueSlug(req.body.name, product._id);
+    }
+
     // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
     if (req.body.salePrice && req.body.onSale && !req.body.discountPercentage) {
       req.body.discountPercentage = Math.round(
@@ -265,13 +294,16 @@ exports.updateProduct = async (req, res, next) => {
       );
     }
 
-    // Actualizar fecha
     req.body.updatedAt = Date.now();
 
-    product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    product = await Product.findOneAndUpdate(
+      { slug: req.params.slug }, 
+      req.body, 
+      {
+        new: true,
+        runValidators: true
+      }
+    );
 
     res.status(200).json({
       success: true,
@@ -283,11 +315,11 @@ exports.updateProduct = async (req, res, next) => {
 };
 
 // @desc    Eliminar un producto
-// @route   DELETE /api/products/:id
+// @route   DELETE /api/products/:slug
 // @access  Private (distribuidor dueño y admin)
 exports.deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ slug: req.params.slug });
 
     if (!product) {
       return res.status(404).json({
@@ -296,7 +328,7 @@ exports.deleteProduct = async (req, res, next) => {
       });
     }
 
-    // Asegurar que el usuario es el distribuidor dueño o un admin
+    // Verificar permisos
     if (
       product.distributor.toString() !== req.user.id &&
       req.user.role !== 'admin'
@@ -307,7 +339,7 @@ exports.deleteProduct = async (req, res, next) => {
       });
     }
 
-    // Eliminar imágenes asociadas al producto
+    // Eliminar imágenes asociadas
     if (product.images && product.images.length > 0) {
       product.images.forEach(image => {
         const imagePath = path.join(__dirname, '../uploads', image);
@@ -329,11 +361,11 @@ exports.deleteProduct = async (req, res, next) => {
 };
 
 // @desc    Subir imágenes de producto
-// @route   PUT /api/products/:id/images
+// @route   PUT /api/products/:slug/images
 // @access  Private (distribuidor dueño y admin)
 exports.uploadProductImages = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ slug: req.params.slug });
 
     if (!product) {
       return res.status(404).json({
@@ -342,7 +374,7 @@ exports.uploadProductImages = async (req, res, next) => {
       });
     }
 
-    // Asegurar que el usuario es el distribuidor dueño o un admin
+    // Verificar permisos
     if (
       product.distributor.toString() !== req.user.id &&
       req.user.role !== 'admin'
@@ -392,8 +424,8 @@ exports.uploadProductImages = async (req, res, next) => {
       }
 
       // Actualizar el producto con la nueva imagen
-      await Product.findByIdAndUpdate(
-        req.params.id,
+      await Product.findOneAndUpdate(
+        { slug: req.params.slug },
         { $push: { images: file.name } },
         { new: true }
       );
@@ -414,7 +446,7 @@ exports.uploadProductImages = async (req, res, next) => {
 exports.getProductsByDistributor = async (req, res, next) => {
   try {
     const products = await Product.find({ distributor: req.params.id })
-      .populate('category', 'name')
+      .populate('category', 'name slug')
       .populate('distributor', 'name companyName');
 
     res.status(200).json({
@@ -433,7 +465,7 @@ exports.getProductsByDistributor = async (req, res, next) => {
 exports.getMyProducts = async (req, res, next) => {
   try {
     const products = await Product.find({ distributor: req.user.id })
-      .populate('category', 'name');
+      .populate('category', 'name slug');
 
     res.status(200).json({
       success: true,
@@ -446,11 +478,11 @@ exports.getMyProducts = async (req, res, next) => {
 };
 
 // @desc    Obtener valoraciones de un producto
-// @route   GET /api/products/:id/ratings
+// @route   GET /api/products/:slug/ratings
 // @access  Public
 exports.getProductRatings = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ slug: req.params.slug });
 
     if (!product) {
       return res.status(404).json({
@@ -462,8 +494,6 @@ exports.getProductRatings = async (req, res, next) => {
     // Obtener las valoraciones con información de usuario
     const ratings = await Promise.all(
       product.ratings.map(async (rating) => {
-        // Por seguridad, no enviamos información sensible del usuario
-        // Solo obtenemos el nombre para mostrar
         let userName = 'Usuario';
         if (rating.user) {
           try {
@@ -480,7 +510,7 @@ exports.getProductRatings = async (req, res, next) => {
           _id: rating._id,
           rating: rating.rating,
           comment: rating.comment,
-          userName: rating.userName || userName, // Usar nombre personalizado si se proporcionó
+          userName: rating.userName || userName,
           createdAt: rating.date
         };
       })
@@ -496,7 +526,7 @@ exports.getProductRatings = async (req, res, next) => {
 };
 
 // @desc    Añadir una valoración a un producto
-// @route   POST /api/products/:id/ratings
+// @route   POST /api/products/:slug/ratings
 // @access  Private (clientes)
 exports.addProductRating = async (req, res, next) => {
   try {
@@ -509,7 +539,7 @@ exports.addProductRating = async (req, res, next) => {
       });
     }
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ slug: req.params.slug });
 
     if (!product) {
       return res.status(404).json({
@@ -529,7 +559,7 @@ exports.addProductRating = async (req, res, next) => {
         if (r.user && r.user.toString() === req.user.id) {
           r.rating = Number(rating);
           r.comment = comment;
-          r.userName = userName; // Guardar nombre personalizado si se proporciona
+          r.userName = userName;
           r.date = Date.now();
         }
       });
@@ -539,7 +569,7 @@ exports.addProductRating = async (req, res, next) => {
         user: req.user.id,
         rating: Number(rating),
         comment,
-        userName, // Guardar nombre personalizado si se proporciona
+        userName,
         date: Date.now()
       });
     }

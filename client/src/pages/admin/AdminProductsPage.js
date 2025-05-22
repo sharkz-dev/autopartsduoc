@@ -389,7 +389,7 @@ src={getProductImageUrl(product)}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <Link
-                          to={`/admin/products/edit/${product._id}`}
+                          to={`/admin/products/edit/${product.slug || product._id}`}
                           className="text-indigo-600 hover:text-indigo-900"
                           title="Editar"
                         >

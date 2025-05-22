@@ -18,17 +18,19 @@ const { protect, authorize } = require('../middleware/auth');
 
 // Rutas públicas
 router.get('/', getProducts);
-router.get('/on-sale', getProductsOnSale); // Añadir esta nueva ruta antes de la ruta con /:id
-router.get('/:id', getProduct);
+router.get('/on-sale', getProductsOnSale);
 router.get('/distributor/:id', getProductsByDistributor);
-router.get('/:id/ratings', getProductRatings);
 
 // Rutas privadas
 router.get('/my/products', protect, authorize('distribuidor', 'admin'), getMyProducts);
 router.post('/', protect, authorize('distribuidor', 'admin'), createProduct);
-router.put('/:id', protect, authorize('distribuidor', 'admin'), updateProduct);
-router.delete('/:id', protect, authorize('distribuidor', 'admin'), deleteProduct);
-router.put('/:id/images', protect, authorize('distribuidor', 'admin'), uploadProductImages);
-router.post('/:id/ratings', protect, authorize('client'), addProductRating);
+
+// Rutas que usan slug (deben ir al final para evitar conflictos)
+router.get('/:slug', getProduct);
+router.put('/:slug', protect, authorize('distribuidor', 'admin'), updateProduct);
+router.delete('/:slug', protect, authorize('distribuidor', 'admin'), deleteProduct);
+router.put('/:slug/images', protect, authorize('distribuidor', 'admin'), uploadProductImages);
+router.get('/:slug/ratings', getProductRatings);
+router.post('/:slug/ratings', protect, authorize('client'), addProductRating);
 
 module.exports = router;

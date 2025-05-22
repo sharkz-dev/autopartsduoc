@@ -8,7 +8,8 @@ const ProductSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    unique: true
+    unique: true,
+    required: true
   },
   description: {
     type: String,
@@ -96,7 +97,7 @@ const ProductSchema = new mongoose.Schema({
         max: 5
       },
       comment: String,
-      userName: String, // Campo agregado para almacenar nombres de usuario personalizados
+      userName: String,
       date: {
         type: Date,
         default: Date.now
@@ -117,12 +118,41 @@ const ProductSchema = new mongoose.Schema({
   }
 });
 
-// Crear slug a partir del nombre
-ProductSchema.pre('save', function(next) {
-  this.slug = this.name
+// Método estático para generar slug único
+ProductSchema.statics.generateUniqueSlug = async function(name, excludeId = null) {
+  const baseSlug = name
     .toLowerCase()
-    .replace(/[^\w ]+/g, '')
-    .replace(/ +/g, '-');
+    .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales excepto guiones
+    .replace(/\s+/g, '_')     // Reemplazar espacios con guiones bajos
+    .replace(/_+/g, '_')      // Reemplazar múltiples guiones bajos con uno solo
+    .replace(/^_|_$/g, '')    // Eliminar guiones bajos al inicio y final
+    .trim();
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const query = { slug };
+    if (excludeId) {
+      query._id = { $ne: excludeId };
+    }
+    
+    const existingProduct = await this.findOne(query);
+    if (!existingProduct) break;
+    
+    slug = `${baseSlug}_${counter}`;
+    counter++;
+  }
+
+  return slug;
+};
+
+// Middleware pre-save actualizado
+ProductSchema.pre('save', async function(next) {
+  // Solo generar slug si es un documento nuevo o si el nombre cambió
+  if (this.isNew || this.isModified('name')) {
+    this.slug = await this.constructor.generateUniqueSlug(this.name, this._id);
+  }
   
   // Actualizar fecha de modificación
   this.updatedAt = Date.now();

@@ -58,7 +58,8 @@ const ProductCard = ({ product }) => {
         )}
       </div>
       
-      <Link to={`/product/${product._id}`} className="block">
+      {/* CAMBIO PRINCIPAL: Usar slug en lugar de _id */}
+      <Link to={`/product/${product.slug || product._id}`} className="block">
         <div className="h-48 overflow-hidden bg-gray-100">
           <img 
             src={imageUrl}

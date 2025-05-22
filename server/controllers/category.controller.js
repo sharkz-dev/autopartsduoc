@@ -2,12 +2,40 @@ const Category = require('../models/Category');
 const path = require('path');
 const fs = require('fs');
 
+// Función helper para generar slug único
+const generateUniqueSlug = async (name, categoryId = null) => {
+  let baseSlug = name
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales
+    .replace(/\s+/g, '_')     // Reemplazar espacios con _
+    .trim();
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  // Verificar si el slug ya existe (excluyendo la categoría actual si es una actualización)
+  while (true) {
+    const query = { slug };
+    if (categoryId) {
+      query._id = { $ne: categoryId };
+    }
+    
+    const existingCategory = await Category.findOne(query);
+    if (!existingCategory) break;
+    
+    slug = `${baseSlug}_${counter}`;
+    counter++;
+  }
+
+  return slug;
+};
+
 // @desc    Obtener todas las categorías
 // @route   GET /api/categories
 // @access  Public
 exports.getCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find().sort('name').populate('parent', 'name');
+    const categories = await Category.find().sort('name').populate('parent', 'name slug');
 
     res.status(200).json({
       success: true,
@@ -19,12 +47,12 @@ exports.getCategories = async (req, res, next) => {
   }
 };
 
-// @desc    Obtener una categoría por ID
-// @route   GET /api/categories/:id
+// @desc    Obtener una categoría por slug
+// @route   GET /api/categories/:slug
 // @access  Public
 exports.getCategory = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id).populate('parent', 'name');
+    const category = await Category.findOne({ slug: req.params.slug }).populate('parent', 'name slug');
 
     if (!category) {
       return res.status(404).json({
@@ -47,6 +75,9 @@ exports.getCategory = async (req, res, next) => {
 // @access  Private (admin)
 exports.createCategory = async (req, res, next) => {
   try {
+    // Generar slug único
+    req.body.slug = await generateUniqueSlug(req.body.name);
+    
     const category = await Category.create(req.body);
 
     res.status(201).json({
@@ -66,11 +97,11 @@ exports.createCategory = async (req, res, next) => {
 };
 
 // @desc    Actualizar una categoría
-// @route   PUT /api/categories/:id
+// @route   PUT /api/categories/:slug
 // @access  Private (admin)
 exports.updateCategory = async (req, res, next) => {
   try {
-    let category = await Category.findById(req.params.id);
+    let category = await Category.findOne({ slug: req.params.slug });
 
     if (!category) {
       return res.status(404).json({
@@ -79,10 +110,19 @@ exports.updateCategory = async (req, res, next) => {
       });
     }
 
-    category = await Category.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    // Si se cambia el nombre, generar nuevo slug
+    if (req.body.name && req.body.name !== category.name) {
+      req.body.slug = await generateUniqueSlug(req.body.name, category._id);
+    }
+
+    category = await Category.findOneAndUpdate(
+      { slug: req.params.slug }, 
+      req.body, 
+      {
+        new: true,
+        runValidators: true
+      }
+    );
 
     res.status(200).json({
       success: true,
@@ -101,11 +141,11 @@ exports.updateCategory = async (req, res, next) => {
 };
 
 // @desc    Eliminar una categoría
-// @route   DELETE /api/categories/:id
+// @route   DELETE /api/categories/:slug
 // @access  Private (admin)
 exports.deleteCategory = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findOne({ slug: req.params.slug });
 
     if (!category) {
       return res.status(404).json({
@@ -116,7 +156,7 @@ exports.deleteCategory = async (req, res, next) => {
 
     // Verificar si la categoría tiene productos asociados
     const Product = require('../models/Product');
-    const products = await Product.countDocuments({ category: req.params.id });
+    const products = await Product.countDocuments({ category: category._id });
 
     if (products > 0) {
       return res.status(400).json({
@@ -126,7 +166,7 @@ exports.deleteCategory = async (req, res, next) => {
     }
 
     // Verificar si la categoría tiene subcategorías
-    const subcategories = await Category.countDocuments({ parent: req.params.id });
+    const subcategories = await Category.countDocuments({ parent: category._id });
 
     if (subcategories > 0) {
       return res.status(400).json({
@@ -155,11 +195,11 @@ exports.deleteCategory = async (req, res, next) => {
 };
 
 // @desc    Subir imagen de categoría
-// @route   PUT /api/categories/:id/image
+// @route   PUT /api/categories/:slug/image
 // @access  Private (admin)
 exports.uploadCategoryImage = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await Category.findOne({ slug: req.params.slug });
 
     if (!category) {
       return res.status(404).json({
@@ -215,8 +255,8 @@ exports.uploadCategoryImage = async (req, res, next) => {
       }
 
       // Actualizar categoría con nueva imagen
-      await Category.findByIdAndUpdate(
-        req.params.id,
+      await Category.findOneAndUpdate(
+        { slug: req.params.slug },
         { image: file.name },
         { new: true }
       );
@@ -232,11 +272,21 @@ exports.uploadCategoryImage = async (req, res, next) => {
 };
 
 // @desc    Obtener subcategorías
-// @route   GET /api/categories/:id/subcategories
+// @route   GET /api/categories/:slug/subcategories
 // @access  Public
 exports.getSubcategories = async (req, res, next) => {
   try {
-    const subcategories = await Category.find({ parent: req.params.id }).sort('name');
+    // Buscar la categoría padre por slug
+    const parentCategory = await Category.findOne({ slug: req.params.slug });
+    
+    if (!parentCategory) {
+      return res.status(404).json({
+        success: false,
+        error: 'Categoría no encontrada'
+      });
+    }
+
+    const subcategories = await Category.find({ parent: parentCategory._id }).sort('name');
 
     res.status(200).json({
       success: true,

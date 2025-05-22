@@ -14,13 +14,15 @@ const { protect, authorize } = require('../middleware/auth');
 
 // Rutas públicas
 router.get('/', getCategories);
-router.get('/:id', getCategory);
-router.get('/:id/subcategories', getSubcategories);
 
-// Rutas privadas (solo admin)
+// Rutas privadas (solo admin) - van antes de las rutas con slug
 router.post('/', protect, authorize('admin'), createCategory);
-router.put('/:id', protect, authorize('admin'), updateCategory);
-router.delete('/:id', protect, authorize('admin'), deleteCategory);
-router.put('/:id/image', protect, authorize('admin'), uploadCategoryImage);
+
+// Rutas que usan slug
+router.get('/:slug', getCategory);
+router.put('/:slug', protect, authorize('admin'), updateCategory);
+router.delete('/:slug', protect, authorize('admin'), deleteCategory);
+router.put('/:slug/image', protect, authorize('admin'), uploadCategoryImage);
+router.get('/:slug/subcategories', getSubcategories);
 
 module.exports = router;
