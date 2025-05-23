@@ -78,7 +78,7 @@ const ProductCard = ({ product }) => {
           {isOnSale && (
             <div className="flex items-center bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
               <FireIcon className="h-3 w-3 mr-1" />
-              -{Math.round(product.discountPercentage)}%
+              -{Math.round(product.discountPercentage)}% OFF
             </div>
           )}
           {product.featured && (

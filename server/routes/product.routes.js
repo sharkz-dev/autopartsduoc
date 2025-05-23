@@ -9,7 +9,8 @@ const {
   uploadProductImages,
   addProductRating,
   getProductsOnSale,
-  getProductRatings
+  getProductRatings,
+  getBrands
 } = require('../controllers/product.controller');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -23,13 +24,16 @@ router.get('/', getProducts);
 // Obtener productos en oferta - DEBE ir antes de /:slug
 router.get('/on-sale', getProductsOnSale);
 
+// ✅ NUEVO: Obtener todas las marcas únicas - DEBE ir antes de /:slug
+router.get('/brands', getBrands);
+
 // ============ RUTAS DE CREACIÓN ============
 // Crear nuevo producto (solo admin)
 router.post('/', protect, authorize('admin'), createProduct);
 
 // ============ RUTAS CON SLUGS/IDs DINÁMICOS (AL FINAL) ============
 // CRÍTICO: Estas rutas deben ir AL FINAL para evitar que capturen 
-// las rutas específicas de arriba como "on-sale"
+// las rutas específicas de arriba como "on-sale" y "brands"
 
 // Obtener un producto específico por slug o ID
 router.get('/:slug', getProduct);

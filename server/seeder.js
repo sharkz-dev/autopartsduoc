@@ -15,7 +15,6 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true
 });
 
-// Datos de usuarios actualizados (sin distribuidor)
 const users = [
   {
     "_id": "60d0fe4f5311236168a109ca",

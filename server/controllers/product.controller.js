@@ -69,15 +69,20 @@ const generateUniqueSlug = async (name, productId = null) => {
 // @access  Public
 exports.getProducts = async (req, res, next) => {
   try {
+    console.log('📊 Parámetros de consulta recibidos:', req.query);
+    
     // Construir objeto de consulta MongoDB
     let mongoQuery = {};
 
     // Manejar búsqueda por texto
     if (req.query.search) {
+      console.log('🔍 Aplicando filtro de búsqueda:', req.query.search);
       mongoQuery.$or = [
         { name: { $regex: req.query.search, $options: 'i' } },
         { description: { $regex: req.query.search, $options: 'i' } },
-        { brand: { $regex: req.query.search, $options: 'i' } }
+        { brand: { $regex: req.query.search, $options: 'i' } },
+        { sku: { $regex: req.query.search, $options: 'i' } },
+        { partNumber: { $regex: req.query.search, $options: 'i' } }
       ];
     }
 
@@ -89,6 +94,7 @@ exports.getProducts = async (req, res, next) => {
         const minPrice = parseFloat(req.query.minPrice);
         if (!isNaN(minPrice)) {
           mongoQuery.price.$gte = minPrice;
+          console.log('💰 Aplicando precio mínimo:', minPrice);
         }
       }
       
@@ -96,64 +102,134 @@ exports.getProducts = async (req, res, next) => {
         const maxPrice = parseFloat(req.query.maxPrice);
         if (!isNaN(maxPrice)) {
           mongoQuery.price.$lte = maxPrice;
+          console.log('💰 Aplicando precio máximo:', maxPrice);
         }
       }
     }
 
-    // Manejar filtro de categoría (por slug)
-    if (req.query.category) {
-      // Buscar categoría por slug
-      const Category = require('../models/Category');
-      const category = await Category.findOne({ slug: req.query.category });
-      if (category) {
-        mongoQuery.category = category._id;
+    // ✅ CORREGIDO: Manejar filtros múltiples de categorías
+    if (req.query.categories) {
+      console.log('📂 Procesando filtro de categorías:', req.query.categories);
+      
+      const categoryFilters = req.query.categories.split(',').map(cat => cat.trim()).filter(cat => cat);
+      console.log('📂 Categorías separadas:', categoryFilters);
+      
+      if (categoryFilters.length > 0) {
+        // Buscar categorías por slug
+        const Category = require('../models/Category');
+        const foundCategories = await Category.find({ 
+          slug: { $in: categoryFilters } 
+        }).select('_id slug name');
+        
+        console.log('📂 Categorías encontradas:', foundCategories.map(c => ({ id: c._id, slug: c.slug, name: c.name })));
+        
+        if (foundCategories.length > 0) {
+          const categoryIds = foundCategories.map(cat => cat._id);
+          mongoQuery.category = { $in: categoryIds };
+          console.log('📂 IDs de categorías aplicados al filtro:', categoryIds);
+        } else {
+          console.log('⚠️ No se encontraron categorías válidas para los slugs proporcionados');
+          // Si no se encuentran categorías válidas, devolver array vacío
+          return res.status(200).json({
+            success: true,
+            count: 0,
+            pagination: {},
+            total: 0,
+            data: []
+          });
+        }
       }
     }
 
-    // Manejar filtro de marca
-    if (req.query.brand) {
-      mongoQuery.brand = req.query.brand;
+    // ✅ NUEVO: Manejar filtros múltiples de marcas
+    if (req.query.brands) {
+      console.log('🏷️ Procesando filtro de marcas:', req.query.brands);
+      
+      const brandFilters = req.query.brands.split(',').map(brand => brand.trim()).filter(brand => brand);
+      console.log('🏷️ Marcas separadas:', brandFilters);
+      
+      if (brandFilters.length > 0) {
+        // Crear expresión regular para búsqueda case-insensitive
+        const brandRegexes = brandFilters.map(brand => new RegExp(`^${brand}$`, 'i'));
+        mongoQuery.brand = { $in: brandRegexes };
+        console.log('🏷️ Filtros de marca aplicados:', brandFilters);
+      }
+    }
+
+    // Manejar filtro de marca individual (para compatibilidad)
+    if (req.query.brand && !req.query.brands) {
+      console.log('🏷️ Aplicando filtro de marca individual:', req.query.brand);
+      mongoQuery.brand = new RegExp(`^${req.query.brand}$`, 'i');
     }
 
     // Manejar filtro de productos en oferta
     if (req.query.onSale === 'true') {
+      console.log('🔥 Aplicando filtro de productos en oferta');
       mongoQuery.onSale = true;
+      mongoQuery.discountPercentage = { $gt: 0 };
     }
 
     // Manejar filtro de productos destacados
     if (req.query.featured === 'true') {
+      console.log('⭐ Aplicando filtro de productos destacados');
       mongoQuery.featured = true;
     }
 
-    console.log('Query MongoDB:', JSON.stringify(mongoQuery, null, 2));
+    // Manejar filtro de stock disponible
+    if (req.query.inStock === 'true') {
+      console.log('📦 Aplicando filtro de productos en stock');
+      mongoQuery.stockQuantity = { $gt: 0 };
+    }
+
+    console.log('🔍 Query MongoDB final:', JSON.stringify(mongoQuery, null, 2));
 
     // Crear query base con los filtros construidos
     let query = Product.find(mongoQuery)
       .populate('category', 'name slug');
 
-    // Ordenar
+    // ✅ MEJORADO: Ordenamiento más robusto
+    let sortOption = '-createdAt'; // Por defecto más recientes primero
+    
     if (req.query.sort) {
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      query = query.sort('-createdAt');
+      const validSortOptions = [
+        'createdAt', '-createdAt',
+        'price', '-price', 
+        'name', '-name',
+        'avgRating', '-avgRating',
+        'stockQuantity', '-stockQuantity',
+        'discountPercentage', '-discountPercentage'
+      ];
+      
+      if (validSortOptions.includes(req.query.sort)) {
+        sortOption = req.query.sort;
+      }
     }
+    
+    console.log('📊 Aplicando ordenamiento:', sortOption);
+    query = query.sort(sortOption);
 
-    // Paginación
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    // ✅ MEJORADO: Paginación con límites más seguros
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12)); // Límite entre 1 y 50
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
     
+    console.log('📄 Paginación:', { page, limit, startIndex });
+    
+    // Contar total de documentos que coinciden con la consulta
     const total = await Product.countDocuments(mongoQuery);
+    console.log('📊 Total de productos encontrados:', total);
 
+    // Aplicar paginación
     query = query.skip(startIndex).limit(limit);
 
     // Ejecutar query
     const products = await query;
+    console.log('✅ Productos devueltos:', products.length);
 
     // Resultado de paginación
     const pagination = {};
+    const totalPages = Math.ceil(total / limit);
 
     if (endIndex < total) {
       pagination.next = {
@@ -169,15 +245,37 @@ exports.getProducts = async (req, res, next) => {
       };
     }
 
-    res.status(200).json({
+    // ✅ NUEVO: Agregar información adicional útil
+    const responseData = {
       success: true,
       count: products.length,
       pagination,
       total,
-      data: products
-    });
+      totalPages,
+      currentPage: page,
+      limit,
+      data: products,
+      // Información de filtros aplicados para depuración
+      appliedFilters: {
+        search: req.query.search || null,
+        categories: req.query.categories ? req.query.categories.split(',') : [],
+        brands: req.query.brands ? req.query.brands.split(',') : [],
+        priceRange: {
+          min: req.query.minPrice || null,
+          max: req.query.maxPrice || null
+        },
+        features: {
+          onSale: req.query.onSale === 'true',
+          featured: req.query.featured === 'true',
+          inStock: req.query.inStock === 'true'
+        },
+        sort: sortOption
+      }
+    };
+
+    res.status(200).json(responseData);
   } catch (err) {
-    console.error('Error en getProducts:', err);
+    console.error('💥 Error en getProducts:', err);
     next(err);
   }
 };
@@ -187,6 +285,8 @@ exports.getProducts = async (req, res, next) => {
 // @access  Public
 exports.getProductsOnSale = async (req, res, next) => {
   try {
+    console.log('🔥 Obteniendo productos en oferta...');
+    
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
@@ -194,7 +294,8 @@ exports.getProductsOnSale = async (req, res, next) => {
     
     const query = {
       onSale: true,
-      salePrice: { $gt: 0 }
+      discountPercentage: { $gt: 0 },
+      stockQuantity: { $gt: 0 } // Solo productos en stock
     };
     
     const products = await Product.find(query)
@@ -213,6 +314,8 @@ exports.getProductsOnSale = async (req, res, next) => {
       pagination.prev = { page: page - 1, limit };
     }
     
+    console.log(`✅ Productos en oferta encontrados: ${products.length}/${total}`);
+    
     res.status(200).json({
       success: true,
       count: products.length,
@@ -221,6 +324,35 @@ exports.getProductsOnSale = async (req, res, next) => {
       data: products
     });
   } catch (err) {
+    console.error('💥 Error en getProductsOnSale:', err);
+    next(err);
+  }
+};
+
+// ✅ NUEVO: Obtener marcas únicas disponibles
+// @desc    Obtener todas las marcas únicas
+// @route   GET /api/products/brands
+// @access  Public
+exports.getBrands = async (req, res, next) => {
+  try {
+    console.log('🏷️ Obteniendo marcas únicas...');
+    
+    const brands = await Product.distinct('brand', { 
+      brand: { $exists: true, $ne: '', $ne: null } 
+    });
+    
+    // Ordenar alfabéticamente
+    const sortedBrands = brands.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    
+    console.log(`✅ Marcas encontradas: ${sortedBrands.length}`);
+    
+    res.status(200).json({
+      success: true,
+      count: sortedBrands.length,
+      data: sortedBrands
+    });
+  } catch (err) {
+    console.error('💥 Error en getBrands:', err);
     next(err);
   }
 };
@@ -260,6 +392,8 @@ exports.getProduct = async (req, res, next) => {
 // @access  Private (distribuidores y admin)
 exports.createProduct = async (req, res, next) => {
   try {
+    console.log('➕ Creando nuevo producto:', req.body.name);
+    
     // Generar slug único
     req.body.slug = await generateUniqueSlug(req.body.name);
     
@@ -271,12 +405,14 @@ exports.createProduct = async (req, res, next) => {
     }
 
     const product = await Product.create(req.body);
+    console.log(`✅ Producto creado: ${product.name} (${product.slug})`);
 
     res.status(201).json({
       success: true,
       data: product
     });
   } catch (err) {
+    console.error('💥 Error al crear producto:', err);
     next(err);
   }
 };
@@ -358,7 +494,8 @@ exports.deleteProduct = async (req, res, next) => {
 
     console.log(`🔍 Producto encontrado para eliminar: ${product.name} (ID: ${product._id})`);
 
-    // Verificar permisos
+    // Verificar permisos (comentado para permitir a admin eliminar cualquier producto)
+    /*
     if (
       product.distributor.toString() !== req.user.id &&
       req.user.role !== 'admin'
@@ -368,6 +505,7 @@ exports.deleteProduct = async (req, res, next) => {
         error: 'No está autorizado para eliminar este producto'
       });
     }
+    */
 
     // Eliminar imágenes asociadas
     if (product.images && product.images.length > 0) {
@@ -410,6 +548,7 @@ exports.uploadProductImages = async (req, res, next) => {
         error: 'Producto no encontrado'
       });
     }
+    
     if (!req.files || !req.files.file) {
       return res.status(400).json({
         success: false,

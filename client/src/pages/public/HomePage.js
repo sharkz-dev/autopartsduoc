@@ -185,7 +185,7 @@ const HomePage = () => {
                 <span className="text-sm font-bold tracking-wide uppercase">Ofertas Limitadas</span>
               </div>
               <h2 className="text-title bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
-                🔥 Deals que no puedes perderte
+                🔥 Ofertas que no puedes perderte
               </h2>
               <p className="text-gray-600 max-w-2xl mx-auto">
                 Aprovecha descuentos increíbles en productos seleccionados. ¡Solo por tiempo limitado!
