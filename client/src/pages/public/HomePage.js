@@ -11,7 +11,6 @@ const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [stats, setStats] = useState({
     productCount: 0,
-    distributorCount: 0,
     categoryCount: 0
   });
   const [loading, setLoading] = useState(true);
@@ -78,7 +77,7 @@ const HomePage = () => {
               Encuentre los repuestos de auto que necesita
             </h1>
             <p className="text-xl text-blue-100">
-              Miles de productos de calidad de cientos de distribuidores confiables
+              Miles de productos de calidad para tu vehículo
             </p>
             <div className="flex space-x-4">
               <Link
@@ -108,17 +107,17 @@ const HomePage = () => {
       {/* Estadísticas */}
       <section className="bg-gray-100 rounded-lg p-8 shadow-sm">
         <div className="container mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
             <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-4xl font-bold text-blue-600 mb-2">{stats.productCount.toLocaleString()}</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {(stats.productCount || 0).toLocaleString()}
+              </div>
               <p className="text-gray-600">Productos disponibles</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-4xl font-bold text-blue-600 mb-2">{stats.distributorCount.toLocaleString()}</div>
-              <p className="text-gray-600">Distribuidores confiables</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-4xl font-bold text-blue-600 mb-2">{stats.categoryCount.toLocaleString()}</div>
+              <div className="text-4xl font-bold text-blue-600 mb-2">
+                {(stats.categoryCount || 0).toLocaleString()}
+              </div>
               <p className="text-gray-600">Categorías de productos</p>
             </div>
           </div>
@@ -168,17 +167,17 @@ const HomePage = () => {
               to={`/catalog?category=${category._id}`}
               className="group bg-white rounded-lg shadow p-4 text-center hover:shadow-md transition"
             >
-<div className="w-16 h-16 mx-auto mb-3 overflow-hidden rounded-full bg-blue-100">
-  <img
-    src={category.image ? getImageUrl(category.image) : '/placeholder-category.png'}
-    alt={category.name}
-    className="w-full h-full object-cover"
-    onError={(e) => {
-      e.target.onerror = null;
-      e.target.src = '/placeholder-category.png';
-    }}
-  />
-</div>
+              <div className="w-16 h-16 mx-auto mb-3 overflow-hidden rounded-full bg-blue-100">
+                <img
+                  src={category.image ? getImageUrl(category.image) : '/placeholder-category.png'}
+                  alt={category.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/placeholder-category.png';
+                  }}
+                />
+              </div>
               <h3 className="font-medium text-gray-800 group-hover:text-blue-600 transition">
                 {category.name}
               </h3>
@@ -203,22 +202,6 @@ const HomePage = () => {
           {featuredProducts.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
-        </div>
-      </section>
-
-      {/* Banner de conversión */}
-      <section className="bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl text-white p-8 md:p-12">
-        <div className="text-center max-w-3xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold">¿Quieres vender tus productos en nuestra plataforma?</h2>
-          <p className="text-xl text-blue-100">
-            Únete a cientos de distribuidores que ya están vendiendo sus productos en nuestra plataforma.
-          </p>
-          <Link
-            to="/register-distributor"
-            className="inline-block bg-white text-blue-600 font-semibold px-8 py-4 rounded-lg hover:bg-blue-50 transition"
-          >
-            Registrarme como distribuidor
-          </Link>
         </div>
       </section>
 
@@ -251,8 +234,8 @@ const HomePage = () => {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <BuildingStorefrontIcon className="h-8 w-8 text-blue-600" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Distribuidores Confiables</h3>
-            <p className="text-gray-600">Trabajamos solo con distribuidores verificados y confiables.</p>
+            <h3 className="text-xl font-semibold mb-2">Calidad Garantizada</h3>
+            <p className="text-gray-600">Trabajamos solo con productos verificados y de alta calidad.</p>
           </div>
         </div>
       </section>
