@@ -494,18 +494,9 @@ exports.deleteProduct = async (req, res, next) => {
 
     console.log(`🔍 Producto encontrado para eliminar: ${product.name} (ID: ${product._id})`);
 
-    // Verificar permisos (comentado para permitir a admin eliminar cualquier producto)
-    /*
-    if (
-      product.distributor.toString() !== req.user.id &&
-      req.user.role !== 'admin'
-    ) {
-      return res.status(401).json({
-        success: false,
-        error: 'No está autorizado para eliminar este producto'
-      });
-    }
-    */
+    // ✅ CORRECCIÓN: Eliminar verificación de distributor ya que no existe en el modelo
+    // Solo verificar que sea admin (ya se verifica en las rutas con middleware authorize('admin'))
+    console.log(`👨‍💼 Usuario admin autorizado para eliminar producto`);
 
     // Eliminar imágenes asociadas
     if (product.images && product.images.length > 0) {
@@ -518,18 +509,21 @@ exports.deleteProduct = async (req, res, next) => {
       });
     }
 
+    // ✅ MÉTODO CORRECTO: Usar deleteOne() en lugar de remove()
     await product.deleteOne();
     console.log(`✅ Producto eliminado exitosamente`);
 
     res.status(200).json({
       success: true,
-      data: {}
+      data: {},
+      message: 'Producto eliminado correctamente'
     });
   } catch (err) {
     console.error('💥 Error al eliminar producto:', err);
     next(err);
   }
 };
+
 
 // ✅ CORREGIDO: Subir imágenes de producto
 // @desc    Subir imágenes de producto
