@@ -126,16 +126,15 @@ const HomePage = () => {
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/catalog" className="btn-modern btn-accent group">
-                  <BoltIcon className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" />
-                  Explorar Catálogo
-                </Link>
-                <button className="btn-modern btn-ghost group">
-                  <PlayIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
-                  Ver Demo
-                </button>
-              </div>
+<div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+  <Link to="/catalog" className="btn-modern btn-accent group">
+    <BoltIcon className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" />
+    Explorar Catálogo
+  </Link>
+</div>
+
+
+
               
               {/* Stats modernos */}
               <div className="grid grid-cols-3 gap-6 pt-8 border-t border-purple-700/30">
@@ -398,10 +397,6 @@ const HomePage = () => {
               <Link to="/catalog" className="btn-modern btn-accent">
                 <BoltIcon className="h-5 w-5 mr-2" />
                 Comenzar Ahora
-              </Link>
-              <Link to="/contact" className="btn-modern btn-ghost">
-                <ClockIcon className="h-5 w-5 mr-2" />
-                Agenda una Demo
               </Link>
             </div>
             
