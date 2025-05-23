@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { categoryService, productService } from '../../services/api';
+import BrandSelector from './BrandSelector'; // Importar el nuevo componente
 import { 
   XMarkIcon, 
   ArrowUpTrayIcon,
@@ -134,6 +135,14 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
     }
     
     setFormData(newFormData);
+  };
+
+  // Función específica para manejar cambios en la marca
+  const handleBrandChange = (selectedBrand) => {
+    setFormData(prev => ({
+      ...prev,
+      brand: selectedBrand
+    }));
   };
   
   // Manejar cambios en modelo compatible temporal
@@ -358,24 +367,47 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
             ></textarea>
           </div>
           
-          {/* Marca */}
-          <div className="sm:col-span-2">
-            <label htmlFor="brand" className="block text-sm font-medium text-gray-700">
-              Marca *
-            </label>
-            <input
-              type="text"
-              name="brand"
-              id="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              required
-              className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-            />
-          </div>
+{/* Marca - CAMPO ACTUALIZADO CON DEBUG */}
+<div className="sm:col-span-3">
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Marca *
+  </label>
+  
+  {/* Debug info - TEMPORAL para desarrollo */}
+  {process.env.NODE_ENV === 'development' && (
+    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+      <strong>🔍 Debug AdminProductForm:</strong><br/>
+      Marca actual: "{formData.brand}"<br/>
+      BrandSelector importado: {BrandSelector ? '✅ Sí' : '❌ No'}
+    </div>
+  )}
+  
+  <BrandSelector
+    value={formData.brand}
+    onChange={handleBrandChange}
+    required={true}
+    className="focus:ring-indigo-500 focus:border-indigo-500"
+  />
+  
+  {/* Fallback: Input normal si BrandSelector falla */}
+  {!BrandSelector && (
+    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+      <p className="text-red-700 text-sm mb-2">⚠️ BrandSelector no disponible, usando input normal:</p>
+      <input
+        type="text"
+        name="brand"
+        value={formData.brand}
+        onChange={handleChange}
+        required
+        placeholder="Ingresa la marca manualmente"
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+      />
+    </div>
+  )}
+</div>
           
           {/* SKU */}
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-3">
             <label htmlFor="sku" className="block text-sm font-medium text-gray-700">
               SKU (Código de producto) *
             </label>
@@ -751,7 +783,7 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
                     <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                       <div className="bg-white w-3/4 h-2 rounded-full overflow-hidden">
                         <div 
-                          className="bg-indigo-600 h-full rounded-full transition-all duration-300" 
+                          className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
                           style={{ width: `${uploadProgress[image.id]}%` }}
                         ></div>
                       </div>

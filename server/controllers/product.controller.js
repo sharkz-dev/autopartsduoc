@@ -749,3 +749,32 @@ exports.addProductRating = async (req, res, next) => {
     next(err);
   }
 };
+
+// ✅ NUEVO: Obtener marcas únicas disponibles
+// @desc    Obtener todas las marcas únicas
+// @route   GET /api/products/brands
+// @access  Public
+exports.getBrands = async (req, res, next) => {
+  try {
+    console.log('🏷️ Obteniendo marcas únicas...');
+    
+    const brands = await Product.distinct('brand', { 
+      brand: { $exists: true, $ne: '', $ne: null } 
+    });
+    
+    // Ordenar alfabéticamente
+    const sortedBrands = brands.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    
+    console.log(`✅ Marcas encontradas: ${sortedBrands.length}`);
+    console.log('Marcas:', sortedBrands);
+    
+    res.status(200).json({
+      success: true,
+      count: sortedBrands.length,
+      data: sortedBrands
+    });
+  } catch (err) {
+    console.error('💥 Error en getBrands:', err);
+    next(err);
+  }
+};

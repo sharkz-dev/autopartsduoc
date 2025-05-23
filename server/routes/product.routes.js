@@ -10,7 +10,7 @@ const {
   addProductRating,
   getProductsOnSale,
   getProductRatings,
-  getBrands
+  getBrands  // ✅ AGREGADO: Importar la nueva función
 } = require('../controllers/product.controller');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -24,7 +24,7 @@ router.get('/', getProducts);
 // Obtener productos en oferta - DEBE ir antes de /:slug
 router.get('/on-sale', getProductsOnSale);
 
-// ✅ NUEVO: Obtener todas las marcas únicas - DEBE ir antes de /:slug
+// ✅ CORREGIDO: Obtener todas las marcas únicas - DEBE ir antes de /:slug
 router.get('/brands', getBrands);
 
 // ============ RUTAS DE CREACIÓN ============

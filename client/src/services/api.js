@@ -132,7 +132,7 @@ export const authService = {
   }
 };
 
-// Servicios de productos - VERSIÓN CORREGIDA
+// Servicios de productos - VERSIÓN CORREGIDA CON getBrands
 export const productService = {
   getProducts: (params) => api.get('/products', { params }),
   
@@ -183,7 +183,13 @@ export const productService = {
   
   // Nuevas funciones para valoraciones - CORREGIDAS
   getProductReviews: (slugOrId) => api.get(`/products/${slugOrId}/ratings`),
-  addProductReview: (slugOrId, reviewData) => api.post(`/products/${slugOrId}/ratings`, reviewData)
+  addProductReview: (slugOrId, reviewData) => api.post(`/products/${slugOrId}/ratings`, reviewData),
+
+  // ✅ NUEVO: Función para obtener marcas únicas
+  getBrands: () => {
+    console.log('🏷️ Obteniendo marcas únicas...');
+    return api.get('/products/brands');
+  }
 };
 
 // Servicios de categorías - VERSIÓN CORREGIDA
