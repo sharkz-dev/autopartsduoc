@@ -132,7 +132,6 @@ export const authService = {
   }
 };
 
-// Servicios de productos - VERSIÓN CORREGIDA CON getBrands
 export const productService = {
   getProducts: (params) => api.get('/products', { params }),
   
