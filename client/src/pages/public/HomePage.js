@@ -99,79 +99,77 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section Innovador */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        {/* Elementos decorativos de fondo */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-float"></div>
-          <div className="absolute top-20 right-10 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-float" style={{animationDelay: '2s'}}></div>
-          <div className="absolute bottom-10 left-1/3 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl animate-float" style={{animationDelay: '4s'}}></div>
-        </div>
-        
-        <div className="relative container mx-auto px-4 py-20 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8 animate-slide-in-up">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-purple-300">
-                  <SparklesIcon className="h-5 w-5" />
-                  <span className="text-sm font-medium tracking-wide">INNOVACIÓN AUTOMOTRIZ</span>
-                </div>
-                <h1 className="text-hero bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
-                  El futuro de los repuestos está aquí
-                </h1>
-                <p className="text-xl text-purple-100 leading-relaxed">
-                  Descubre la nueva era de compra automotriz con tecnología avanzada, 
-                  productos certificados y la mejor experiencia del mercado.
-                </p>
-              </div>
-              
-<div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-  <Link to="/catalog" className="btn-modern btn-accent group">
-    <BoltIcon className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" />
-    Explorar Catálogo
-  </Link>
-</div>
+<div className="min-h-[70vh]">
+  {/* Hero Section Innovador */}
+  <section className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
+    {/* Elementos decorativos de fondo */}
+    <div className="absolute inset-0 opacity-10">
+      <div className="absolute top-10 left-10 w-40 h-40 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-float"></div>
+      <div className="absolute top-20 right-10 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-float" style={{ animationDelay: '2s' }}></div>
+      <div className="absolute bottom-10 left-1/3 w-56 h-56 bg-indigo-500 rounded-full mix-blend-multiply filter blur-xl animate-float" style={{ animationDelay: '4s' }}></div>
+    </div>
 
-
-
-              
-              {/* Stats modernos */}
-              <div className="grid grid-cols-3 gap-6 pt-8 border-t border-purple-700/30">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">{(stats.productCount || 0).toLocaleString()}</div>
-                  <div className="text-sm text-purple-300">Productos</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">24/7</div>
-                  <div className="text-sm text-purple-300">Soporte</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">99%</div>
-                  <div className="text-sm text-purple-300">Satisfacción</div>
-                </div>
-              </div>
+    <div className="relative container mx-auto px-4 py-6 lg:py-10">
+      <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="space-y-8 animate-slide-in-up">
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 text-purple-300">
+              <SparklesIcon className="h-5 w-5" />
+              <span className="text-sm font-medium tracking-wide">INNOVACIÓN AUTOMOTRIZ</span>
             </div>
-            
-            <div className="relative animate-scale-in">
-              <div className="relative z-10">
-                <img
-                  src="/images/hero-modern.jpg"
-                  alt="Repuestos modernos"
-                  className="w-full h-auto rounded-3xl shadow-2xl"
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent rounded-3xl"></div>
-              </div>
-              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full opacity-20 animate-pulse"></div>
-              <div className="absolute -top-6 -left-6 w-24 h-24 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
+            <h1 className="text-hero bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent">
+              El futuro de los repuestos está aquí
+            </h1>
+            <p className="text-xl text-purple-100 leading-relaxed">
+              Descubre la nueva era de compra automotriz con tecnología avanzada, 
+              productos certificados y la mejor experiencia del mercado.
+            </p>
+          </div>
+
+          {/* Botón centrado */}
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
+            <Link to="/catalog" className="btn-modern btn-accent group">
+              <BoltIcon className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" />
+              Explorar Catálogo
+            </Link>
+          </div>
+
+          {/* Stats modernos */}
+          <div className="grid grid-cols-3 gap-6 pt-6 border-t border-purple-700/30">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">{(stats.productCount || 0).toLocaleString()}</div>
+              <div className="text-sm text-purple-300">Productos</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">24/7</div>
+              <div className="text-sm text-purple-300">Soporte</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-white">99%</div>
+              <div className="text-sm text-purple-300">Satisfacción</div>
             </div>
           </div>
         </div>
-      </section>
 
+        {/* Imagen derecha */}
+        <div className="relative animate-scale-in">
+          <div className="relative z-10">
+            <img
+              src="/images/hero-modern.jpg"
+              alt="Repuestos modernos"
+              className="w-full h-auto rounded-3xl shadow-2xl"
+              onError={(e) => {
+                e.target.src = 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent rounded-3xl"></div>
+          </div>
+          <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute -top-4 -left-4 w-20 h-20 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+      </div>
+    </div>
+  </section>
       {/* Ofertas Especiales Destacadas */}
       {onSaleProducts.length > 0 && (
         <section className="py-20 bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 relative overflow-hidden">
@@ -241,12 +239,12 @@ const HomePage = () => {
                 className="group neo-card hover-lift p-6 text-center animate-scale-in"
                 style={{animationDelay: `${index * 0.1}s`}}
               >
-                <div className="w-20 h-20 mx-auto mb-4 relative">
-                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-300">
+               <div className="w-20 h-20 mx-auto mb-4 relative">
+                  <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100 rounded-2xl flex items-center justify-center group-hover:from-purple-200 group-hover:to-blue-200 transition-all duration-300 overflow-hidden">
                     <img
                       src={category.image ? getImageUrl(category.image) : '/placeholder-category.png'}
                       alt={category.name}
-                      className="w-12 h-12 object-contain"
+                      className="w-full h-full object-cover rounded-2xl"
                       onError={(e) => {
                         e.target.src = '/placeholder-category.png';
                       }}

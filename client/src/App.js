@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import OrderConfirmationPage from './pages/public/OrderConfirmationPage';
 import PaymentReturnPage from './pages/public/PaymentReturnPage';
-
+import ScrollToTop from './components/common/ScrollToTop';
 // Contextos
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -49,6 +49,7 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
+        <ScrollToTop /> {/* ⬅️ AQUÍ AGREGAMOS EL COMPONENTE */}
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<MainLayout />}>

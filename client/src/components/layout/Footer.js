@@ -27,40 +27,8 @@ const Footer = () => {
       </div>
       
       <div className="relative">
-        {/* Sección superior con newsletter */}
-        <div className="border-b border-white/10">
-          <div className="container mx-auto px-8 py-12">
-            <div className="glass-card p-8 text-center bg-white/5">
-              <div className="max-w-2xl mx-auto space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                    ¿Quieres estar al día con las mejores ofertas?
-                  </h3>
-                  <p className="text-blue-100 text-lg">
-                    Suscríbete a nuestro newsletter y recibe ofertas exclusivas, 
-                    nuevos productos y consejos automotrices.
-                  </p>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-                  <input
-                    type="email"
-                    placeholder="Tu email aquí..."
-                    className="flex-1 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-blue-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300"
-                  />
-                  <button className="btn-modern btn-accent whitespace-nowrap">
-                    <EnvelopeIcon className="h-4 w-4 mr-2" />
-                    Suscribirse
-                  </button>
-                </div>
-                
-                <p className="text-xs text-blue-200">
-                  🔒 Tu información está segura. No enviamos spam
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+       
+              
 
         {/* Contenido principal del footer */}
         <div className="container mx-auto px-8 py-16">
