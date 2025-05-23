@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from 'react-icons/fa';
 import { 
   TruckIcon,
   EnvelopeIcon,
@@ -54,52 +55,52 @@ const Footer = () => {
                 </p>
               </div>
               
-              {/* Redes sociales mejoradas */}
-              <div className="space-y-4">
-                <h4 className="font-semibold text-white">Síguenos</h4>
-                <div className="flex space-x-4">
-                  {[
-                    { 
-                      href: "https://facebook.com", 
-                      icon: "📘", 
-                      name: "Facebook",
-                      color: "hover:bg-blue-600"
-                    },
-                    { 
-                      href: "https://instagram.com", 
-                      icon: "📷", 
-                      name: "Instagram",
-                      color: "hover:bg-pink-600"
-                    },
-                    { 
-                      href: "https://twitter.com", 
-                      icon: "🐦", 
-                      name: "Twitter",
-                      color: "hover:bg-sky-500"
-                    },
-                    { 
-                      href: "https://youtube.com", 
-                      icon: "📺", 
-                      name: "YouTube",
-                      color: "hover:bg-red-600"
-                    },
-                    { 
-                      href: "https://tiktok.com", 
-                      icon: "🎵", 
-                      name: "TikTok",
-                      color: "hover:bg-black"
-                    }
-                  ].map((social) => (
-                    <a
-                      key={social.name}
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 hover:shadow-lg ${social.color} border border-white/20`}
-                      title={social.name}
-                    >
-                      {social.icon}
-                    </a>
+{/* Redes sociales mejoradas */}
+<div className="space-y-4">
+  <h4 className="font-semibold text-white">Síguenos</h4>
+  <div className="flex space-x-4">
+    {[
+      { 
+        href: "https://facebook.com", 
+        icon: <FaFacebookF />, 
+        name: "Facebook",
+        color: "hover:bg-blue-600"
+      },
+      { 
+        href: "https://instagram.com", 
+        icon: <FaInstagram />, 
+        name: "Instagram",
+        color: "hover:bg-pink-600"
+      },
+      { 
+        href: "https://twitter.com", 
+        icon: <FaTwitter />, 
+        name: "Twitter",
+        color: "hover:bg-sky-500"
+      },
+      { 
+        href: "https://youtube.com", 
+        icon: <FaYoutube />, 
+        name: "YouTube",
+        color: "hover:bg-red-600"
+      },
+      { 
+        href: "https://tiktok.com", 
+        icon: <FaTiktok />, 
+        name: "TikTok",
+        color: "hover:bg-black"
+      }
+    ].map((social) => (
+      <a
+        key={social.name}
+        href={social.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 hover:shadow-lg ${social.color} border border-white/20`}
+        title={social.name}
+      >
+        {social.icon}
+      </a>
                   ))}
                 </div>
               </div>
