@@ -1,182 +1,344 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { 
+  TruckIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  HeartIcon,
+  StarIcon,
+  ShieldCheckIcon,
+  CreditCardIcon,
+  ClockIcon,
+  ArrowUpIcon
+} from '@heroicons/react/24/outline';
 
 const Footer = () => {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <footer className="bg-gray-800 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Logo y descripción */}
-          <div className="col-span-1 md:col-span-1">
-            <h2 className="text-xl font-bold mb-4">AutoParts</h2>
-            <p className="text-gray-400 mb-4">
-              La mejor plataforma para comprar repuestos de autos con garantía de calidad.
-            </p>
-            <div className="flex space-x-4">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition"
-              >
-                <span className="sr-only">Facebook</span>
-                <svg
-                  className="h-6 w-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-                    clipRule="evenodd"
+    <footer className="relative bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 text-white overflow-hidden">
+      {/* Elementos decorativos de fondo */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-20 left-20 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl animate-float"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-float" style={{animationDelay: '3s'}}></div>
+      </div>
+      
+      <div className="relative">
+        {/* Sección superior con newsletter */}
+        <div className="border-b border-white/10">
+          <div className="container mx-auto px-8 py-12">
+            <div className="glass-card p-8 text-center bg-white/5">
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                    ¿Quieres estar al día con las mejores ofertas?
+                  </h3>
+                  <p className="text-blue-100 text-lg">
+                    Suscríbete a nuestro newsletter y recibe ofertas exclusivas, 
+                    nuevos productos y consejos automotrices.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+                  <input
+                    type="email"
+                    placeholder="Tu email aquí..."
+                    className="flex-1 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-blue-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-400/20 transition-all duration-300"
                   />
-                </svg>
-              </a>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition"
-              >
-                <span className="sr-only">Instagram</span>
-                <svg
-                  className="h-6 w-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </a>
-              <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition"
-              >
-                <span className="sr-only">Twitter</span>
-                <svg
-                  className="h-6 w-6"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                </svg>
-              </a>
+                  <button className="btn-modern btn-accent whitespace-nowrap">
+                    <EnvelopeIcon className="h-4 w-4 mr-2" />
+                    Suscribirse
+                  </button>
+                </div>
+                
+                <p className="text-xs text-blue-200">
+                  🔒 Tu información está segura. No enviamos spam
+                </p>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Enlaces de navegación */}
-          <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4">Navegación</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Inicio
+        {/* Contenido principal del footer */}
+        <div className="container mx-auto px-8 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+            {/* Logo y descripción */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="space-y-4">
+                <Link to="/" className="flex items-center space-x-3 group">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <TruckIcon className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                      AutoParts
+                    </h2>
+                    <span className="text-xs text-blue-300">Innovación Automotriz</span>
+                  </div>
                 </Link>
-              </li>
-              <li>
-                <Link
-                  to="/catalog"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Catálogo
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/about"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Nosotros
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/contact"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Contacto
-                </Link>
-              </li>
-            </ul>
-          </div>
+                
+                <p className="text-blue-100 leading-relaxed">
+                  La plataforma más innovadora para comprar repuestos de autos con 
+                  garantía de calidad, tecnología avanzada y la mejor experiencia del mercado.
+                </p>
+              </div>
+              
+              {/* Redes sociales mejoradas */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-white">Síguenos</h4>
+                <div className="flex space-x-4">
+                  {[
+                    { 
+                      href: "https://facebook.com", 
+                      icon: "📘", 
+                      name: "Facebook",
+                      color: "hover:bg-blue-600"
+                    },
+                    { 
+                      href: "https://instagram.com", 
+                      icon: "📷", 
+                      name: "Instagram",
+                      color: "hover:bg-pink-600"
+                    },
+                    { 
+                      href: "https://twitter.com", 
+                      icon: "🐦", 
+                      name: "Twitter",
+                      color: "hover:bg-sky-500"
+                    },
+                    { 
+                      href: "https://youtube.com", 
+                      icon: "📺", 
+                      name: "YouTube",
+                      color: "hover:bg-red-600"
+                    },
+                    { 
+                      href: "https://tiktok.com", 
+                      icon: "🎵", 
+                      name: "TikTok",
+                      color: "hover:bg-black"
+                    }
+                  ].map((social) => (
+                    <a
+                      key={social.name}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 hover:shadow-lg ${social.color} border border-white/20`}
+                      title={social.name}
+                    >
+                      {social.icon}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
 
-          {/* Categorías populares */}
-          <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4">Categorías</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/catalog?category=motor"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Motor
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/catalog?category=frenos"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Frenos
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/catalog?category=suspension"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Suspensión
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/catalog?category=transmision"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Transmisión
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/catalog?category=electrico"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Eléctrico
-                </Link>
-              </li>
-            </ul>
-          </div>
+            {/* Enlaces de navegación */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-white flex items-center">
+                <span className="w-2 h-2 bg-blue-400 rounded-full mr-3"></span>
+                Navegación
+              </h3>
+              <ul className="space-y-3">
+                {[
+                  { to: "/", label: "🏠 Inicio" },
+                  { to: "/catalog", label: "🛒 Catálogo" },
+                  { to: "/catalog?featured=true", label: "⭐ Destacados" },
+                  { to: "/catalog?onSale=true", label: "🔥 Ofertas" },
+                  { to: "/about", label: "ℹ️ Nosotros" },
+                  { to: "/contact", label: "📞 Contacto" }
+                ].map((link) => (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className="text-blue-100 hover:text-white transition-colors duration-300 flex items-center group"
+                    >
+                      <span className="group-hover:translate-x-1 transition-transform duration-300">
+                        {link.label}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Información de contacto */}
-          <div className="col-span-1">
-            <h3 className="text-lg font-semibold mb-4">Contacto</h3>
-            <ul className="space-y-2 text-gray-400">
-              <li>
-                <p>Calle Repuestos #123</p>
-                <p>Ciudad Automotriz, 12345</p>
-              </li>
-              <li>Email: info@AutoParts.com</li>
-              <li>Teléfono: +123 456 7890</li>
-            </ul>
+            {/* Categorías populares */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-white flex items-center">
+                <span className="w-2 h-2 bg-purple-400 rounded-full mr-3"></span>
+                Categorías Populares
+              </h3>
+              <ul className="space-y-3">
+                {[
+                  { to: "/catalog?category=motor", label: "🔧 Motor" },
+                  { to: "/catalog?category=frenos", label: "🛑 Frenos" },
+                  { to: "/catalog?category=suspension", label: "🚗 Suspensión" },
+                  { to: "/catalog?category=transmision", label: "⚙️ Transmisión" },
+                  { to: "/catalog?category=electrico", label: "⚡ Eléctrico" },
+                  { to: "/catalog?category=carroceria", label: "🚘 Carrocería" }
+                ].map((link) => (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className="text-blue-100 hover:text-white transition-colors duration-300 flex items-center group"
+                    >
+                      <span className="group-hover:translate-x-1 transition-transform duration-300">
+                        {link.label}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Información de contacto y servicios */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-bold text-white flex items-center">
+                <span className="w-2 h-2 bg-green-400 rounded-full mr-3"></span>
+                Contacto & Servicios
+              </h3>
+              
+              {/* Información de contacto */}
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <MapPinIcon className="h-5 w-5 text-blue-300 mt-1 flex-shrink-0" />
+                  <div className="text-blue-100">
+                    <p className="font-medium">Oficina Central</p>
+                    <p className="text-sm">Av. Providencia 1234</p>
+                    <p className="text-sm">Santiago, Chile</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <PhoneIcon className="h-5 w-5 text-blue-300 flex-shrink-0" />
+                  <div className="text-blue-100">
+                    <p className="font-medium">+56 2 2345 6789</p>
+                    <p className="text-sm">Lun - Vie: 9:00 - 18:00</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  <EnvelopeIcon className="h-5 w-5 text-blue-300 flex-shrink-0" />
+                  <div className="text-blue-100">
+                    <p className="font-medium">ventas@autoparts.com</p>
+                    <p className="text-sm">Respuesta en 24hrs</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Servicios destacados */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-white text-sm">🚀 Nuestros Servicios</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    { icon: "🚚", text: "Envío 24-48hrs" },
+                    { icon: "🛡️", text: "Garantía Total" },
+                    { icon: "💳", text: "Pago Seguro" },
+                    { icon: "📞", text: "Soporte 24/7" }
+                  ].map((service, index) => (
+                    <div key={index} className="flex items-center space-x-2 text-blue-100">
+                      <span>{service.icon}</span>
+                      <span>{service.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-gray-700">
-          <p className="text-center text-gray-400">
-            &copy; {new Date().getFullYear()} AutoParts. Todos los derechos reservados.
-          </p>
+        {/* Sección de garantías y certificaciones */}
+        <div className="border-t border-white/10">
+          <div className="container mx-auto px-8 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+              {[
+                {
+                  icon: <ShieldCheckIcon className="h-8 w-8" />,
+                  title: "Garantía Total",
+                  description: "100% productos originales"
+                },
+                {
+                  icon: <TruckIcon className="h-8 w-8" />,
+                  title: "Envío Rápido",
+                  description: "24-48 horas a todo Chile"
+                },
+                {
+                  icon: <CreditCardIcon className="h-8 w-8" />,
+                  title: "Pago Seguro",
+                  description: "Múltiples métodos de pago"
+                },
+                {
+                  icon: <ClockIcon className="h-8 w-8" />,
+                  title: "Soporte 24/7",
+                  description: "Atención personalizada"
+                }
+              ].map((feature, index) => (
+                <div key={index} className="flex flex-col items-center space-y-2 p-4 rounded-xl bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all duration-300">
+                  <div className="text-blue-300">
+                    {feature.icon}
+                  </div>
+                  <h4 className="font-semibold text-white">{feature.title}</h4>
+                  <p className="text-xs text-blue-200">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* Footer inferior */}
+        <div className="border-t border-white/10">
+          <div className="container mx-auto px-8 py-6">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm text-blue-200">
+                <p className="flex items-center">
+                  &copy; {new Date().getFullYear()} AutoParts. Todos los derechos reservados.
+                </p>
+                <div className="flex items-center space-x-4">
+                  <Link to="/privacy" className="hover:text-white transition-colors">
+                    Política de Privacidad
+                  </Link>
+                  <span className="text-white/30">•</span>
+                  <Link to="/terms" className="hover:text-white transition-colors">
+                    Términos de Uso
+                  </Link>
+                  <span className="text-white/30">•</span>
+                  <Link to="/cookies" className="hover:text-white transition-colors">
+                    Cookies
+                  </Link>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <p className="text-sm text-blue-200 flex items-center">
+                  Hecho con <HeartIcon className="h-4 w-4 text-red-400 mx-1" /> en Chile
+                </p>
+                
+                {/* Métodos de pago */}
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-blue-300">Pagos:</span>
+                  <div className="flex space-x-1">
+                    {['💳', '🏦', '📱'].map((payment, index) => (
+                      <span key={index} className="text-lg">{payment}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botón volver arriba */}
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-50 flex items-center justify-center group"
+          title="Volver arriba"
+        >
+          <ArrowUpIcon className="h-5 w-5 group-hover:-translate-y-1 transition-transform duration-300" />
+        </button>
       </div>
     </footer>
   );
