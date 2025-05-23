@@ -308,7 +308,7 @@ const AdminDashboardPage = () => {
       </div>
 
       {/* Estadísticas adicionales */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* Distribución de usuarios */}
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-xl font-medium text-gray-900 mb-4">Distribución de Usuarios</h2>
@@ -332,49 +332,6 @@ const AdminDashboardPage = () => {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Mejores distribuidores */}
-        <div className="bg-white shadow rounded-lg p-6 col-span-1 lg:col-span-2">
-          <h2 className="text-xl font-medium text-gray-900 mb-4">Distribuidores Destacados</h2>
-          {stats?.salesByDistributor && stats.salesByDistributor.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Distribuidor
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Órdenes
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ventas
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {stats.salesByDistributor.slice(0, 5).map((distributor, index) => (
-                    <tr key={distributor._id || index}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{distributor.companyName || distributor.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{distributor.orderCount}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{formatCurrency(distributor.total)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-64">
-              <p className="text-gray-500">No hay datos de distribuidores disponibles</p>
-            </div>
-          )}
         </div>
       </div>
 

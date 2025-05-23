@@ -112,7 +112,6 @@ const ProductCard = ({ product, addToCart, cartType }) => {
         </div>
       )}
       
-      {/* CAMBIO PRINCIPAL: Usar slug en lugar de _id */}
       <Link to={`/product/${product.slug || product._id}`} className="block">
         <div className="h-48 overflow-hidden">
           <img 
@@ -173,7 +172,7 @@ const ProductCard = ({ product, addToCart, cartType }) => {
           
           <div className="mt-3 flex justify-between items-center">
             <span className="text-xs text-gray-500">
-              Distribuidor: {product.distributor?.companyName || 'N/A'}
+              SKU: {product.sku}
             </span>
             
             <div className="flex space-x-2">

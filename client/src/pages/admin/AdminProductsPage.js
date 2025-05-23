@@ -23,7 +23,6 @@ const AdminProductsPage = () => {
   // Estados para filtros y paginación
   const [filter, setFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [distributorFilter, setDistributorFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -31,9 +30,6 @@ const AdminProductsPage = () => {
   
   // Estado para ordenamiento
   const [sort, setSort] = useState({ field: 'createdAt', direction: 'desc' });
-  
-  // Lista de distribuidores (se extraerá de los productos)
-  const [distributors, setDistributors] = useState([]);
 
   // Cargar productos y categorías
   useEffect(() => {
@@ -51,19 +47,6 @@ const AdminProductsPage = () => {
         setTotalProducts(productsResponse.data.total);
         setTotalPages(Math.ceil(productsResponse.data.count / productsPerPage));
         
-        // Extraer distribuidores únicos
-        const distributorsList = productsResponse.data.data.reduce((acc, product) => {
-          if (product.distributor && !acc.some(d => d._id === product.distributor._id)) {
-            acc.push({
-              _id: product.distributor._id,
-              name: product.distributor.companyName || product.distributor.name
-            });
-          }
-          return acc;
-        }, []);
-        
-        setDistributors(distributorsList);
-        
         setLoading(false);
       } catch (err) {
         console.error('Error al cargar productos:', err);
@@ -75,7 +58,6 @@ const AdminProductsPage = () => {
     fetchData();
   }, []);
 
-  // ✅ CORREGIDO: Usar ID para eliminar producto
   const handleDeleteProduct = async (productId) => {
     try {
       await productService.deleteProduct(productId);
@@ -95,19 +77,13 @@ const AdminProductsPage = () => {
   // Manejar cambio de filtro
   const handleFilterChange = (e) => {
     setFilter(e.target.value);
-    setCurrentPage(1); // Resetear a primera página al cambiar filtro
+    setCurrentPage(1);
   };
 
   // Manejar cambio de filtro de categoría
   const handleCategoryFilterChange = (e) => {
     setCategoryFilter(e.target.value);
-    setCurrentPage(1); // Resetear a primera página al cambiar filtro
-  };
-  
-  // Manejar cambio de filtro de distribuidor
-  const handleDistributorFilterChange = (e) => {
-    setDistributorFilter(e.target.value);
-    setCurrentPage(1); // Resetear a primera página al cambiar filtro
+    setCurrentPage(1);
   };
 
   // Cambiar ordenamiento
@@ -129,10 +105,7 @@ const AdminProductsPage = () => {
       const matchesCategory = categoryFilter === '' || 
         (product.category && product.category._id === categoryFilter);
       
-      const matchesDistributor = distributorFilter === '' || 
-        (product.distributor && product.distributor._id === distributorFilter);
-      
-      return matchesSearch && matchesCategory && matchesDistributor;
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       // Ordenar por campo seleccionado
@@ -259,25 +232,6 @@ const AdminProductsPage = () => {
               ))}
             </select>
           </div>
-          
-          <div className="sm:w-64">
-            <label htmlFor="distributor" className="block text-sm font-medium text-gray-700 mb-1">
-              Distribuidor
-            </label>
-            <select
-              id="distributor"
-              value={distributorFilter}
-              onChange={handleDistributorFilterChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            >
-              <option value="">Todos los distribuidores</option>
-              {distributors.map((distributor) => (
-                <option key={distributor._id} value={distributor._id}>
-                  {distributor.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
@@ -300,9 +254,6 @@ const AdminProductsPage = () => {
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Categoría / Marca
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Distribuidor
                   </th>
                   <th 
                     scope="col" 
@@ -362,9 +313,6 @@ const AdminProductsPage = () => {
                       <div className="text-sm text-gray-500">{product.brand}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{product.distributor?.companyName || product.distributor?.name || 'Sin distribuidor'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{formatCurrency(product.price)}</div>
                       {product.wholesalePrice && (
                         <div className="text-sm text-gray-500">
@@ -388,7 +336,6 @@ const AdminProductsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {/* ✅ CORREGIDO: Usar ID para editar */}
                         <Link
                           to={`/admin/products/edit/${product._id}`}
                           className="text-indigo-600 hover:text-indigo-900"
@@ -396,7 +343,6 @@ const AdminProductsPage = () => {
                         >
                           <PencilIcon className="h-5 w-5" />
                         </Link>
-                        {/* ✅ CORREGIDO: Usar ID para eliminar */}
                         <button
                           onClick={() => setConfirmDelete(product._id)}
                           className="text-red-600 hover:text-red-900"

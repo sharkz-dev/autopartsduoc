@@ -26,13 +26,12 @@ const AdminOrdersPage = () => {
   // Estado para modal de detalles y actualización
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [showStatusMenu, setShowStatusMenu] = useState(null); // Cambiar a null para controlar cuál menú está abierto
-  const [updatingStatus, setUpdatingStatus] = useState(null); // Cambiar a null para controlar cuál orden se está actualizando
+  const [showStatusMenu, setShowStatusMenu] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   // Cerrar menús al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event) {
-      // Si el clic no fue en un botón de menú o en el menú mismo, cerrar todos los menús
       if (!event.target.closest('.status-menu-container')) {
         setShowStatusMenu(null);
       }
@@ -63,27 +62,21 @@ const AdminOrdersPage = () => {
     }
   };
   
-  // Actualizar estado de una orden - VERSIÓN CORREGIDA
+  // Actualizar estado de una orden
   const updateOrderStatus = async (orderId, status) => {
     try {
       console.log(`🔄 Iniciando actualización de estado:`);
       console.log(`   - Orden ID: ${orderId}`);
       console.log(`   - Nuevo estado: ${status}`);
       
-      // Mostrar estado de carga para esta orden específica
       setUpdatingStatus(orderId);
-      
-      // Mostrar toast de carga
       const loadingToast = toast.loading('Actualizando estado...');
       
-      // Llamar a la API
       const response = await orderService.updateOrderStatus(orderId, { status });
       
       console.log(`✅ Respuesta de la API:`, response.data);
       
-      // Verificar que la respuesta sea exitosa
       if (response.data.success) {
-        // Actualizar el estado local de la orden seleccionada (si está abierto el modal)
         if (selectedOrder && selectedOrder._id === orderId) {
           setSelectedOrder({
             ...selectedOrder,
@@ -92,7 +85,6 @@ const AdminOrdersPage = () => {
           console.log(`✅ Orden seleccionada actualizada en modal`);
         }
         
-        // Actualizar la lista de órdenes
         setOrders(prevOrders => 
           prevOrders.map(order => 
             order._id === orderId ? { ...order, status } : order
@@ -100,17 +92,14 @@ const AdminOrdersPage = () => {
         );
         console.log(`✅ Lista de órdenes actualizada`);
         
-        // Mostrar mensaje de éxito
         toast.dismiss(loadingToast);
         toast.success(`Estado actualizado a: ${getStatusTranslation(status)}`);
       } else {
-        // Manejar respuesta no exitosa
         console.error(`❌ Error en respuesta:`, response.data);
         toast.dismiss(loadingToast);
         toast.error('Error al actualizar estado: ' + (response.data.error || 'Error desconocido'));
       }
     } catch (err) {
-      // Manejar errores
       console.error('💥 Error al actualizar estado:', err);
       console.error('   - Error completo:', err.response || err);
       
@@ -118,7 +107,6 @@ const AdminOrdersPage = () => {
       const errorMessage = err.response?.data?.error || err.message || 'Error al actualizar estado';
       toast.error(errorMessage);
     } finally {
-      // Siempre finalizar el estado de carga y cerrar menú
       setUpdatingStatus(null);
       setShowStatusMenu(null);
     }
@@ -334,7 +322,7 @@ const AdminOrdersPage = () => {
                           {getStatusTranslation(order.status)}
                         </span>
                         
-                        {/* Menú desplegable de estado - VERSIÓN CORREGIDA */}
+                        {/* Menú desplegable de estado */}
                         <div className="relative status-menu-container">
                           <button
                             onClick={() => {
@@ -581,19 +569,19 @@ const AdminOrdersPage = () => {
                     </div>
                     
                     {/* Dirección de envío */}
-<div className="bg-gray-50 p-4 rounded-lg">
-  <h4 className="text-md font-medium text-gray-900 mb-2">Dirección de Envío</h4>
-  {selectedOrder.shippingAddress ? (
-    <>
-      <p>{selectedOrder.shippingAddress.street}</p>
-      <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
-      <p>{selectedOrder.shippingAddress.postalCode}</p>
-      <p>{selectedOrder.shippingAddress.country}</p>
-    </>
-  ) : (
-    <p className="text-gray-500">No hay dirección de envío</p>
-  )}
-</div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-md font-medium text-gray-900 mb-2">Dirección de Envío</h4>
+                      {selectedOrder.shippingAddress ? (
+                        <>
+                          <p>{selectedOrder.shippingAddress.street}</p>
+                          <p>{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}</p>
+                          <p>{selectedOrder.shippingAddress.postalCode}</p>
+                          <p>{selectedOrder.shippingAddress.country}</p>
+                        </>
+                      ) : (
+                        <p className="text-gray-500">No hay dirección de envío</p>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Lista de productos */}
@@ -604,7 +592,6 @@ const AdminOrdersPage = () => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distribuidor</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
@@ -629,11 +616,6 @@ const AdminOrdersPage = () => {
                                     <div className="text-sm font-medium text-gray-900">{item.product?.name || 'Producto Eliminado'}</div>
                                   </div>
                                 </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                {item.distributor ? (
-                                  item.distributor.companyName || item.distributor.name || 'Distribuidor'
-                                ) : 'Distribuidor Eliminado'}
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 {item.quantity}

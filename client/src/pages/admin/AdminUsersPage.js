@@ -141,7 +141,6 @@ const AdminUsersPage = () => {
   const getRoleTranslation = (role) => {
     const translations = {
       'admin': 'Administrador',
-      'distributor': 'Distribuidor',
       'client': 'Cliente'
     };
     
@@ -153,8 +152,6 @@ const AdminUsersPage = () => {
     switch(role) {
       case 'admin':
         return 'bg-purple-100 text-purple-800';
-      case 'distributor':
-        return 'bg-blue-100 text-blue-800';
       case 'client':
         return 'bg-green-100 text-green-800';
       default:
@@ -226,7 +223,6 @@ const AdminUsersPage = () => {
             >
               <option value="">Todos los roles</option>
               <option value="admin">Administrador</option>
-              <option value="distributor">Distribuidor</option>
               <option value="client">Cliente</option>
             </select>
           </div>
@@ -268,9 +264,6 @@ const AdminUsersPage = () => {
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeClass(user.role)}`}>
                         {getRoleTranslation(user.role)}
                       </span>
-                      {user.role === 'distributor' && user.companyName && (
-                        <div className="text-sm text-gray-500 mt-1">{user.companyName}</div>
-                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.phone || 'No registrado'}
@@ -479,7 +472,6 @@ const AdminUsersPage = () => {
                       className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                     >
                       <option value="admin">Administrador</option>
-                      <option value="distributor">Distribuidor</option>
                       <option value="client">Cliente</option>
                     </select>
                   </div>
@@ -540,9 +532,6 @@ const AdminUsersPage = () => {
                   <div className="mt-2">
                     <p className="text-sm text-gray-500">
                       ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.
-                    </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Nota: No se puede eliminar un distribuidor si tiene productos asociados.
                     </p>
                   </div>
                 </div>

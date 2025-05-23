@@ -10,7 +10,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-1">
             <h2 className="text-xl font-bold mb-4">AutoParts</h2>
             <p className="text-gray-400 mb-4">
-              La mejor plataforma para comprar y vender repuestos de autos con garantía de calidad.
+              La mejor plataforma para comprar repuestos de autos con garantía de calidad.
             </p>
             <div className="flex space-x-4">
               <a
@@ -94,14 +94,6 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/distributors"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Distribuidores
-                </Link>
-              </li>
-              <li>
-                <Link
                   to="/about"
                   className="text-gray-400 hover:text-white transition"
                 >
@@ -176,14 +168,6 @@ const Footer = () => {
               </li>
               <li>Email: info@AutoParts.com</li>
               <li>Teléfono: +123 456 7890</li>
-              <li className="pt-2">
-                <Link
-                  to="/register-distributor"
-                  className="text-blue-400 hover:text-blue-300 transition"
-                >
-                  ¿Quieres vender tus productos?
-                </Link>
-              </li>
             </ul>
           </div>
         </div>

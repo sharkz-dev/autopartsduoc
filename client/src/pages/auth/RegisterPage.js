@@ -288,27 +288,6 @@ const RegisterPage = () => {
             </button>
           </div>
         </form>
-        
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
-                ¿Eres un distribuidor?
-              </span>
-            </div>
-          </div>
-          <div className="mt-6 text-center">
-            <Link
-              to="/register-distributor"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Regístrate como distribuidor
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
