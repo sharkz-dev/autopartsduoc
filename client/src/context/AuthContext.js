@@ -231,6 +231,27 @@ export const AuthProvider = ({ children }) => {
     return user && user.role === role;
   };
 
+  // ✅ NUEVO: Función para obtener el tipo de carrito automático según el rol
+  const getCartType = () => {
+    if (!user) return 'B2C';
+    return user.role === 'distributor' ? 'B2B' : 'B2C';
+  };
+
+  // ✅ NUEVO: Función para verificar si puede acceder a precios mayoristas
+  const canAccessWholesalePrices = () => {
+    return user && user.role === 'distributor' && user.distributorInfo?.isApproved === true;
+  };
+
+  // ✅ NUEVO: Función para verificar si es distribuidor
+  const isDistributor = () => {
+    return user && user.role === 'distributor';
+  };
+
+  // ✅ NUEVO: Función para verificar si es distribuidor aprobado
+  const isApprovedDistributor = () => {
+    return user && user.role === 'distributor' && user.distributorInfo?.isApproved === true;
+  };
+
   // NUEVO: Función para obtener datos del usuario de forma síncrona
   const getUserData = () => {
     return user || JSON.parse(localStorage.getItem('user') || 'null');
@@ -243,6 +264,19 @@ export const AuthProvider = ({ children }) => {
     return !!(token && userData);
   };
 
+  // ✅ NUEVO: Función para obtener el nombre del rol formateado
+  const getRoleDisplayName = () => {
+    if (!user) return '';
+    
+    const roleNames = {
+      'client': 'Cliente',
+      'distributor': 'Distribuidor',
+      'admin': 'Administrador'
+    };
+    
+    return roleNames[user.role] || user.role;
+  };
+
   // Log para debugging - mostrar cambios en el usuario
   useEffect(() => {
     if (user) {
@@ -250,9 +284,12 @@ export const AuthProvider = ({ children }) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        companyName: user.companyName,
-        companyLogo: user.companyLogo,
-        hasLogo: !!user.companyLogo
+        cartType: getCartType(),
+        canAccessWholesale: canAccessWholesalePrices(),
+        isDistributor: isDistributor(),
+        isApprovedDistributor: isApprovedDistributor(),
+        companyName: user.distributorInfo?.companyName,
+        isApproved: user.distributorInfo?.isApproved
       });
     }
   }, [user]);
@@ -271,7 +308,13 @@ export const AuthProvider = ({ children }) => {
     updateUserLogo,
     hasRole,
     getUserData,
-    isAuthenticated: isAuthenticated()
+    isAuthenticated: isAuthenticated(),
+    // ✅ NUEVAS FUNCIONES ESPECÍFICAS PARA DISTRIBUIDORES
+    getCartType,
+    canAccessWholesalePrices,
+    isDistributor,
+    isApprovedDistributor,
+    getRoleDisplayName
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -16,12 +16,23 @@ import {
   TruckIcon,
   HomeIcon,
   TagIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ShieldCheckIcon,
+  BuildingOfficeIcon
 } from '@heroicons/react/24/outline';
 
 const Header = () => {
-  const { user, isAuthenticated, logout, loading } = useAuth();
-  const { cartCount, cartType, toggleCartType } = useCart();
+  const { 
+    user, 
+    isAuthenticated, 
+    logout, 
+    loading, 
+    getRoleDisplayName,
+    isDistributor,
+    isApprovedDistributor,
+    canAccessWholesalePrices 
+  } = useAuth();
+  const { cartCount, cartType, toggleCartType, isCartTypeAutomatic } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -84,12 +95,46 @@ const Header = () => {
   const isActive = (path) => location.pathname === path;
 
   const getUserName = () => user?.name?.split(' ')[0] || 'Usuario';
-  const getUserRole = () => {
-    switch (user?.role) {
-      case 'admin': return 'Administrador';
+
+  // Obtener icono según el rol
+  const getUserRoleIcon = () => {
+    if (!user) return <UserIcon className="h-4 w-4" />;
+    
+    switch (user.role) {
+      case 'admin':
+        return <ShieldCheckIcon className="h-4 w-4 text-blue-600" />;
+      case 'distributor':
+        return <BuildingOfficeIcon className="h-4 w-4 text-purple-600" />;
       case 'client':
-      default: return 'Cliente';
+      default:
+        return <UserIcon className="h-4 w-4 text-gray-600" />;
     }
+  };
+
+  // Obtener color de badge según rol
+  const getRoleBadgeColor = () => {
+    if (!user) return 'bg-gray-100 text-gray-700';
+    
+    switch (user.role) {
+      case 'admin':
+        return 'bg-blue-100 text-blue-800';
+      case 'distributor':
+        return isApprovedDistributor() 
+          ? 'bg-purple-100 text-purple-800' 
+          : 'bg-yellow-100 text-yellow-800';
+      case 'client':
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
+  // Obtener descripción del estado del distribuidor
+  const getDistributorStatus = () => {
+    if (!isDistributor()) return '';
+    
+    return isApprovedDistributor() 
+      ? 'Distribuidor Aprobado' 
+      : 'Distribuidor Pendiente';
   };
 
   if (userError) {
@@ -129,7 +174,13 @@ const Header = () => {
               
               <div className="flex items-center space-x-4">
                 {userValidated ? (
-                  <span className="text-purple-200">¡Hola, {getUserName()}!</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-purple-200">¡Hola, {getUserName()}!</span>
+                    {/* MOSTRAR TIPO DE CUENTA */}
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
+                      {isDistributor() ? getDistributorStatus() : getRoleDisplayName()}
+                    </span>
+                  </div>
                 ) : (
                   <div className="flex items-center space-x-3">
                     <Link to="/login" className="hover:text-purple-200 transition-colors">
@@ -218,41 +269,55 @@ const Header = () => {
 
             {/* Acciones del usuario */}
             <div className="flex items-center space-x-3">
-          {/* Toggle B2B/B2C moderno */}
-<div className="hidden md:flex bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
-  <button 
-    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-      cartType === 'B2C' 
-        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-        : 'text-gray-600 hover:text-purple-600'
-    }`}
-    onClick={() => toggleCartType('B2C')}
-  >
-    Cliente
-  </button>
-  <button 
-    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-      cartType === 'B2B' 
-        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-        : 'text-gray-600 hover:text-purple-600'
-    }`}
-    onClick={() => toggleCartType('B2B')}
-  >
-    Mayorista
-  </button>
-</div>
+              {/* INDICADOR DE TIPO DE CARRITO MODIFICADO - SOLO INFORMATIVO */}
+              <div className="hidden md:flex bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg relative">
+                <div 
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    cartType === 'B2C' 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md' 
+                      : 'text-gray-600'
+                  } ${!isCartTypeAutomatic ? 'cursor-pointer hover:text-purple-600' : 'cursor-default'}`}
+                  onClick={!isCartTypeAutomatic ? () => toggleCartType('B2C') : undefined}
+                  title={isCartTypeAutomatic ? 'Automático según tu tipo de cuenta' : 'Cambiar a modo Cliente'}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Cliente</span>
+                    {cartType === 'B2C' && isCartTypeAutomatic && (
+                      <span className="text-xs opacity-75">●</span>
+                    )}
+                  </div>
+                </div>
+                <div 
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                    cartType === 'B2B' 
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                      : 'text-gray-600'
+                  } ${!isCartTypeAutomatic ? 'cursor-pointer hover:text-purple-600' : 'cursor-default'}`}
+                  onClick={!isCartTypeAutomatic ? () => toggleCartType('B2B') : undefined}
+                  title={isCartTypeAutomatic ? 'Automático según tu tipo de cuenta' : 'Cambiar a modo Mayorista'}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Mayorista</span>
+                    {cartType === 'B2B' && isCartTypeAutomatic && (
+                      <span className="text-xs opacity-75">●</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* INDICADOR DE MODO AUTOMÁTICO */}
+              </div>
 
-{/* Carrito moderno */}
-<Link to="/cart" className="relative group">
-  <div className="p-3 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-300 shadow-lg group-hover:shadow-xl">
-    <ShoppingCartIcon className="h-5 w-5 text-gray-700 group-hover:text-purple-600 transition-colors" />
-    {cartCount > 0 && (
-      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-lg animate-pulse">
-        {cartCount}
-      </span>
-    )}
-  </div>
-</Link>
+              {/* Carrito moderno */}
+              <Link to="/cart" className="relative group">
+                <div className="p-3 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-300 shadow-lg group-hover:shadow-xl">
+                  <ShoppingCartIcon className="h-5 w-5 text-gray-700 group-hover:text-purple-600 transition-colors" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-lg animate-pulse">
+                      {cartCount}
+                    </span>
+                  )}
+                </div>
+              </Link>
 
               {/* Menú de usuario */}
               {userValidated ? (
@@ -261,8 +326,12 @@ const Header = () => {
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center space-x-2 p-2 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-300 shadow-lg"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                      <UserIcon className="h-4 w-4 text-white" />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      user.role === 'admin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
+                      user.role === 'distributor' ? 'bg-gradient-to-br from-purple-600 to-purple-700' :
+                      'bg-gradient-to-br from-green-600 to-green-700'
+                    }`}>
+                      {getUserRoleIcon()}
                     </div>
                     <span className="hidden sm:block text-sm font-medium text-gray-700">{getUserName()}</span>
                     <ChevronDownIcon className="h-4 w-4 text-gray-500" />
@@ -270,12 +339,35 @@ const Header = () => {
                   
                   {isUserMenuOpen && (
                     <div className="absolute right-0 mt-2 w-64 glass-card shadow-2xl border border-white/20 rounded-2xl overflow-hidden animate-scale-in">
-                      <div className="p-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                        <p className="font-semibold">{user?.name}</p>
-                        <p className="text-sm opacity-90">{user?.email}</p>
-                        <span className="inline-block mt-2 px-2 py-1 bg-white/20 rounded-lg text-xs">
-                          {getUserRole()}
-                        </span>
+                      <div className={`p-4 ${
+                        user.role === 'admin' ? 'bg-gradient-to-r from-blue-600 to-blue-700' :
+                        user.role === 'distributor' ? 'bg-gradient-to-r from-purple-600 to-purple-700' :
+                        'bg-gradient-to-r from-green-600 to-green-700'
+                      } text-white`}>
+                        <div className="flex items-center space-x-3">
+                          {getUserRoleIcon()}
+                          <div>
+                            <p className="font-semibold">{user?.name}</p>
+                            <p className="text-sm opacity-90">{user?.email}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className={`inline-block px-2 py-1 bg-white/20 rounded-lg text-xs ${getRoleBadgeColor()}`}>
+                            {getRoleDisplayName()}
+                          </span>
+                          {isDistributor() && (
+                            <span className={`inline-block px-2 py-1 rounded-lg text-xs ${
+                              isApprovedDistributor() ? 'bg-green-500/20 text-green-100' : 'bg-yellow-500/20 text-yellow-100'
+                            }`}>
+                              {isApprovedDistributor() ? '✓ Aprobado' : '⏳ Pendiente'}
+                            </span>
+                          )}
+                          {canAccessWholesalePrices() && (
+                            <span className="inline-block px-2 py-1 bg-blue-500/20 text-blue-100 rounded-lg text-xs">
+                              💰 Precios Mayorista
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="py-2">
@@ -387,47 +479,73 @@ const Header = () => {
               ))}
             </nav>
             
-        {/* Toggle B2B/B2C móvil */}
-<div className="p-4 border-t border-gray-100">
-  <p className="text-sm font-medium text-gray-700 mb-3">Modo de Compra:</p>
-  <div className="bg-gray-100 rounded-xl p-1 flex">
-    <button 
-      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-        cartType === 'B2C' 
-          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-          : 'text-gray-600'
-      }`}
-      onClick={() => toggleCartType('B2C')}
-    >
-      Cliente (B2C)
-    </button>
-    <button 
-      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-        cartType === 'B2B' 
-          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-          : 'text-gray-600'
-      }`}
-      onClick={() => toggleCartType('B2B')}
-    >
-      Mayorista (B2B)
-    </button>
-  </div>
-</div>
+            {/* INDICADOR DE TIPO DE CARRITO MÓVIL - SOLO INFORMATIVO */}
+            <div className="p-4 border-t border-gray-100">
+              <p className="text-sm font-medium text-gray-700 mb-3">Modo de Compra:</p>
+              <div className="bg-gray-100 rounded-xl p-1 flex relative">
+                <div 
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-center ${
+                    cartType === 'B2C' 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md' 
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Cliente (B2C)
+                  {cartType === 'B2C' && isCartTypeAutomatic && (
+                    <span className="ml-1 text-xs opacity-75">●</span>
+                  )}
+                </div>
+                <div 
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 text-center ${
+                    cartType === 'B2B' 
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Mayorista (B2B)
+                  {cartType === 'B2B' && isCartTypeAutomatic && (
+                    <span className="ml-1 text-xs opacity-75">●</span>
+                  )}
+                </div>
+              </div>
+              {isCartTypeAutomatic && (
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  🤖 Modo automático según tu tipo de cuenta
+                </p>
+              )}
+            </div>
             
             {/* Usuario móvil */}
             <div className="border-t border-gray-100 p-4">
               {userValidated ? (
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-                      <UserIcon className="h-5 w-5 text-white" />
+                  <div className={`flex items-center space-x-3 p-3 rounded-xl ${
+                    user.role === 'admin' ? 'bg-gradient-to-r from-blue-50 to-blue-100' :
+                    user.role === 'distributor' ? 'bg-gradient-to-r from-purple-50 to-purple-100' :
+                    'bg-gradient-to-r from-green-50 to-green-100'
+                  }`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      user.role === 'admin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
+                      user.role === 'distributor' ? 'bg-gradient-to-br from-purple-600 to-purple-700' :
+                      'bg-gradient-to-br from-green-600 to-green-700'
+                    }`}>
+                      {getUserRoleIcon()}
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold text-gray-800">{user?.name}</p>
                       <p className="text-sm text-gray-600">{user?.email}</p>
-                      <span className="inline-block mt-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-lg text-xs">
-                        {getUserRole()}
-                      </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${getRoleBadgeColor()}`}>
+                          {getRoleDisplayName()}
+                        </span>
+                        {isDistributor() && (
+                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${
+                            isApprovedDistributor() ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {isApprovedDistributor() ? '✓ Aprobado' : '⏳ Pendiente'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   

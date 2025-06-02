@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { useAuth } from './AuthContext'; // ✅ AGREGADO: Importar AuthContext
 import { publicSystemConfigService } from '../services/systemConfig.service';
 import toast from 'react-hot-toast';
 
@@ -7,7 +8,7 @@ const CartContext = createContext();
 // Estados iniciales
 const initialState = {
   cartItems: [],
-  cartType: 'B2C', // 'B2C' (cliente final) o 'B2B' (mayorista)
+  cartType: 'B2C', // Se actualizará automáticamente según el usuario
   taxRate: 19, // Porcentaje de IVA por defecto
   isLoading: false
 };
@@ -87,11 +88,9 @@ const cartReducer = (state, action) => {
       };
     
     case CART_ACTIONS.SET_CART_TYPE:
-      const newType = action.payload;
-      toast.success(`Modo cambiado a ${newType === 'B2B' ? 'Mayorista' : 'Cliente final'}`);
       return {
         ...state,
-        cartType: newType
+        cartType: action.payload
       };
     
     case CART_ACTIONS.SET_TAX_RATE:
@@ -121,21 +120,44 @@ const cartReducer = (state, action) => {
 // Proveedor del contexto
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  const { user, getCartType, canAccessWholesalePrices } = useAuth(); // ✅ AGREGADO: Usar AuthContext
+
+  // ✅ EFECTO PARA ACTUALIZAR AUTOMÁTICAMENTE EL TIPO DE CARRITO
+  useEffect(() => {
+    if (user) {
+      const userCartType = getCartType();
+      console.log(`🛒 Actualizando tipo de carrito automáticamente: ${userCartType} para usuario ${user.role}`);
+      
+      dispatch({
+        type: CART_ACTIONS.SET_CART_TYPE,
+        payload: userCartType
+      });
+    } else {
+      // Si no hay usuario, usar B2C por defecto
+      dispatch({
+        type: CART_ACTIONS.SET_CART_TYPE,
+        payload: 'B2C'
+      });
+    }
+  }, [user, getCartType]);
 
   // Cargar carrito desde localStorage al inicializar
   useEffect(() => {
     const loadCartFromStorage = () => {
       try {
         const savedCart = localStorage.getItem('cart');
-        const savedCartType = localStorage.getItem('cartType');
         
         if (savedCart) {
           const cartData = JSON.parse(savedCart);
+          
+          // Determinar el tipo de carrito según el usuario
+          const cartType = user ? getCartType() : 'B2C';
+          
           dispatch({
             type: CART_ACTIONS.LOAD_CART,
             payload: {
               cartItems: cartData,
-              cartType: savedCartType || 'B2C'
+              cartType: cartType
             }
           });
         }
@@ -144,8 +166,11 @@ export const CartProvider = ({ children }) => {
       }
     };
 
-    loadCartFromStorage();
-  }, []);
+    // Solo cargar del localStorage si ya tenemos información del usuario
+    if (user !== undefined) { // undefined significa que aún está cargando
+      loadCartFromStorage();
+    }
+  }, [user, getCartType]);
 
   // Cargar porcentaje de IVA actual al inicializar
   useEffect(() => {
@@ -175,11 +200,11 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem('cart', JSON.stringify(state.cartItems));
-      localStorage.setItem('cartType', state.cartType);
+      // Ya no guardamos cartType en localStorage porque es automático
     } catch (error) {
       console.error('Error al guardar carrito en localStorage:', error);
     }
-  }, [state.cartItems, state.cartType]);
+  }, [state.cartItems]);
 
   // Función para actualizar el porcentaje de IVA (para uso interno cuando cambie la configuración)
   const refreshTaxRate = async () => {
@@ -226,30 +251,23 @@ export const CartProvider = ({ children }) => {
     dispatch({ type: CART_ACTIONS.CLEAR_CART });
   };
 
-  const setCartType = (type) => {
-    dispatch({
-      type: CART_ACTIONS.SET_CART_TYPE,
-      payload: type
-    });
+  // ✅ FUNCIÓN MODIFICADA: Ya no permite cambio manual
+  const toggleCartType = () => {
+    // Mostrar mensaje informativo de que es automático
+    const currentType = state.cartType === 'B2C' ? 'Cliente' : 'Mayorista';
+    toast.info(`Modo ${currentType} - Automático según tu tipo de cuenta`);
   };
 
-  // ✅ NUEVA FUNCIÓN: toggleCartType que faltaba
-  const toggleCartType = (newType) => {
-    if (newType && newType !== state.cartType) {
-      setCartType(newType);
-    } else {
-      // Si no se especifica tipo, alternar entre B2C y B2B
-      const toggledType = state.cartType === 'B2C' ? 'B2B' : 'B2C';
-      setCartType(toggledType);
-    }
-  };
-
-  // Cálculos mejorados con IVA dinámico
+  // Cálculos mejorados con IVA dinámico y precios según usuario
   const getSubtotal = () => {
     return state.cartItems.reduce((total, item) => {
-      const price = state.cartType === 'B2B' && item.wholesalePrice 
-        ? item.wholesalePrice 
-        : item.price;
+      // ✅ LÓGICA ACTUALIZADA: Usar precio según el tipo de usuario y permisos
+      let price = item.price; // Precio por defecto (minorista)
+      
+      if (state.cartType === 'B2B' && canAccessWholesalePrices() && item.wholesalePrice) {
+        price = item.wholesalePrice;
+      }
+      
       return total + (price * item.quantity);
     }, 0);
   };
@@ -269,9 +287,24 @@ export const CartProvider = ({ children }) => {
     return getSubtotal() + getTaxAmount() + getShippingAmount();
   };
 
-  // ✅ NUEVA FUNCIÓN: Calcular cantidad total de items en el carrito
+  // Función para calcular cantidad total de items en el carrito
   const getCartCount = () => {
     return state.cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // ✅ FUNCIÓN NUEVA: Obtener información de precios para mostrar en UI
+  const getPriceInfo = (item) => {
+    const hasWholesaleAccess = canAccessWholesalePrices();
+    const showWholesalePrice = state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice;
+    
+    return {
+      displayPrice: showWholesalePrice ? item.wholesalePrice : item.price,
+      originalPrice: item.price,
+      wholesalePrice: item.wholesalePrice,
+      isUsingWholesalePrice: showWholesalePrice,
+      hasWholesaleAccess,
+      savings: showWholesalePrice ? (item.price - item.wholesalePrice) : 0
+    };
   };
 
   // Información adicional
@@ -291,7 +324,10 @@ export const CartProvider = ({ children }) => {
       shippingAmount,
       total,
       itemCount,
-      totalQuantity
+      totalQuantity,
+      cartType: state.cartType,
+      canAccessWholesale: canAccessWholesalePrices(),
+      isAutomatic: true // ✅ INDICAR QUE EL TIPO ES AUTOMÁTICO
     };
   };
 
@@ -302,7 +338,7 @@ export const CartProvider = ({ children }) => {
     taxRate: state.taxRate,
     isLoading: state.isLoading,
     
-    // ✅ AGREGADO: Cantidad total para el badge del carrito
+    // Cantidad total para el badge del carrito
     cartCount: getCartCount(),
     
     // Funciones
@@ -310,8 +346,7 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     updateQuantity,
     clearCart,
-    setCartType,
-    toggleCartType, // ✅ AGREGADO: Función que faltaba
+    toggleCartType, // ✅ MODIFICADA: Ya no cambia tipo, solo muestra mensaje
     refreshTaxRate,
     
     // Cálculos
@@ -320,7 +355,12 @@ export const CartProvider = ({ children }) => {
     getShippingAmount,
     getFinalTotal,
     getCartSummary,
-    getCartCount // ✅ AGREGADO: Para acceso directo al conteo
+    getCartCount,
+    getPriceInfo, // ✅ NUEVA: Para obtener información de precios
+    
+    // ✅ NUEVAS PROPIEDADES INFORMATIVAS
+    isCartTypeAutomatic: true,
+    canAccessWholesalePrices: canAccessWholesalePrices()
   };
 
   return (

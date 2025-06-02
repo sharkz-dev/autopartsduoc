@@ -15,6 +15,7 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true
 });
 
+// ✅ USUARIOS ACTUALIZADOS CON DISTRIBUIDORES
 const users = [
   {
     "_id": "60d0fe4f5311236168a109ca",
@@ -79,6 +80,109 @@ const users = [
     },
     "phone": "+56956789012",
     "createdAt": "2023-01-05T00:00:00.000Z"
+  },
+  // ✅ NUEVOS USUARIOS DISTRIBUIDORES
+  {
+    "_id": "60d0fe4f5311236168a109cf",
+    "name": "AutoRepuestos Distribuidora SpA",
+    "email": "distribuidor@autorepuestos.com",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
+    "role": "distributor",
+    "address": {
+      "street": "Av. Industrial 1500",
+      "city": "Santiago",
+      "state": "RM",
+      "postalCode": "8320000",
+      "country": "Chile"
+    },
+    "phone": "+56922334455",
+    "distributorInfo": {
+      "companyName": "AutoRepuestos Distribuidora SpA",
+      "companyRUT": "76543210-9",
+      "businessLicense": "RES-2023-001",
+      "creditLimit": 5000000,
+      "discountPercentage": 15,
+      "isApproved": true,
+      "approvedAt": "2023-01-10T00:00:00.000Z",
+      "approvedBy": "60d0fe4f5311236168a109ca"
+    },
+    "createdAt": "2023-01-06T00:00:00.000Z"
+  },
+  {
+    "_id": "60d0fe4f5311236168a109d0",
+    "name": "Repuestos del Sur Ltda",
+    "email": "contacto@repuestesdelsur.cl",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
+    "role": "distributor",
+    "address": {
+      "street": "Calle Comercial 789",
+      "city": "Temuco",
+      "state": "Araucanía",
+      "postalCode": "4780000",
+      "country": "Chile"
+    },
+    "phone": "+56945667788",
+    "distributorInfo": {
+      "companyName": "Repuestos del Sur Ltda",
+      "companyRUT": "87654321-0",
+      "businessLicense": "RES-2023-002",
+      "creditLimit": 3000000,
+      "discountPercentage": 12,
+      "isApproved": true,
+      "approvedAt": "2023-01-12T00:00:00.000Z",
+      "approvedBy": "60d0fe4f5311236168a109ca"
+    },
+    "createdAt": "2023-01-08T00:00:00.000Z"
+  },
+  {
+    "_id": "60d0fe4f5311236168a109d1",
+    "name": "Distribuidora Norte AutoParts",
+    "email": "ventas@norteautoparts.cl",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
+    "role": "distributor",
+    "address": {
+      "street": "Av. Atacama 2100",
+      "city": "Antofagasta",
+      "state": "Antofagasta",
+      "postalCode": "1240000",
+      "country": "Chile"
+    },
+    "phone": "+56955778899",
+    "distributorInfo": {
+      "companyName": "Distribuidora Norte AutoParts",
+      "companyRUT": "98765432-1",
+      "businessLicense": "RES-2023-003",
+      "creditLimit": 8000000,
+      "discountPercentage": 20,
+      "isApproved": true,
+      "approvedAt": "2023-01-15T00:00:00.000Z",
+      "approvedBy": "60d0fe4f5311236168a109ca"
+    },
+    "createdAt": "2023-01-10T00:00:00.000Z"
+  },
+  {
+    "_id": "60d0fe4f5311236168a109d2",
+    "name": "Nuevo Distribuidor Pendiente",
+    "email": "pendiente@distribuidora.cl",
+    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
+    "role": "distributor",
+    "address": {
+      "street": "Calle Nueva Empresa 123",
+      "city": "Valparaíso",
+      "state": "Valparaíso",
+      "postalCode": "2340000",
+      "country": "Chile"
+    },
+    "phone": "+56966889900",
+    "distributorInfo": {
+      "companyName": "Nueva Distribuidora Automotriz",
+      "companyRUT": "12345678-9",
+      "businessLicense": "RES-2024-001",
+      "creditLimit": 0,
+      "discountPercentage": 0,
+      "isApproved": false // ✅ DISTRIBUIDOR PENDIENTE DE APROBACIÓN
+    },
+    "createdAt": "2024-01-20T00:00:00.000Z"
   }
 ];
 

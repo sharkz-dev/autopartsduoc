@@ -1,271 +1,302 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
 import { 
   ShoppingCartIcon, 
   StarIcon, 
-  TagIcon, 
-  HeartIcon,
+  TagIcon,
   EyeIcon,
-  TruckIcon,
-  CheckBadgeIcon,
-  FireIcon
-} from '@heroicons/react/24/solid';
-import { HeartIcon as HeartOutline, EyeIcon as EyeOutline } from '@heroicons/react/24/outline';
-import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
+  SparklesIcon 
+} from '@heroicons/react/24/outline';
+import { HeartIcon } from '@heroicons/react/24/solid';
 
 const ProductCard = ({ product }) => {
+  const { canAccessWholesalePrices, isApprovedDistributor } = useAuth();
   const { addToCart, cartType } = useCart();
-  
-  // Determinar el precio base según el tipo de cliente (B2B o B2C)
-  const basePrice = cartType === 'B2B' && product.wholesalePrice 
-    ? product.wholesalePrice 
-    : product.price;
 
-  // Verificar si el producto está en oferta y tiene datos válidos
-  const isOnSale = product.onSale && product.discountPercentage > 0;
-  
-  // Calcular el precio con descuento según el tipo de cliente
-  let salePrice = null;
-  if (isOnSale) {
-    if (cartType === 'B2B' && product.wholesalePrice) {
-      const discountAmount = product.wholesalePrice * (product.discountPercentage / 100);
-      salePrice = Math.round(product.wholesalePrice - discountAmount);
-    } else {
-      salePrice = product.salePrice || Math.round(product.price - (product.price * (product.discountPercentage / 100)));
+  // ✅ LÓGICA ACTUALIZADA: Determinar precio a mostrar según el usuario
+  const getPriceInfo = () => {
+    const hasWholesaleAccess = canAccessWholesalePrices();
+    const showWholesalePrice = hasWholesaleAccess && product.wholesalePrice;
+    
+    // Precio base que se mostrará
+    let displayPrice = product.price;
+    let originalPrice = null;
+    let priceLabel = 'Precio';
+    let savings = 0;
+    
+    // Si el usuario puede acceder a precios mayoristas y el producto los tiene
+    if (showWholesalePrice) {
+      displayPrice = product.wholesalePrice;
+      originalPrice = product.price;
+      priceLabel = 'Precio Mayorista';
+      savings = product.price - product.wholesalePrice;
     }
-  }
-  
-  // Determinar precio final a mostrar
-  const displayPrice = isOnSale ? salePrice : basePrice;
-  const savings = isOnSale ? basePrice - displayPrice : 0;
-  
-  // Formatear el precio con separador de miles
+    
+    // Manejar ofertas
+    let finalPrice = displayPrice;
+    let isOnSale = product.onSale && product.discountPercentage > 0;
+    let salePrice = null;
+    
+    if (isOnSale) {
+      if (showWholesalePrice) {
+        // Aplicar descuento al precio mayorista
+        salePrice = Math.round(product.wholesalePrice * (1 - product.discountPercentage / 100));
+      } else {
+        // Usar precio de oferta normal o calcularlo
+        salePrice = product.salePrice || Math.round(product.price * (1 - product.discountPercentage / 100));
+      }
+      finalPrice = salePrice;
+    }
+    
+    return {
+      finalPrice,
+      originalPrice: isOnSale ? displayPrice : originalPrice,
+      isOnSale,
+      discountPercentage: product.discountPercentage,
+      priceLabel,
+      savings: isOnSale ? (displayPrice - finalPrice) : savings,
+      showWholesalePrice,
+      hasWholesaleAccess
+    };
+  };
+
+  const priceInfo = getPriceInfo();
+
+  // Formatear precio
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
-      currency: 'CLP'
+      currency: 'CLP',
+      minimumFractionDigits: 0
     }).format(price);
   };
 
-  // Obtener URL de la imagen usando el helper
-  const imageUrl = getProductImageUrl(product);
-
-  // Calcular rating visual
-  const rating = product.avgRating || 0;
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 !== 0;
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(product, 1);
+  };
 
   return (
-    <div className="product-card group">
-      {/* Contenedor de imagen con aspecto cuadrado */}
-      <div className="product-image-container aspect-square relative">
-        <Link to={`/product/${product.slug || product._id}`}>
-          <img 
-            src={imageUrl}
-            alt={product.name}
-            className="product-image"
-            onError={(e) => handleImageError(e)}
-            loading="lazy"
-          />
-        </Link>
+    <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:-translate-y-2">
+      {/* Imagen del producto */}
+      <div className="relative h-64 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+        <img
+          src={getProductImageUrl(product)}
+          alt={product.name}
+          onError={handleImageError}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
         
-        {/* Overlay con gradiente sutil */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        
-        {/* Badges superiores */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
-          {isOnSale && (
-            <div className="flex items-center bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
-              <FireIcon className="h-3 w-3 mr-1" />
-              -{Math.round(product.discountPercentage)}% OFF
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col space-y-2">
+          {/* Badge de oferta */}
+          {priceInfo.isOnSale && (
+            <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
+              -{priceInfo.discountPercentage}% OFF
             </div>
           )}
+          
+          {/* Badge de producto destacado */}
           {product.featured && (
-            <div className="flex items-center bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-              <CheckBadgeIcon className="h-3 w-3 mr-1" />
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center">
+              <SparklesIcon className="h-3 w-3 mr-1" />
               Destacado
             </div>
           )}
-          {product.stockQuantity <= 5 && product.stockQuantity > 0 && (
-            <div className="bg-gradient-to-r from-orange-400 to-red-400 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-              ¡Últimas {product.stockQuantity}!
-            </div>
-          )}
-        </div>
-
-        {/* Badges derechos */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-          {cartType === 'B2B' && product.wholesalePrice && (
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg">
-              B2B
-            </div>
-          )}
-          {product.stockQuantity > 10 && (
-            <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center">
-              <TruckIcon className="h-3 w-3 mr-1" />
-              Stock
+          
+          {/* ✅ NUEVO: Badge de precio mayorista */}
+          {priceInfo.showWholesalePrice && (
+            <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+              💼 Mayorista
             </div>
           )}
         </div>
         
-        {/* Botones de acción flotantes */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              addToCart(product, 1);
-            }}
-            disabled={product.stockQuantity <= 0}
-            className={`p-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-xl ${
-              product.stockQuantity > 0
-                ? 'bg-white/90 text-blue-600 hover:bg-blue-600 hover:text-white hover:scale-110'
-                : 'bg-gray-300/90 cursor-not-allowed text-gray-500'
-            }`}
-            title={product.stockQuantity > 0 ? 'Añadir al carrito' : 'Sin stock'}
-          >
-            <ShoppingCartIcon className="h-5 w-5" />
-          </button>
-          
-          <Link
-            to={`/product/${product.slug || product._id}`}
-            className="p-3 rounded-full bg-white/90 text-gray-700 hover:bg-gray-700 hover:text-white backdrop-blur-md transition-all duration-300 shadow-xl hover:scale-110"
-            title="Ver detalles"
-          >
-            <EyeIcon className="h-5 w-5" />
-          </Link>
-          
-          <button
-            className="p-3 rounded-full bg-white/90 text-red-500 hover:bg-red-500 hover:text-white backdrop-blur-md transition-all duration-300 shadow-xl hover:scale-110"
-            title="Agregar a favoritos"
-          >
-            <HeartOutline className="h-5 w-5" />
-          </button>
+        {/* Badge de stock */}
+        <div className="absolute top-3 right-3">
+          {product.stockQuantity > 0 ? (
+            <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              En Stock
+            </div>
+          ) : (
+            <div className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+              Agotado
+            </div>
+          )}
         </div>
 
-        {/* Indicador de envío gratis */}
-        {displayPrice >= 100000 && (
-          <div className="absolute bottom-3 left-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center">
-            <TruckIcon className="h-3 w-3 mr-1" />
-            Envío Gratis
+        {/* Overlay con acciones */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 flex space-x-3">
+            <Link
+              to={`/product/${product._id}`}
+              className="bg-white/90 backdrop-blur-sm p-3 rounded-full hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl"
+              title="Ver detalles"
+            >
+              <EyeIcon className="h-5 w-5 text-gray-700" />
+            </Link>
+            
+            {product.stockQuantity > 0 && (
+              <button
+                onClick={handleAddToCart}
+                className="bg-blue-500 hover:bg-blue-600 p-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
+                title="Agregar al carrito"
+              >
+                <ShoppingCartIcon className="h-5 w-5 text-white" />
+              </button>
+            )}
           </div>
-        )}
-      </div>
-      
-      {/* Contenido del producto */}
-      <div className="p-5 space-y-3">
-        {/* Marca y categoría */}
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span className="font-medium">{product.brand}</span>
-          {product.category?.name && (
-            <span className="bg-gray-100 px-2 py-1 rounded-full">
-              {product.category.name}
-            </span>
-          )}
         </div>
-        
+      </div>
+
+      {/* Contenido del producto */}
+      <div className="p-6 space-y-4">
+        {/* Categoría y marca */}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-500">{product.category?.name || 'Sin categoría'}</span>
+          <span className="font-medium text-blue-600">{product.brand}</span>
+        </div>
+
         {/* Nombre del producto */}
-        <Link to={`/product/${product.slug || product._id}`}>
-          <h3 className="font-bold text-gray-900 text-lg leading-tight line-clamp-2 hover:text-blue-600 transition-colors duration-200">
+        <Link to={`/product/${product._id}`}>
+          <h3 className="font-bold text-gray-900 text-lg line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
             {product.name}
           </h3>
         </Link>
-        
+
         {/* Rating */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center space-x-2">
           <div className="flex items-center">
             {[1, 2, 3, 4, 5].map((star) => (
               <StarIcon
                 key={star}
                 className={`h-4 w-4 ${
-                  star <= fullStars
-                    ? 'text-yellow-400'
-                    : star === fullStars + 1 && hasHalfStar
-                    ? 'text-yellow-400'
-                    : 'text-gray-200'
+                  star <= Math.round(product.avgRating)
+                    ? 'text-yellow-400 fill-yellow-400'
+                    : 'text-gray-300'
                 }`}
               />
             ))}
           </div>
           <span className="text-sm text-gray-600">
-            {rating > 0 ? `(${rating.toFixed(1)})` : 'Sin valoraciones'}
+            ({product.avgRating ? product.avgRating.toFixed(1) : '0.0'})
           </span>
         </div>
-        
-        {/* Descripción corta */}
-        <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
-          {product.description}
-        </p>
-        
-        {/* Precios */}
-        <div className="space-y-1">
-          {isOnSale ? (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-red-600">
-                  {formatPrice(displayPrice)}
-                </span>
-                <span className="text-lg text-gray-500 line-through">
-                  {formatPrice(basePrice)}
-                </span>
+
+        {/* ✅ SECCIÓN DE PRECIOS ACTUALIZADA */}
+        <div className="space-y-2">
+          {/* Etiqueta del tipo de precio */}
+          {priceInfo.showWholesalePrice && (
+            <div className="flex items-center space-x-2">
+              <div className="bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-medium">
+                {priceInfo.priceLabel}
               </div>
-              <div className="flex items-center text-sm text-red-600 font-medium">
-                <TagIcon className="h-4 w-4 mr-1" />
-                Ahorras {formatPrice(savings)}
-              </div>
-            </div>
-          ) : (
-            <div className="text-2xl font-bold text-gray-900">
-              {formatPrice(displayPrice)}
+              {isApprovedDistributor() && (
+                <div className="bg-green-100 text-green-700 px-2 py-1 rounded-lg text-xs font-medium">
+                  ✓ Aprobado
+                </div>
+              )}
             </div>
           )}
-          
-          {cartType === 'B2B' && product.wholesalePrice && (
-            <div className="text-xs text-blue-600 font-medium">
-              {isOnSale ? 'Precio mayorista con descuento' : 'Precio mayorista'}
-            </div>
-          )}
-        </div>
-        
-        {/* Stock y SKU */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center">
-            {product.stockQuantity > 0 ? (
-              <div className="flex items-center text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                <span className="font-medium">
-                  {product.stockQuantity > 10 ? 'En stock' : `${product.stockQuantity} disponibles`}
-                </span>
+
+          {/* Precios */}
+          <div className="space-y-1">
+            {priceInfo.isOnSale ? (
+              // Producto en oferta
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-2xl font-bold text-red-600">
+                    {formatPrice(priceInfo.finalPrice)}
+                  </span>
+                  <span className="text-lg text-gray-500 line-through">
+                    {formatPrice(priceInfo.originalPrice)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-green-600 text-sm font-medium">
+                    Ahorras {formatPrice(priceInfo.savings)}
+                  </span>
+                  <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">
+                    -{priceInfo.discountPercentage}%
+                  </span>
+                </div>
               </div>
             ) : (
-              <div className="flex items-center text-red-600">
-                <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                <span className="font-medium">Agotado</span>
+              // Producto sin oferta
+              <div className="space-y-1">
+                <span className="text-2xl font-bold text-gray-900">
+                  {formatPrice(priceInfo.finalPrice)}
+                </span>
+                
+                {/* Mostrar precio minorista como referencia para distribuidores */}
+                {priceInfo.showWholesalePrice && priceInfo.originalPrice && (
+                  <div className="space-y-1">
+                    <div className="text-sm text-gray-500">
+                      Precio minorista: {formatPrice(priceInfo.originalPrice)}
+                    </div>
+                    <div className="text-green-600 text-sm font-medium">
+                      Ahorras {formatPrice(priceInfo.savings)} ({Math.round((priceInfo.savings / priceInfo.originalPrice) * 100)}%)
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-          <span className="text-gray-500 text-xs">
-            SKU: {product.sku}
-          </span>
+
+          {/* ✅ INDICADOR DE ACCESO A PRECIOS MAYORISTAS */}
+          {!priceInfo.hasWholesaleAccess && product.wholesalePrice && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <TagIcon className="h-4 w-4 text-yellow-600" />
+                <span className="text-yellow-700 text-sm font-medium">
+                  Precio mayorista disponible
+                </span>
+              </div>
+              <p className="text-yellow-600 text-xs mt-1">
+                Regístrate como distribuidor para acceder a precios especiales
+              </p>
+            </div>
+          )}
         </div>
-        
-        {/* Botón de acción principal (móvil) */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            addToCart(product, 1);
-          }}
-          disabled={product.stockQuantity <= 0}
-          className={`w-full py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 sm:hidden ${
-            product.stockQuantity > 0
-              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
-              : 'bg-gray-300 cursor-not-allowed text-gray-500'
-          }`}
-        >
-          {product.stockQuantity <= 0 ? 'Sin stock' : 'Añadir al carrito'}
-        </button>
+
+        {/* SKU */}
+        <div className="text-xs text-gray-500">
+          SKU: {product.sku}
+        </div>
+
+        {/* Botón de agregar al carrito */}
+        <div className="pt-4">
+          {product.stockQuantity > 0 ? (
+            <button
+              onClick={handleAddToCart}
+              className="w-full btn-modern btn-primary group"
+            >
+              <ShoppingCartIcon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+              Agregar al carrito
+            </button>
+          ) : (
+            <button
+              disabled
+              className="w-full btn-modern bg-gray-300 text-gray-500 cursor-not-allowed"
+            >
+              Producto agotado
+            </button>
+          )}
+        </div>
+
+        {/* ✅ INFORMACIÓN ADICIONAL PARA DISTRIBUIDORES */}
+        {priceInfo.showWholesalePrice && (
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Modo: {cartType}</span>
+              <span>Distribuidor Aprobado</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

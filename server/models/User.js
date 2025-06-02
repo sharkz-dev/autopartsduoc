@@ -25,8 +25,44 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['client', 'admin'],
+    enum: ['client', 'distributor', 'admin'], // ✅ AGREGADO: rol distributor
     default: 'client'
+  },
+  // ✅ NUEVO: Información específica para distribuidores
+  distributorInfo: {
+    companyName: {
+      type: String,
+      required: function() {
+        return this.role === 'distributor';
+      }
+    },
+    companyRUT: {
+      type: String,
+      required: function() {
+        return this.role === 'distributor';
+      }
+    },
+    companyLogo: String,
+    businessLicense: String,
+    creditLimit: {
+      type: Number,
+      default: 0
+    },
+    discountPercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    },
+    isApproved: {
+      type: Boolean,
+      default: false
+    },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    approvedAt: Date
   },
   address: {
     street: String,
@@ -66,6 +102,21 @@ UserSchema.methods.getSignedJwtToken = function() {
 // Comparar contraseña ingresada con contraseña encriptada
 UserSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// ✅ NUEVO: Método para verificar si es distribuidor aprobado
+UserSchema.methods.isApprovedDistributor = function() {
+  return this.role === 'distributor' && this.distributorInfo?.isApproved === true;
+};
+
+// ✅ NUEVO: Método para obtener el tipo de carrito automático
+UserSchema.methods.getCartType = function() {
+  return this.role === 'distributor' ? 'B2B' : 'B2C';
+};
+
+// ✅ NUEVO: Método para verificar si puede ver precios mayoristas
+UserSchema.methods.canAccessWholesalePrices = function() {
+  return this.role === 'distributor' && this.distributorInfo?.isApproved === true;
 };
 
 module.exports = mongoose.model('User', UserSchema);
