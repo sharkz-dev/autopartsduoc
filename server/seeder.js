@@ -386,7 +386,78 @@ const products = [
   }
 ];
 
-// Importar datos
+const systemConfigs = [
+  {
+    key: 'tax_rate',
+    value: 19,
+    description: 'Porcentaje de IVA aplicado a las ventas',
+    type: 'number',
+    category: 'tax',
+    validationRules: { min: 0, max: 100 },
+    isEditable: true
+  },
+  {
+    key: 'free_shipping_threshold',
+    value: 100000,
+    description: 'Monto mínimo para envío gratuito (CLP)',
+    type: 'number',
+    category: 'shipping',
+    validationRules: { min: 0 },
+    isEditable: true
+  },
+  {
+    key: 'default_shipping_cost',
+    value: 5000,
+    description: 'Costo de envío por defecto (CLP)',
+    type: 'number',
+    category: 'shipping',
+    validationRules: { min: 0 },
+    isEditable: true
+  },
+  {
+    key: 'site_name',
+    value: 'AutoParts',
+    description: 'Nombre del sitio web',
+    type: 'string',
+    category: 'general',
+    isEditable: true
+  },
+  {
+    key: 'contact_email',
+    value: 'info@autoparts.com',
+    description: 'Email de contacto principal',
+    type: 'string',
+    category: 'general',
+    isEditable: true
+  },
+  {
+    key: 'max_file_size',
+    value: 5242880,
+    description: 'Tamaño máximo de archivo en bytes (5MB)',
+    type: 'number',
+    category: 'general',
+    validationRules: { min: 1048576, max: 10485760 }, // 1MB - 10MB
+    isEditable: false
+  },
+  {
+    key: 'currency',
+    value: 'CLP',
+    description: 'Moneda por defecto del sistema',
+    type: 'string',
+    category: 'general',
+    isEditable: false
+  },
+  {
+    key: 'enable_b2b',
+    value: true,
+    description: 'Habilitar funcionalidades B2B (mayorista)',
+    type: 'boolean',
+    category: 'general',
+    isEditable: true
+  }
+];
+
+// Función actualizada para importar datos
 const importData = async () => {
   try {
     console.log('🔄 Importando usuarios...');
@@ -401,11 +472,30 @@ const importData = async () => {
     await Product.create(products);
     console.log('✅ Productos importados correctamente');
 
+    // NUEVO: Importar configuraciones del sistema
+    console.log('🔄 Importando configuraciones del sistema...');
+    const SystemConfig = require('./models/SystemConfig');
+    
+    for (const config of systemConfigs) {
+      try {
+        await SystemConfig.create(config);
+        console.log(`✅ Configuración creada: ${config.key}`);
+      } catch (err) {
+        if (err.code === 11000) {
+          console.log(`⚠️ Configuración ya existe: ${config.key}`);
+        } else {
+          console.error(`❌ Error al crear configuración ${config.key}:`, err.message);
+        }
+      }
+    }
+    console.log('✅ Configuraciones del sistema importadas correctamente');
+
     console.log('🎉 Todos los datos han sido importados exitosamente');
     console.log(`📊 Resumen:`);
     console.log(`   - ${users.length} usuarios`);
     console.log(`   - ${categories.length} categorías`);
     console.log(`   - ${products.length} productos`);
+    console.log(`   - ${systemConfigs.length} configuraciones del sistema`);
     
     process.exit();
   } catch (err) {
@@ -414,7 +504,7 @@ const importData = async () => {
   }
 };
 
-// Eliminar datos
+// Función actualizada para eliminar datos
 const deleteData = async () => {
   try {
     console.log('🔄 Eliminando usuarios...');
@@ -432,6 +522,12 @@ const deleteData = async () => {
     console.log('🔄 Eliminando órdenes...');
     await Order.deleteMany();
     console.log('✅ Órdenes eliminadas');
+
+    // NUEVO: Eliminar configuraciones del sistema
+    console.log('🔄 Eliminando configuraciones del sistema...');
+    const SystemConfig = require('./models/SystemConfig');
+    await SystemConfig.deleteMany();
+    console.log('✅ Configuraciones del sistema eliminadas');
 
     console.log('🗑️ Todos los datos han sido eliminados correctamente');
     process.exit();

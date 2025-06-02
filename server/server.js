@@ -69,6 +69,9 @@ app.use('/api/stats', require('./routes/stats.routes'));
 // Rutas de pago
 app.use('/api/payment', require('./routes/payment.routes'));
 
+// NUEVO: Rutas de configuración del sistema
+app.use('/api/system-config', require('./routes/systemConfig.routes'));
+
 // Ruta de prueba
 app.use('/api/test', require('./routes/test.routes'));
 
@@ -151,3 +154,4 @@ process.on('unhandledRejection', (err, promise) => {
   // Cerrar el servidor y salir del proceso
   server.close(() => process.exit(1));
 });
+

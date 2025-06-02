@@ -319,4 +319,25 @@ export const userService = {
   }
 };
 
+// NUEVO: Servicio de configuración del sistema
+export const systemConfigService = {
+  // Obtener todas las configuraciones
+  getConfigurations: () => api.get('/system-config'),
+  
+  // Obtener configuración específica
+  getConfiguration: (key) => api.get(`/system-config/${key}`),
+  
+  // Actualizar configuración
+  updateConfiguration: (key, data) => api.put(`/system-config/${key}`, data),
+  
+  // Obtener tasa de IVA (público)
+  getTaxRate: () => axios.get(`${API_URL}/system-config/tax/rate`),
+  
+  // Actualizar tasa de IVA
+  updateTaxRate: (data) => api.put('/system-config/tax/rate', data),
+  
+  // Resetear configuraciones
+  resetConfigurations: () => api.post('/system-config/reset')
+};
+
 export default api;

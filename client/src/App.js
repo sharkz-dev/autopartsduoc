@@ -44,12 +44,13 @@ import AdminAddCategoryPage from './pages/admin/AdminAddCategoryPage';
 import AdminEditCategoryPage from './pages/admin/AdminEditCategoryPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminSystemConfigPage from './pages/admin/AdminSystemConfigPage'; // NUEVO
 
 function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <ScrollToTop /> {/* ⬅️ AQUÍ AGREGAMOS EL COMPONENTE */}
+        <ScrollToTop />
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<MainLayout />}>
@@ -93,6 +94,7 @@ function App() {
             <Route path="categories/edit/:id" element={<AdminEditCategoryPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="system-config" element={<AdminSystemConfigPage />} /> {/* NUEVO */}
           </Route>
         </Routes>
       </CartProvider>

@@ -1,7 +1,9 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const SystemConfig = require('../models/SystemConfig');
 const emailService = require('../services/email.service');
+const SystemConfigService = require('../services/systemConfig.service');
 
 // @desc    Crear nueva orden
 // @route   POST /api/orders
@@ -53,8 +55,14 @@ exports.createOrder = async (req, res, next) => {
       });
     }
 
+    // Obtener el porcentaje de IVA actual desde la configuración del sistema
+    const currentTaxRate = await SystemConfigService.getTaxRate();
+    console.log(`📊 Usando tasa de IVA actual: ${currentTaxRate}%`);
+
     // Obtener detalles completos de productos y verificar stock
     const orderItems = [];
+    let calculatedItemsPrice = 0;
+    
     for (const item of items) {
       const product = await Product.findById(item.product);
       
@@ -78,6 +86,10 @@ exports.createOrder = async (req, res, next) => {
         ? product.wholesalePrice 
         : product.price;
 
+      // Calcular subtotal del item
+      const itemTotal = price * item.quantity;
+      calculatedItemsPrice += itemTotal;
+
       // Añadir a items de orden
       orderItems.push({
         product: product._id,
@@ -90,7 +102,37 @@ exports.createOrder = async (req, res, next) => {
       await product.save();
     }
 
-    // Crear orden
+    // Recalcular impuestos con la tasa actual del sistema
+    const calculatedTaxPrice = await SystemConfigService.calculateTax(calculatedItemsPrice);
+    
+    // Calcular costo de envío usando configuración del sistema
+    const calculatedShippingPrice = await SystemConfigService.calculateShippingCost(
+      calculatedItemsPrice, 
+      shipmentMethod
+    );
+
+    // Calcular total final
+    const calculatedTotalPrice = calculatedItemsPrice + calculatedTaxPrice + calculatedShippingPrice;
+
+    // Log para debugging
+    console.log('💰 Cálculos de orden:');
+    console.log(`   - Items: $${calculatedItemsPrice.toLocaleString()}`);
+    console.log(`   - IVA (${currentTaxRate}%): $${calculatedTaxPrice.toLocaleString()}`);
+    console.log(`   - Envío: $${calculatedShippingPrice.toLocaleString()}`);
+    console.log(`   - Total: $${calculatedTotalPrice.toLocaleString()}`);
+
+    // Verificar que los cálculos del frontend coincidan (con tolerancia)
+    const tolerance = 100; // Tolerancia de $100 CLP para diferencias de redondeo
+    
+    if (Math.abs(calculatedItemsPrice - itemsPrice) > tolerance) {
+      console.warn(`⚠️ Diferencia en precio de items: Frontend: $${itemsPrice}, Backend: $${calculatedItemsPrice}`);
+    }
+    
+    if (Math.abs(calculatedTaxPrice - taxPrice) > tolerance) {
+      console.warn(`⚠️ Diferencia en IVA: Frontend: $${taxPrice}, Backend: $${calculatedTaxPrice}`);
+    }
+
+    // Crear orden con los valores calculados en el backend
     const order = await Order.create({
       user: req.user.id,
       items: orderItems,
@@ -98,12 +140,14 @@ exports.createOrder = async (req, res, next) => {
       shippingAddress: shipmentMethod === 'delivery' ? shippingAddress : undefined,
       pickupLocation: shipmentMethod === 'pickup' ? pickupLocation : undefined,
       paymentMethod,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
+      itemsPrice: calculatedItemsPrice,
+      taxPrice: calculatedTaxPrice,
+      shippingPrice: calculatedShippingPrice,
+      totalPrice: calculatedTotalPrice,
       orderType: orderType || 'B2C',
-      status: paymentMethod === 'cash' && shipmentMethod === 'pickup' ? 'pending' : 'pending'
+      status: paymentMethod === 'cash' && shipmentMethod === 'pickup' ? 'pending' : 'pending',
+      // Guardar la tasa de IVA usada para esta orden
+      taxRate: currentTaxRate
     });
 
     // Cargar la orden completa con datos relacionados
@@ -131,9 +175,34 @@ exports.createOrder = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      data: populatedOrder
+      data: populatedOrder,
+      calculationDetails: {
+        taxRate: currentTaxRate,
+        taxPercentage: `${currentTaxRate}%`,
+        recalculated: {
+          itemsPrice: calculatedItemsPrice,
+          taxPrice: calculatedTaxPrice,
+          shippingPrice: calculatedShippingPrice,
+          totalPrice: calculatedTotalPrice
+        }
+      }
     });
   } catch (err) {
+    // Restaurar stock si hay error después de haberlo reducido
+    if (orderItems && orderItems.length > 0) {
+      try {
+        for (const item of orderItems) {
+          const product = await Product.findById(item.product);
+          if (product) {
+            product.stockQuantity += item.quantity;
+            await product.save();
+          }
+        }
+      } catch (restoreError) {
+        console.error('Error al restaurar stock:', restoreError);
+      }
+    }
+    
     next(err);
   }
 };
@@ -175,9 +244,20 @@ exports.getOrder = async (req, res, next) => {
       });
     }
 
+    // Agregar información de tasa de IVA si está disponible
+    let taxRateInfo = null;
+    if (order.taxRate) {
+      taxRateInfo = {
+        rate: order.taxRate,
+        percentage: `${order.taxRate}%`,
+        appliedAt: order.createdAt
+      };
+    }
+
     res.status(200).json({
       success: true,
-      data: order
+      data: order,
+      taxRateInfo
     });
   } catch (err) {
     next(err);

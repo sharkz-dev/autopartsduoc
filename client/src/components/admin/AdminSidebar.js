@@ -10,7 +10,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  CogIcon  // NUEVO: Icono de configuración
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -24,6 +25,7 @@ const AdminSidebar = () => {
     { name: 'Categorías', href: '/admin/categories', icon: TagIcon },
     { name: 'Pedidos', href: '/admin/orders', icon: ShoppingBagIcon },
     { name: 'Usuarios', href: '/admin/users', icon: UserGroupIcon },
+    { name: 'Configuración', href: '/admin/system-config', icon: CogIcon }, // NUEVO
   ];
 
   const isActive = (path) => {
@@ -47,7 +49,7 @@ const AdminSidebar = () => {
           {/* Logo y nombre */}
           <div className="flex items-center justify-center flex-shrink-0 px-4 py-6 bg-gray-900">
             <Link to="/" className="flex items-center">
-              <span className="text-xl font-bold text-white tracking-wide">AutoRepuestos</span>
+              <span className="text-xl font-bold text-white tracking-wide">AutoParts</span>
             </Link>
           </div>
           
@@ -135,7 +137,7 @@ const AdminSidebar = () => {
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center justify-center px-4 py-3">
               <Link to="/" className="flex items-center">
-                <span className="text-xl font-bold text-white tracking-wide">AutoRepuestos</span>
+                <span className="text-xl font-bold text-white tracking-wide">AutoParts</span>
               </Link>
             </div>
             
