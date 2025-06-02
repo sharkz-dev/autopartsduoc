@@ -218,41 +218,41 @@ const Header = () => {
 
             {/* Acciones del usuario */}
             <div className="flex items-center space-x-3">
-              {/* Toggle B2B/B2C moderno */}
-              <div className="hidden md:flex bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
-                <button 
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    cartType === 'B2C' 
-                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                      : 'text-gray-600 hover:text-purple-600'
-                  }`}
-                  onClick={() => toggleCartType('B2C')}
-                >
-                  Cliente
-                </button>
-                <button 
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    cartType === 'B2B' 
-                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                      : 'text-gray-600 hover:text-purple-600'
-                  }`}
-                  onClick={() => toggleCartType('B2B')}
-                >
-                  Mayorista
-                </button>
-              </div>
+          {/* Toggle B2B/B2C moderno */}
+<div className="hidden md:flex bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
+  <button 
+    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+      cartType === 'B2C' 
+        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+        : 'text-gray-600 hover:text-purple-600'
+    }`}
+    onClick={() => toggleCartType('B2C')}
+  >
+    Cliente
+  </button>
+  <button 
+    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+      cartType === 'B2B' 
+        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+        : 'text-gray-600 hover:text-purple-600'
+    }`}
+    onClick={() => toggleCartType('B2B')}
+  >
+    Mayorista
+  </button>
+</div>
 
-              {/* Carrito moderno */}
-              <Link to="/cart" className="relative group">
-                <div className="p-3 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-300 shadow-lg group-hover:shadow-xl">
-                  <ShoppingCartIcon className="h-5 w-5 text-gray-700 group-hover:text-purple-600 transition-colors" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-lg animate-pulse">
-                      {cartCount}
-                    </span>
-                  )}
-                </div>
-              </Link>
+{/* Carrito moderno */}
+<Link to="/cart" className="relative group">
+  <div className="p-3 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-300 shadow-lg group-hover:shadow-xl">
+    <ShoppingCartIcon className="h-5 w-5 text-gray-700 group-hover:text-purple-600 transition-colors" />
+    {cartCount > 0 && (
+      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold shadow-lg animate-pulse">
+        {cartCount}
+      </span>
+    )}
+  </div>
+</Link>
 
               {/* Menú de usuario */}
               {userValidated ? (
@@ -387,32 +387,32 @@ const Header = () => {
               ))}
             </nav>
             
-            {/* Toggle B2B/B2C móvil */}
-            <div className="p-4 border-t border-gray-100">
-              <p className="text-sm font-medium text-gray-700 mb-3">Modo de Compra:</p>
-              <div className="bg-gray-100 rounded-xl p-1 flex">
-                <button 
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-                    cartType === 'B2C' 
-                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                      : 'text-gray-600'
-                  }`}
-                  onClick={() => toggleCartType('B2C')}
-                >
-                  Cliente (B2C)
-                </button>
-                <button 
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-                    cartType === 'B2B' 
-                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                      : 'text-gray-600'
-                  }`}
-                  onClick={() => toggleCartType('B2B')}
-                >
-                  Mayorista (B2B)
-                </button>
-              </div>
-            </div>
+        {/* Toggle B2B/B2C móvil */}
+<div className="p-4 border-t border-gray-100">
+  <p className="text-sm font-medium text-gray-700 mb-3">Modo de Compra:</p>
+  <div className="bg-gray-100 rounded-xl p-1 flex">
+    <button 
+      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+        cartType === 'B2C' 
+          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+          : 'text-gray-600'
+      }`}
+      onClick={() => toggleCartType('B2C')}
+    >
+      Cliente (B2C)
+    </button>
+    <button 
+      className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+        cartType === 'B2B' 
+          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+          : 'text-gray-600'
+      }`}
+      onClick={() => toggleCartType('B2B')}
+    >
+      Mayorista (B2B)
+    </button>
+  </div>
+</div>
             
             {/* Usuario móvil */}
             <div className="border-t border-gray-100 p-4">

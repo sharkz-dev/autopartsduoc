@@ -17,6 +17,7 @@ const CartPage = () => {
     updateQuantity, 
     clearCart, 
     cartType,
+    taxRate, // ✅ AGREGADO: taxRate dinámico
     getSubtotal,
     getTaxAmount,
     getShippingAmount,
@@ -274,7 +275,7 @@ const CartPage = () => {
                     <p className="text-sm font-medium text-gray-900">{formatCurrency(getSubtotal())}</p>
                   </div>
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-sm text-gray-600">Impuestos (19%)</p>
+                    <p className="text-sm text-gray-600">Impuestos ({taxRate}%)</p>
                     <p className="text-sm font-medium text-gray-900">{formatCurrency(getTaxAmount())}</p>
                   </div>
                   <div className="flex justify-between items-center mb-2">

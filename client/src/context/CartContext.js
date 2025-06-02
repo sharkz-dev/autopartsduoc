@@ -233,6 +233,17 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  // ✅ NUEVA FUNCIÓN: toggleCartType que faltaba
+  const toggleCartType = (newType) => {
+    if (newType && newType !== state.cartType) {
+      setCartType(newType);
+    } else {
+      // Si no se especifica tipo, alternar entre B2C y B2B
+      const toggledType = state.cartType === 'B2C' ? 'B2B' : 'B2C';
+      setCartType(toggledType);
+    }
+  };
+
   // Cálculos mejorados con IVA dinámico
   const getSubtotal = () => {
     return state.cartItems.reduce((total, item) => {
@@ -258,12 +269,19 @@ export const CartProvider = ({ children }) => {
     return getSubtotal() + getTaxAmount() + getShippingAmount();
   };
 
+  // ✅ NUEVA FUNCIÓN: Calcular cantidad total de items en el carrito
+  const getCartCount = () => {
+    return state.cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
   // Información adicional
   const getCartSummary = () => {
     const subtotal = getSubtotal();
     const taxAmount = getTaxAmount();
     const shippingAmount = getShippingAmount();
     const total = getFinalTotal();
+    const itemCount = state.cartItems.length;
+    const totalQuantity = getCartCount();
     
     return {
       subtotal,
@@ -272,8 +290,8 @@ export const CartProvider = ({ children }) => {
       taxPercentage: `${state.taxRate}%`,
       shippingAmount,
       total,
-      itemCount: state.cartItems.length,
-      totalQuantity: state.cartItems.reduce((sum, item) => sum + item.quantity, 0)
+      itemCount,
+      totalQuantity
     };
   };
 
@@ -284,12 +302,16 @@ export const CartProvider = ({ children }) => {
     taxRate: state.taxRate,
     isLoading: state.isLoading,
     
+    // ✅ AGREGADO: Cantidad total para el badge del carrito
+    cartCount: getCartCount(),
+    
     // Funciones
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
     setCartType,
+    toggleCartType, // ✅ AGREGADO: Función que faltaba
     refreshTaxRate,
     
     // Cálculos
@@ -297,7 +319,8 @@ export const CartProvider = ({ children }) => {
     getTaxAmount,
     getShippingAmount,
     getFinalTotal,
-    getCartSummary
+    getCartSummary,
+    getCartCount // ✅ AGREGADO: Para acceso directo al conteo
   };
 
   return (

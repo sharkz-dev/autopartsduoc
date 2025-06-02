@@ -34,7 +34,7 @@ const PICKUP_LOCATIONS = [
 ];
 
 const CheckoutPage = () => {
-  const { cartItems, getSubtotal, getTaxAmount, getShippingAmount, getFinalTotal, clearCart } = useCart();
+  const { cartItems, taxRate, getSubtotal, getTaxAmount, getShippingAmount, getFinalTotal, clearCart } = useCart();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   
@@ -292,7 +292,7 @@ const CheckoutPage = () => {
                   </div>
                   
                   <div className="flex justify-between">
-                    <p className="text-sm text-gray-600">Impuestos (19%)</p>
+                    <p className="text-sm text-gray-600">Impuestos ({taxRate}%)</p>
                     <p className="text-sm font-medium text-gray-900">{formatCurrency(getTaxAmount())}</p>
                   </div>
                   
