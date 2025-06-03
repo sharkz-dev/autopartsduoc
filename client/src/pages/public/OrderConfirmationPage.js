@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
+import api from '../../services/api'; // ✅ CAMBIO: Usar el servicio api configurado
 import { 
   CheckCircleIcon, 
   ClockIcon, 
@@ -15,7 +15,7 @@ import {
 
 const OrderConfirmationPage = () => {
   const { orderId } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth(); // ✅ AGREGADO: user para debugging
   const navigate = useNavigate();
   
   const [order, setOrder] = useState(null);
@@ -31,28 +31,78 @@ const OrderConfirmationPage = () => {
     }).format(value);
   };
   
+  // ✅ DEBUGGING: Verificar autenticación
+  useEffect(() => {
+    console.log('🔍 OrderConfirmationPage - Estado de autenticación:');
+    console.log('   - isAuthenticated:', isAuthenticated);
+    console.log('   - user:', user ? { id: user.id, name: user.name } : 'No user');
+    console.log('   - orderId:', orderId);
+    console.log('   - localStorage token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+  }, [isAuthenticated, user, orderId]);
+  
   // Obtener orden
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    
     const fetchOrder = async () => {
       try {
+        console.log('🔍 fetchOrder iniciado');
+        console.log('   - isAuthenticated:', isAuthenticated);
+        console.log('   - orderId:', orderId);
+        
+        if (!isAuthenticated) {
+          console.log('❌ Usuario no autenticado, redirigiendo a login');
+          navigate(`/login?redirect=/order-confirmation/${orderId}`);
+          return;
+        }
+
+        if (!orderId) {
+          console.log('❌ OrderId no proporcionado');
+          setError('ID de orden no válido');
+          setLoading(false);
+          return;
+        }
+        
         setLoading(true);
-        const response = await axios.get(`/api/orders/${orderId}`);
+        setError('');
+        
+        console.log(`📡 Enviando request a: /api/orders/${orderId}`);
+        
+        // ✅ CORREGIDO: Usar el servicio api configurado que incluye los headers automáticamente
+        const response = await api.get(`/orders/${orderId}`);
+        
+        console.log('✅ Respuesta exitosa de la orden:', response.data);
         setOrder(response.data.data);
         setLoading(false);
+        
       } catch (err) {
-        console.error('Error al obtener la orden:', err);
-        setError('No se pudo cargar la información de la orden');
+        console.error('❌ Error al obtener la orden:', err);
+        console.error('   - Status:', err.response?.status);
+        console.error('   - Message:', err.response?.data?.error || err.message);
+        console.error('   - Headers sent:', {
+          Authorization: err.config?.headers?.Authorization ? 'Present' : 'Missing'
+        });
+        
+        if (err.response?.status === 401) {
+          console.log('❌ Error 401 - Token inválido o expirado, redirigiendo a login');
+          // Limpiar storage y redirigir a login
+          localStorage.removeItem('token');
+          navigate(`/login?redirect=/order-confirmation/${orderId}&message=session_expired`);
+        } else {
+          setError('No se pudo cargar la información de la orden');
+        }
         setLoading(false);
       }
     };
     
-    fetchOrder();
-  }, [orderId, isAuthenticated, navigate]);
+    // ✅ MEJORADO: Solo ejecutar si tenemos los datos necesarios
+    if (orderId) {
+      // ✅ DEBUGGING: Delay para permitir que la autenticación se establezca
+      const timer = setTimeout(() => {
+        fetchOrder();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [orderId, isAuthenticated, navigate, user]);
   
   // Renderizar el ícono y texto según el estado
   const renderStatusInfo = () => {
@@ -63,7 +113,7 @@ const OrderConfirmationPage = () => {
         return {
           icon: <ClockIcon className="h-12 w-12 text-yellow-500" />,
           title: 'Pendiente',
-          message: order.paymentMethod === 'mercadopago' 
+          message: order.paymentMethod === 'webpay' 
             ? 'Tu pedido está pendiente de pago' 
             : 'Tu pedido ha sido recibido y está pendiente de confirmación'
         };
@@ -159,32 +209,85 @@ const OrderConfirmationPage = () => {
     }
   };
   
+  // ✅ LOADING STATE MEJORADO
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-purple-600 rounded-full animate-ping"></div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-gray-600 font-medium text-lg">Cargando información de la orden...</p>
+            <p className="text-gray-500 text-sm">
+              Orden ID: {orderId}
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
   
+  // ✅ ERROR STATE MEJORADO
   if (error) {
     return (
-      <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-        <p>{error}</p>
-        <Link to="/profile" className="text-red-700 font-medium underline mt-2 inline-block">
-          Volver a mi perfil
-        </Link>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full text-center space-y-6 p-8">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+            <ExclamationCircleIcon className="h-8 w-8 text-red-500" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-gray-900">Error al cargar la orden</h2>
+            <p className="text-red-600 font-medium">{error}</p>
+            <p className="text-gray-500 text-sm">
+              Orden ID: {orderId}
+            </p>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Reintentar
+            </button>
+            <Link 
+              to="/orders" 
+              className="block w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Ver mis pedidos
+            </Link>
+            <Link 
+              to="/" 
+              className="block text-blue-600 hover:text-blue-500 underline"
+            >
+              Volver al inicio
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
   
   if (!order) {
     return (
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
-        <p>No se pudo encontrar la orden especificada.</p>
-        <Link to="/profile" className="text-yellow-700 font-medium underline mt-2 inline-block">
-          Volver a mi perfil
-        </Link>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center space-y-4 p-8">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-gray-900">Orden no encontrada</h2>
+            <p className="text-gray-600">No se pudo encontrar la orden especificada.</p>
+            <p className="text-gray-500 text-sm">Orden ID: {orderId}</p>
+          </div>
+          <Link
+            to="/orders"
+            className="inline-block bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Ver mis pedidos
+          </Link>
+        </div>
       </div>
     );
   }
@@ -368,44 +471,6 @@ const OrderConfirmationPage = () => {
                   </div>
                 )}
               </div>
-
-                <div className="text-sm text-gray-600">
-                  <div className="flex justify-between py-1">
-                    <span>Subtotal:</span>
-                    <span>{formatCurrency(order.itemsPrice)}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span>Impuestos (19%):</span>
-                    <span>{formatCurrency(order.taxPrice)}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span>Envío:</span>
-                    <span>
-                      {order.shippingPrice === 0 ? 'Gratis' : formatCurrency(order.shippingPrice)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-2 mt-2 border-t border-gray-200 font-medium">
-                    <span>Total:</span>
-                    <span className="text-blue-600">{formatCurrency(order.totalPrice)}</span>
-                  </div>
-                </div>
-                
-                {!order.isPaid && order.paymentMethod === 'bankTransfer' && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-md text-sm">
-                    <h4 className="font-semibold text-blue-800 mb-2">Datos para transferencia:</h4>
-                    <p className="mb-1"><span className="font-medium">Banco:</span> Banco Estado</p>
-                    <p className="mb-1"><span className="font-medium">Titular:</span> AutoRepuestos SpA</p>
-                    <p className="mb-1"><span className="font-medium">RUT:</span> 76.XXX.XXX-X</p>
-                    <p className="mb-1"><span className="font-medium">Cuenta Corriente:</span> 123456789</p>
-                    <p className="mb-1">
-                      <span className="font-medium">Email:</span> pagos@autorepuestos.com
-                    </p>
-                    <p className="mt-2 text-xs text-blue-800">
-                      Incluye el número de orden #{orderId.slice(-8)} en el comentario de la transferencia
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
           
@@ -477,7 +542,7 @@ const OrderConfirmationPage = () => {
         <div className="px-6 py-4 bg-gray-50 border-t text-center">
           <div className="space-x-4">
             <Link
-              to="/profile/orders"
+              to="/orders"
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
               Ver mis pedidos
@@ -491,7 +556,7 @@ const OrderConfirmationPage = () => {
           </div>
         </div>
       </div>
-    
+    </div>
   );
 };
 
