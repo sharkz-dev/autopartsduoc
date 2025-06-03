@@ -93,12 +93,15 @@ const Header = () => {
   };
 
   const isActive = (path) => location.pathname === path;
+  // ✅ FUNCIÓN CORREGIDA: Validación segura antes de acceder a propiedades
+  const getUserName = () => {
+    if (!user || !user.name) return 'Usuario';
+    return user.name.split(' ')[0] || 'Usuario';
+  };
 
-  const getUserName = () => user?.name?.split(' ')[0] || 'Usuario';
-
-  // Obtener icono según el rol
+  // ✅ FUNCIÓN CORREGIDA: Validación segura del rol
   const getUserRoleIcon = () => {
-    if (!user) return <UserIcon className="h-4 w-4" />;
+    if (!user || !user.role) return <UserIcon className="h-4 w-4" />;
     
     switch (user.role) {
       case 'admin':
@@ -111,9 +114,9 @@ const Header = () => {
     }
   };
 
-  // Obtener color de badge según rol
+  // ✅ FUNCIÓN CORREGIDA: Validación segura del badge de rol
   const getRoleBadgeColor = () => {
-    if (!user) return 'bg-gray-100 text-gray-700';
+    if (!user || !user.role) return 'bg-gray-100 text-gray-700';
     
     switch (user.role) {
       case 'admin':
@@ -128,9 +131,9 @@ const Header = () => {
     }
   };
 
-  // Obtener descripción del estado del distribuidor
+  // ✅ FUNCIÓN CORREGIDA: Validación segura del estado del distribuidor
   const getDistributorStatus = () => {
-    if (!isDistributor()) return '';
+    if (!user || !isDistributor()) return '';
     
     return isApprovedDistributor() 
       ? 'Distribuidor Aprobado' 
@@ -146,7 +149,6 @@ const Header = () => {
       </header>
     );
   }
-
   return (
     <>
       <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -176,10 +178,12 @@ const Header = () => {
                 {userValidated ? (
                   <div className="flex items-center space-x-2">
                     <span className="text-purple-200">¡Hola, {getUserName()}!</span>
-                    {/* MOSTRAR TIPO DE CUENTA */}
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
-                      {isDistributor() ? getDistributorStatus() : getRoleDisplayName()}
-                    </span>
+                    {/* ✅ VALIDACIÓN MEJORADA: Solo mostrar si user existe */}
+                    {user && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
+                        {isDistributor() ? getDistributorStatus() : getRoleDisplayName()}
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center space-x-3">
@@ -266,7 +270,6 @@ const Header = () => {
                 </Link>
               ))}
             </nav>
-
             {/* Acciones del usuario */}
             <div className="flex items-center space-x-3">
               {/* INDICADOR DE TIPO DE CARRITO MODIFICADO - SOLO INFORMATIVO */}
@@ -303,8 +306,6 @@ const Header = () => {
                     )}
                   </div>
                 </div>
-                
-                {/* INDICADOR DE MODO AUTOMÁTICO */}
               </div>
 
               {/* Carrito moderno */}
@@ -327,8 +328,8 @@ const Header = () => {
                     className="flex items-center space-x-2 p-2 bg-white/60 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white/80 transition-all duration-300 shadow-lg"
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      user.role === 'admin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
-                      user.role === 'distributor' ? 'bg-gradient-to-br from-purple-600 to-purple-700' :
+                      user?.role === 'admin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
+                      user?.role === 'distributor' ? 'bg-gradient-to-br from-purple-600 to-purple-700' :
                       'bg-gradient-to-br from-green-600 to-green-700'
                     }`}>
                       {getUserRoleIcon()}
@@ -337,7 +338,7 @@ const Header = () => {
                     <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                   </button>
                   
-                  {isUserMenuOpen && (
+                  {isUserMenuOpen && user && (
                     <div className="absolute right-0 mt-2 w-64 glass-card shadow-2xl border border-white/20 rounded-2xl overflow-hidden animate-scale-in">
                       <div className={`p-4 ${
                         user.role === 'admin' ? 'bg-gradient-to-r from-blue-600 to-blue-700' :
@@ -437,7 +438,6 @@ const Header = () => {
             </div>
           </div>
         </div>
-
         {/* Menú móvil innovador */}
         {isMenuOpen && (
           <div className="lg:hidden glass-card mt-2 mx-4 rounded-2xl shadow-2xl border border-white/20 animate-slide-in-up">
@@ -519,35 +519,37 @@ const Header = () => {
             <div className="border-t border-gray-100 p-4">
               {userValidated ? (
                 <div className="space-y-3">
-                  <div className={`flex items-center space-x-3 p-3 rounded-xl ${
-                    user.role === 'admin' ? 'bg-gradient-to-r from-blue-50 to-blue-100' :
-                    user.role === 'distributor' ? 'bg-gradient-to-r from-purple-50 to-purple-100' :
-                    'bg-gradient-to-r from-green-50 to-green-100'
-                  }`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      user.role === 'admin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
-                      user.role === 'distributor' ? 'bg-gradient-to-br from-purple-600 to-purple-700' :
-                      'bg-gradient-to-br from-green-600 to-green-700'
+                  {user && (
+                    <div className={`flex items-center space-x-3 p-3 rounded-xl ${
+                      user.role === 'admin' ? 'bg-gradient-to-r from-blue-50 to-blue-100' :
+                      user.role === 'distributor' ? 'bg-gradient-to-r from-purple-50 to-purple-100' :
+                      'bg-gradient-to-r from-green-50 to-green-100'
                     }`}>
-                      {getUserRoleIcon()}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{user?.name}</p>
-                      <p className="text-sm text-gray-600">{user?.email}</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${getRoleBadgeColor()}`}>
-                          {getRoleDisplayName()}
-                        </span>
-                        {isDistributor() && (
-                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${
-                            isApprovedDistributor() ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {isApprovedDistributor() ? '✓ Aprobado' : '⏳ Pendiente'}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        user.role === 'admin' ? 'bg-gradient-to-br from-blue-600 to-blue-700' :
+                        user.role === 'distributor' ? 'bg-gradient-to-br from-purple-600 to-purple-700' :
+                        'bg-gradient-to-br from-green-600 to-green-700'
+                      }`}>
+                        {getUserRoleIcon()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">{user?.name}</p>
+                        <p className="text-sm text-gray-600">{user?.email}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${getRoleBadgeColor()}`}>
+                            {getRoleDisplayName()}
                           </span>
-                        )}
+                          {isDistributor() && (
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${
+                              isApprovedDistributor() ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
+                              {isApprovedDistributor() ? '✓ Aprobado' : '⏳ Pendiente'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   
                   <div className="space-y-1">
                     <Link

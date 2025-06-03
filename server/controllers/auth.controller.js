@@ -7,7 +7,14 @@ const bcrypt = require('bcryptjs');
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role, address, phone } = req.body;
+    const { name, email, password, role, address, phone, distributorInfo } = req.body;
+
+    console.log('📝 Datos de registro recibidos:', {
+      name,
+      email,
+      role,
+      distributorInfo: distributorInfo ? 'Presente' : 'No presente'
+    });
 
     // Verificar si el usuario ya existe
     let user = await User.findOne({ email });
@@ -19,18 +26,79 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Crear usuario
-    user = await User.create({
+    // ✅ CORREGIDO: Preparar datos de usuario según el rol
+    const userData = {
       name,
       email,
       password,
-      role,
+      role: role || 'client',
       address,
       phone
+    };
+
+    // ✅ NUEVO: Si es distribuidor, agregar información específica
+    if (role === 'distributor') {
+      console.log('👔 Procesando registro de distribuidor...');
+      
+      // Validar que se proporcione información de distribuidor
+      if (!distributorInfo) {
+        return res.status(400).json({
+          success: false,
+          error: 'La información de distribuidor es requerida'
+        });
+      }
+
+      // Validar campos requeridos para distribuidor
+      if (!distributorInfo.companyName || !distributorInfo.companyRUT) {
+        return res.status(400).json({
+          success: false,
+          error: 'El nombre de la empresa y RUT son requeridos para distribuidores'
+        });
+      }
+
+      console.log('✅ Información de distribuidor válida:', distributorInfo);
+      
+      // Agregar información de distribuidor al userData
+      userData.distributorInfo = {
+        companyName: distributorInfo.companyName,
+        companyRUT: distributorInfo.companyRUT,
+        businessLicense: distributorInfo.businessLicense || '',
+        creditLimit: 0,
+        discountPercentage: 0,
+        isApproved: false // Por defecto no aprobado, requiere revisión de admin
+      };
+    }
+
+    console.log('💾 Creando usuario con datos:', {
+      ...userData,
+      password: '[REDACTED]'
+    });
+
+    // Crear usuario
+    user = await User.create(userData);
+
+    console.log('✅ Usuario creado exitosamente:', {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isDistributor: user.role === 'distributor',
+      companyName: user.distributorInfo?.companyName
     });
 
     sendTokenResponse(user, 201, res);
   } catch (err) {
+    console.error('❌ Error en registro:', err);
+    
+    // Manejar errores específicos de validación
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(error => error.message);
+      return res.status(400).json({
+        success: false,
+        error: errors.join(', ')
+      });
+    }
+    
     next(err);
   }
 };
@@ -121,6 +189,18 @@ exports.updateDetails = async (req, res, next) => {
     if (req.body.address) fieldsToUpdate.address = req.body.address;
     if (req.body.phone) fieldsToUpdate.phone = req.body.phone;
 
+    // ✅ NUEVO: Permitir actualización de información de distribuidor
+    if (req.body.distributorInfo && req.user && req.user.role === 'distributor') {
+      fieldsToUpdate.distributorInfo = {
+        ...req.user.distributorInfo,
+        ...req.body.distributorInfo,
+        // Preservar campos que solo el admin puede cambiar
+        isApproved: req.user.distributorInfo?.isApproved || false,
+        approvedBy: req.user.distributorInfo?.approvedBy,
+        approvedAt: req.user.distributorInfo?.approvedAt
+      };
+    }
+
     const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
       new: true,
       runValidators: true
@@ -187,17 +267,27 @@ const sendTokenResponse = (user, statusCode, res) => {
     options.secure = true;
   }
 
+  // ✅ MEJORADO: Incluir información más completa del usuario en la respuesta
+  const userResponse = {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    phone: user.phone,
+    address: user.address
+  };
+
+  // Agregar información de distribuidor si aplica
+  if (user.role === 'distributor' && user.distributorInfo) {
+    userResponse.distributorInfo = user.distributorInfo;
+  }
+
   res
     .status(statusCode)
     .cookie('token', token, options)
     .json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: userResponse
     });
 };
