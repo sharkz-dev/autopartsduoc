@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../../services/api';
+import { useAuth } from '../../context/AuthContext'; // ✅ IMPORTAR useAuth
 import { 
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -15,6 +16,7 @@ import {
 import toast from 'react-hot-toast';
 
 const AdminUsersPage = () => {
+  const { user } = useAuth(); // ✅ OBTENER USUARIO ACTUAL DEL CONTEXTO
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -66,14 +68,20 @@ const AdminUsersPage = () => {
     try {
       console.log(`🟢 Aprobando distribuidor: ${userId}`);
       
-      // ✅ CORRECCIÓN: Actualizar con la estructura correcta de distributorInfo
+      // ✅ CORRECCIÓN: Verificar que tenemos el usuario actual
+      if (!user || !user._id) {
+        toast.error('Error: No se pudo obtener información del administrador');
+        return;
+      }
+      
       const updateData = {
         'distributorInfo.isApproved': true,
         'distributorInfo.approvedAt': new Date().toISOString(),
-        'distributorInfo.approvedBy': 'current_admin_id' // Esto debería venir del contexto de auth
+        'distributorInfo.approvedBy': user._id // ✅ USAR user._id DEL CONTEXTO AUTH
       };
       
       console.log('📝 Datos de actualización:', updateData);
+      console.log('👤 Admin que aprueba:', user.name, user._id);
       
       const response = await userService.updateUser(userId, updateData);
       console.log('✅ Respuesta del servidor:', response.data);
@@ -96,14 +104,20 @@ const AdminUsersPage = () => {
     try {
       console.log(`🔴 Rechazando distribuidor: ${userId}`);
       
-      // ✅ CORRECCIÓN: Actualizar con la estructura correcta
+      // ✅ CORRECCIÓN: Verificar que tenemos el usuario actual
+      if (!user || !user._id) {
+        toast.error('Error: No se pudo obtener información del administrador');
+        return;
+      }
+      
       const updateData = {
         'distributorInfo.isApproved': false,
         'distributorInfo.approvedAt': null,
-        'distributorInfo.approvedBy': null
+        'distributorInfo.approvedBy': null // Limpiar el campo al rechazar
       };
       
       console.log('📝 Datos de actualización:', updateData);
+      console.log('👤 Admin que rechaza:', user.name, user._id);
       
       await userService.updateUser(userId, updateData);
       toast.success('Aprobación de distribuidor revocada');
