@@ -70,17 +70,34 @@ const OrderSchema = new mongoose.Schema({
     scheduledDate: Date,
     notes: String
   },
-  paymentMethod: {
+   paymentMethod: {
     type: String,
     required: true,
-    enum: ['mercadopago', 'bankTransfer', 'cash'],
-    default: 'mercadopago'
+    enum: ['webpay', 'bankTransfer', 'cash'], // Reemplazar 'mercadopago' con 'webpay'
+    default: 'webpay' // Cambiar default de 'mercadopago' a 'webpay'
   },
   paymentResult: {
-    id: String,
-    status: String,
+    id: String, // Token de Webpay
+    buyOrder: String, // Orden de compra generada para Webpay
+    sessionId: String, // ID de sesión de Webpay
+    authorizationCode: String, // Código de autorización de la transacción
+    status: String, // approved, rejected, pending
     updateTime: String,
-    email: String
+    paymentMethod: String, // 'webpay'
+    amount: Number, // Monto de la transacción
+    responseCode: Number, // Código de respuesta de Transbank
+    cardDetail: {
+      card_number: String // Últimos 4 dígitos de la tarjeta
+    },
+    installments: Number, // Número de cuotas
+    email: String,
+    // Información de anulación/reembolso
+    refund: {
+      id: String,
+      amount: Number,
+      status: String,
+      processedAt: Date
+    }
   },
   itemsPrice: {
     type: Number,

@@ -49,7 +49,7 @@ const CheckoutPage = () => {
     notes: ''
   });
   const [pickupLocation, setPickupLocation] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('mercadopago');
+  const [paymentMethod, setPaymentMethod] = useState('webpay');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
@@ -77,9 +77,9 @@ const CheckoutPage = () => {
   // Cuando cambia el método de envío, actualizar método de pago si es necesario
   useEffect(() => {
     // Si el método de envío cambia a delivery y el método de pago era cash,
-    // cambiar a mercadopago porque no se acepta efectivo para delivery
+    // cambiar a webpay porque no se acepta efectivo para delivery
     if (shipmentMethod === 'delivery' && paymentMethod === 'cash') {
-      setPaymentMethod('mercadopago');
+      setPaymentMethod('webpay');
     }
   }, [shipmentMethod, paymentMethod]);
   
@@ -166,34 +166,39 @@ const CheckoutPage = () => {
     const order = response.data.data;
     
     // Manejar según el método de pago
-    if (paymentMethod === 'mercadopago') {
-      // Crear preferencia de pago en Mercado Pago
-      const prefResponse = await api.post(`/payment/create-preference/${order._id}`);
-      const preferenceData = prefResponse.data.data;
-      
-      // Guardar ID de orden en localStorage para recuperarla después del pago
-      localStorage.setItem('currentOrderId', order._id);
-      
-      // Redirigir a Mercado Pago
-      window.location.href = preferenceData.init_point;
+    if (paymentMethod === 'webpay') {
+      // Crear transacción de pago en Webpay
+      try {
+        const transactionResponse = await api.post(`/payment/create-transaction/${order._id}`);
+        const transactionData = transactionResponse.data.data;
+        
+        // Guardar ID de orden en localStorage para recuperarla después del pago
+        localStorage.setItem('currentOrderId', order._id);
+        
+        // Redirigir a Webpay
+        console.log('🔄 Redirigiendo a Webpay:', transactionData.url);
+        window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
+      } catch (webpayError) {
+        console.error('❌ Error al crear transacción Webpay:', webpayError);
+        throw new Error('Error al procesar el pago con Webpay');
+      }
     } else {
       // Para otros métodos de pago, redirigir directamente a la confirmación
       clearCart();
       navigate(`/order-confirmation/${order._id}`);
     }
-} catch (err) {
-  console.error('Error al crear la orden:', err);
-  // Mostrar más detalles del error del servidor si están disponibles
-  let errorMessage = 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.';
-  if (err.response?.data?.error) {
-    errorMessage = err.response.data.error;
-    console.error('Detalle del error del servidor:', err.response.data);
+  } catch (err) {
+    console.error('Error al crear la orden:', err);
+    let errorMessage = 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.';
+    if (err.response?.data?.error) {
+      errorMessage = err.response.data.error;
+      console.error('Detalle del error del servidor:', err.response.data);
+    }
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
   }
-  setError(errorMessage);
-  toast.error(errorMessage);
-} finally {
-  setLoading(false);
-}
 };
   
   return (
@@ -329,7 +334,7 @@ const CheckoutPage = () => {
                 <div className="mt-4 bg-gray-50 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Método de pago seleccionado</h3>
                   <p className="text-sm text-gray-600">
-                    {paymentMethod === 'mercadopago' && 'Mercado Pago'}
+                    {paymentMethod === 'webpay' && 'WebPay'}
                     {paymentMethod === 'bankTransfer' && 'Transferencia Bancaria'}
                     {paymentMethod === 'cash' && 'Efectivo (al retirar)'}
                   </p>

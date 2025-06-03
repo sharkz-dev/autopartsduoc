@@ -497,8 +497,7 @@ const systemConfigs = [
     description: 'Porcentaje de IVA aplicado a las ventas',
     type: 'number',
     category: 'tax',
-    validationRules: { min: 0, max: 100 },
-    isEditable: true
+    validationRules: { min: 0, max: 100 }
   },
   {
     key: 'free_shipping_threshold',
@@ -506,8 +505,7 @@ const systemConfigs = [
     description: 'Monto mínimo para envío gratuito (CLP)',
     type: 'number',
     category: 'shipping',
-    validationRules: { min: 0 },
-    isEditable: true
+    validationRules: { min: 0 }
   },
   {
     key: 'default_shipping_cost',
@@ -515,24 +513,21 @@ const systemConfigs = [
     description: 'Costo de envío por defecto (CLP)',
     type: 'number',
     category: 'shipping',
-    validationRules: { min: 0 },
-    isEditable: true
+    validationRules: { min: 0 }
   },
   {
     key: 'site_name',
     value: 'AutoParts',
     description: 'Nombre del sitio web',
     type: 'string',
-    category: 'general',
-    isEditable: true
+    category: 'general'
   },
   {
     key: 'contact_email',
     value: 'info@autoparts.com',
     description: 'Email de contacto principal',
     type: 'string',
-    category: 'general',
-    isEditable: true
+    category: 'general'
   },
   {
     key: 'max_file_size',
@@ -557,6 +552,34 @@ const systemConfigs = [
     description: 'Habilitar funcionalidades B2B (mayorista)',
     type: 'boolean',
     category: 'general',
+    isEditable: true
+  },
+  // NUEVAS CONFIGURACIONES PARA WEBPAY
+  {
+    key: 'webpay_environment',
+    value: 'integration',
+    description: 'Entorno de Webpay (integration/production)',
+    type: 'string',
+    category: 'payment',
+    validationRules: { enum: ['integration', 'production'] },
+    isEditable: true
+  },
+  {
+    key: 'default_payment_method',
+    value: 'webpay',
+    description: 'Método de pago por defecto',
+    type: 'string',
+    category: 'payment',
+    validationRules: { enum: ['webpay', 'bankTransfer', 'cash'] },
+    isEditable: true
+  },
+  {
+    key: 'payment_timeout',
+    value: 900,
+    description: 'Tiempo límite para completar pago (segundos)',
+    type: 'number',
+    category: 'payment',
+    validationRules: { min: 300, max: 1800 }, // 5 a 30 minutos
     isEditable: true
   }
 ];

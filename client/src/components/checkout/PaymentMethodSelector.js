@@ -10,41 +10,69 @@ const PaymentMethodSelector = ({ selectedMethod, setSelectedMethod, shipmentMeth
       <h2 className="text-lg font-medium text-gray-900 mb-4">Método de Pago</h2>
       
       <div className="space-y-4">
-        {/* Opción de Mercado Pago */}
+        {/* Opción de Webpay (Transbank) */}
         <div 
           className={`border rounded-lg p-4 cursor-pointer transition-all ${
-            selectedMethod === 'mercadopago' 
+            selectedMethod === 'webpay' 
               ? 'border-blue-500 bg-blue-50' 
               : 'border-gray-300 hover:border-blue-300'
           }`}
-          onClick={() => setSelectedMethod('mercadopago')}
+          onClick={() => setSelectedMethod('webpay')}
         >
           <div className="flex items-center">
             <div className="flex items-center h-5">
               <input
-                id="mercadopago"
+                id="webpay"
                 name="paymentMethod"
                 type="radio"
-                checked={selectedMethod === 'mercadopago'}
-                onChange={() => setSelectedMethod('mercadopago')}
+                checked={selectedMethod === 'webpay'}
+                onChange={() => setSelectedMethod('webpay')}
                 className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
               />
             </div>
             <div className="ml-3 flex items-center">
               <CreditCardIcon className="h-6 w-6 text-blue-500 mr-2" />
               <div>
-                <label htmlFor="mercadopago" className="font-medium text-gray-700">
-                  Mercado Pago
+                <label htmlFor="webpay" className="font-medium text-gray-700">
+                  Webpay Plus
                 </label>
                 <p className="text-gray-500 text-sm">
-                  Paga con tarjeta, billetera virtual o saldo en Mercado Pago
+                  Paga con tarjeta de crédito o débito a través de Transbank
                 </p>
               </div>
             </div>
-            <div className="ml-auto">
-              <img src="/images/mercadopago-logo.png" alt="Mercado Pago" className="h-8" />
+            <div className="ml-auto flex items-center space-x-2">
+              <img 
+                src="/images/webpay-logo.png" 
+                alt="Webpay" 
+                className="h-8"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <div className="flex space-x-1">
+                {/* Logos de tarjetas aceptadas */}
+                <div className="w-8 h-5 bg-gradient-to-r from-blue-600 to-blue-700 rounded text-white text-xs flex items-center justify-center font-bold">
+                  VISA
+                </div>
+                <div className="w-8 h-5 bg-gradient-to-r from-red-600 to-red-700 rounded text-white text-xs flex items-center justify-center font-bold">
+                  MC
+                </div>
+              </div>
             </div>
           </div>
+          
+          {selectedMethod === 'webpay' && (
+            <div className="mt-3 ml-7 p-3 bg-blue-50 rounded-md text-sm">
+              <h4 className="font-semibold text-blue-800 mb-2">Información de pago:</h4>
+              <ul className="text-blue-700 space-y-1">
+                <li>• Acepta tarjetas de crédito y débito</li>
+                <li>• Pago seguro con tecnología Transbank</li>
+                <li>• Serás redirigido al portal de pago seguro</li>
+                <li>• Compatible con 3D Secure</li>
+              </ul>
+            </div>
+          )}
         </div>
         
         {/* Opción de Transferencia Bancaria */}

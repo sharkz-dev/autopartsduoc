@@ -111,7 +111,7 @@ const OrderConfirmationPage = () => {
     if (!order) return null;
     
     switch (order.paymentMethod) {
-      case 'mercadopago':
+      case 'webpay':
         return <CreditCardIcon className="h-5 w-5 text-blue-500" />;
       case 'bankTransfer':
         return <BuildingLibraryIcon className="h-5 w-5 text-green-500" />;
@@ -127,8 +127,8 @@ const OrderConfirmationPage = () => {
     if (!order) return '';
     
     switch (order.paymentMethod) {
-      case 'mercadopago':
-        return 'Mercado Pago';
+      case 'webpay':
+        return 'Webpay Plus (Transbank)';
       case 'bankTransfer':
         return 'Transferencia Bancaria';
       case 'cash':
@@ -188,6 +188,57 @@ const OrderConfirmationPage = () => {
       </div>
     );
   }
+  
+  const renderPaymentDetails = () => {
+    if (!order || !order.paymentResult || order.paymentMethod !== 'webpay') return null;
+
+    const paymentResult = order.paymentResult;
+
+    return (
+      <div className="mt-4 bg-blue-50 p-4 rounded-md border border-blue-200">
+        <h4 className="font-semibold text-blue-800 mb-3">Detalles del pago Webpay:</h4>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {paymentResult.authorizationCode && (
+            <>
+              <span className="text-blue-700 font-medium">Código de autorización:</span>
+              <span className="text-blue-800">{paymentResult.authorizationCode}</span>
+            </>
+          )}
+          {paymentResult.buyOrder && (
+            <>
+              <span className="text-blue-700 font-medium">Orden de compra:</span>
+              <span className="text-blue-800 font-mono text-xs">{paymentResult.buyOrder}</span>
+            </>
+          )}
+          {paymentResult.cardDetail?.card_number && (
+            <>
+              <span className="text-blue-700 font-medium">Tarjeta:</span>
+              <span className="text-blue-800">**** **** **** {paymentResult.cardDetail.card_number}</span>
+            </>
+          )}
+          {paymentResult.installments > 1 && (
+            <>
+              <span className="text-blue-700 font-medium">Cuotas:</span>
+              <span className="text-blue-800">{paymentResult.installments}</span>
+            </>
+          )}
+          {paymentResult.amount && (
+            <>
+              <span className="text-blue-700 font-medium">Monto procesado:</span>
+              <span className="text-blue-800">{formatCurrency(paymentResult.amount)}</span>
+            </>
+          )}
+        </div>
+        
+        {order.isPaid && (
+          <div className="mt-3 flex items-center text-green-600">
+            <CheckCircleIcon className="h-4 w-4 mr-1" />
+            <span className="text-sm font-medium">Pago confirmado por Transbank</span>
+          </div>
+        )}
+      </div>
+    );
+  };
   
   const statusInfo = renderStatusInfo();
   
@@ -265,6 +316,59 @@ const OrderConfirmationPage = () => {
                   {renderPaymentStatus()}
                 </div>
                 
+                {renderPaymentDetails()}
+                
+                <div className="text-sm text-gray-600">
+                  <div className="flex justify-between py-1">
+                    <span>Subtotal:</span>
+                    <span>{formatCurrency(order.itemsPrice)}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span>Impuestos (19%):</span>
+                    <span>{formatCurrency(order.taxPrice)}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span>Envío:</span>
+                    <span>
+                      {order.shippingPrice === 0 ? 'Gratis' : formatCurrency(order.shippingPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 mt-2 border-t border-gray-200 font-medium">
+                    <span>Total:</span>
+                    <span className="text-blue-600">{formatCurrency(order.totalPrice)}</span>
+                  </div>
+                </div>
+                
+                {!order.isPaid && order.paymentMethod === 'bankTransfer' && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-md text-sm">
+                    <h4 className="font-semibold text-blue-800 mb-2">Datos para transferencia:</h4>
+                    <p className="mb-1"><span className="font-medium">Banco:</span> Banco Estado</p>
+                    <p className="mb-1"><span className="font-medium">Titular:</span> AutoRepuestos SpA</p>
+                    <p className="mb-1"><span className="font-medium">RUT:</span> 76.XXX.XXX-X</p>
+                    <p className="mb-1"><span className="font-medium">Cuenta Corriente:</span> 123456789</p>
+                    <p className="mb-1">
+                      <span className="font-medium">Email:</span> pagos@autorepuestos.com
+                    </p>
+                    <p className="mt-2 text-xs text-blue-800">
+                      Incluye el número de orden #{orderId.slice(-8)} en el comentario de la transferencia
+                    </p>
+                  </div>
+                )}
+                
+                {!order.isPaid && order.paymentMethod === 'webpay' && (
+                  <div className="mt-4 p-3 bg-yellow-50 rounded-md text-sm border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Pago pendiente</h4>
+                    <p className="text-yellow-700">
+                      El pago con Webpay aún no ha sido confirmado. Si acabas de realizar el pago, 
+                      puede tomar unos minutos en procesarse.
+                    </p>
+                    <p className="text-yellow-600 text-xs mt-2">
+                      Si el problema persiste, contacta a nuestro soporte.
+                    </p>
+                  </div>
+                )}
+              </div>
+
                 <div className="text-sm text-gray-600">
                   <div className="flex justify-between py-1">
                     <span>Subtotal:</span>
@@ -387,7 +491,7 @@ const OrderConfirmationPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    
   );
 };
 
