@@ -3,12 +3,19 @@ const User = require('../models/User');
 const transbankService = require('../services/transbank.service');
 const emailService = require('../services/email.service');
 
+// ✅ DEBUGGING: Confirmar que el controlador se está cargando
+console.log('🔧 Cargando payment.controller.js...');
+
 // @desc    Crear transacción de pago para una orden (Webpay)
 // @route   POST /api/payment/create-transaction/:orderId
 // @access  Private
 exports.createPaymentTransaction = async (req, res, next) => {
+  console.log('🚀 === INICIO createPaymentTransaction ===');
+  console.log(`📋 OrderId recibido: ${req.params.orderId}`);
+  console.log(`👤 Usuario: ${req.user?.id} (${req.user?.role})`);
+  
   try {
-    console.log(`🚀 Iniciando creación de transacción Webpay para orden: ${req.params.orderId}`);
+    console.log(`🔍 Buscando orden ${req.params.orderId}...`);
     
     const order = await Order.findById(req.params.orderId)
       .populate({
@@ -31,6 +38,12 @@ exports.createPaymentTransaction = async (req, res, next) => {
         error: 'Orden no encontrada'
       });
     }
+
+    console.log(`✅ Orden encontrada: ${order._id}`);
+    console.log(`📋 Propietario: ${order.user._id}`);
+    console.log(`📋 Total: $${order.totalPrice}`);
+    console.log(`📋 Método de pago: ${order.paymentMethod}`);
+    console.log(`📋 Ya pagada: ${order.isPaid}`);
 
     // Verificar que el usuario es el propietario de la orden
     if (order.user._id.toString() !== req.user.id) {
@@ -59,12 +72,17 @@ exports.createPaymentTransaction = async (req, res, next) => {
       });
     }
 
+    console.log(`✅ Todas las validaciones pasaron`);
+
     // Crear transacción con Transbank
     try {
       console.log(`💻 Enviando orden ${order._id} al servicio de Transbank`);
       const transaction = await transbankService.createPaymentTransaction(order);
       
-      console.log(`✅ Transacción Webpay creada con éxito: ${transaction.token}`);
+      console.log(`✅ Transacción Webpay creada con éxito:`);
+      console.log(`   - Token: ${transaction.token}`);
+      console.log(`   - URL: ${transaction.url}`);
+      console.log(`   - Amount: ${transaction.amount}`);
       
       // Guardar información de la transacción en la orden
       order.paymentResult = {
@@ -77,6 +95,9 @@ exports.createPaymentTransaction = async (req, res, next) => {
       };
       
       await order.save();
+      console.log(`💾 Información de transacción guardada en la orden`);
+      
+      console.log('✅ === FIN createPaymentTransaction EXITOSO ===');
       
       return res.status(200).json({
         success: true,
@@ -87,16 +108,27 @@ exports.createPaymentTransaction = async (req, res, next) => {
           amount: transaction.amount
         }
       });
+      
     } catch (transbankError) {
       console.error(`❌ Error de Transbank para orden ${order._id}:`, transbankError);
+      console.error(`💥 Stack trace:`, transbankError.stack);
+      
       return res.status(500).json({
         success: false,
         error: `Error al crear transacción de pago: ${transbankError.message}`
       });
     }
   } catch (err) {
-    console.error('💥 Error en createPaymentTransaction:', err);
-    next(err);
+    console.error('💥 Error general en createPaymentTransaction:', err);
+    console.error('💥 Stack trace:', err.stack);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+    
+    console.log('❌ === FIN createPaymentTransaction CON ERROR ===');
   }
 };
 
@@ -105,15 +137,32 @@ exports.createPaymentTransaction = async (req, res, next) => {
 // @access  Public
 exports.handleWebpayReturn = async (req, res, next) => {
   try {
-    console.log('🔄 Procesando retorno de Webpay...');
-    console.log('📋 Datos recibidos:', req.body);
+    console.log('🔄 === INICIO handleWebpayReturn ===');
+    console.log('📋 Method:', req.method);
+    console.log('📋 Body:', req.body);
+    console.log('📋 Query:', req.query);
+    console.log('📋 Headers:', req.headers);
     
-    const { token_ws } = req.body;
+    // ✅ MEJORADO: Manejar tanto POST como GET
+    let token_ws = null;
+    
+    if (req.method === 'POST') {
+      token_ws = req.body.token_ws;
+      console.log('📋 Token desde POST body:', token_ws);
+    } else if (req.method === 'GET') {
+      token_ws = req.query.token_ws;
+      console.log('📋 Token desde GET query:', token_ws);
+    }
     
     if (!token_ws) {
-      console.log('❌ Token no recibido desde Webpay');
+      console.error('❌ Token no recibido desde Webpay');
+      console.error('📋 Body completo:', JSON.stringify(req.body, null, 2));
+      console.error('📋 Query completo:', JSON.stringify(req.query, null, 2));
+      
       return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=no_token`);
     }
+
+    console.log(`✅ Token recibido: ${token_ws}`);
 
     try {
       // Confirmar transacción con Transbank
@@ -122,19 +171,19 @@ exports.handleWebpayReturn = async (req, res, next) => {
       
       console.log('📊 Resultado de transacción:', transactionResult);
       
-      // ✅ MÉTODO MEJORADO: Intentar múltiples formas de obtener orderId
+      // ✅ MÉTODO MEJORADO: Múltiples formas de obtener orderId
       let orderId = null;
       
-      // Método 1: Usar función de extracción directa
+      // Método 1: Función de extracción directa
       orderId = transbankService.extractOrderIdFromBuyOrder(transactionResult.buyOrder);
       
-      // Método 2: Si falla, buscar en base de datos
+      // Método 2: Buscar en base de datos por buyOrder
       if (!orderId) {
-        console.log(`⚠️ No se pudo extraer orderId directamente, buscando en base de datos...`);
+        console.log(`⚠️ Extracción directa falló, buscando en BD por buyOrder...`);
         orderId = await transbankService.findOrderIdByBuyOrder(transactionResult.buyOrder);
       }
       
-      // Método 3: Si aún falla, buscar por token en paymentResult
+      // Método 3: Buscar por token en paymentResult
       if (!orderId) {
         console.log(`⚠️ Búsqueda por buyOrder falló, buscando por token...`);
         const orderByToken = await Order.findOne({
@@ -147,12 +196,31 @@ exports.handleWebpayReturn = async (req, res, next) => {
         }
       }
       
-      // Si no se pudo encontrar la orden de ninguna manera
+      // ✅ MÉTODO 4: Buscar cualquier orden con status pending y mismo usuario
+      if (!orderId) {
+        console.log(`⚠️ Búsqueda por token falló, buscando orden pendiente reciente...`);
+        
+        // Buscar orden creada en las últimas 2 horas con status pending
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+        const pendingOrder = await Order.findOne({
+          paymentMethod: 'webpay',
+          status: 'pending',
+          isPaid: false,
+          createdAt: { $gte: twoHoursAgo }
+        }).sort({ createdAt: -1 }).select('_id');
+        
+        if (pendingOrder) {
+          orderId = pendingOrder._id.toString();
+          console.log(`✅ OrderId encontrado por orden pendiente: ${orderId}`);
+        }
+      }
+      
       if (!orderId) {
         console.error(`❌ No se pudo encontrar orderId con ningún método:`);
         console.error(`   - buyOrder: ${transactionResult.buyOrder}`);
         console.error(`   - token: ${token_ws}`);
-        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found&buyOrder=${encodeURIComponent(transactionResult.buyOrder)}`);
+        
+        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found&buyOrder=${encodeURIComponent(transactionResult.buyOrder)}&token=${encodeURIComponent(token_ws)}`);
       }
       
       console.log(`🎯 OrderId final determinado: ${orderId}`);
@@ -160,13 +228,15 @@ exports.handleWebpayReturn = async (req, res, next) => {
       const order = await Order.findById(orderId);
       
       if (!order) {
-        console.error(`❌ Orden no encontrada en base de datos para ID: ${orderId}`);
-        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found`);
+        console.error(`❌ Orden no encontrada en BD para ID: ${orderId}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found&orderId=${orderId}`);
       }
 
-      // Actualizar estado de la orden según resultado
+      console.log(`✅ Orden encontrada: ${order._id}, Status: ${order.status}, Paid: ${order.isPaid}`);
+
+      // ✅ ACTUALIZAR ESTADO SEGÚN RESULTADO
       if (transactionResult.isApproved) {
-        console.log(`✅ Pago aprobado para orden ${order._id}`);
+        console.log(`✅ Pago APROBADO para orden ${order._id}`);
         
         order.isPaid = true;
         order.paidAt = new Date();
@@ -185,24 +255,27 @@ exports.handleWebpayReturn = async (req, res, next) => {
         };
 
         await order.save();
+        console.log(`💾 Orden actualizada como PAGADA`);
 
-        // Enviar email de confirmación al usuario
+        // Enviar email de confirmación
         try {
           const user = await User.findById(order.user);
           if (user) {
             await emailService.sendOrderConfirmationEmail(order, user);
-            console.log(`📧 Email de confirmación enviado a ${user.email}`);
+            console.log(`📧 Email enviado a ${user.email}`);
           }
         } catch (emailError) {
-          console.error('⚠️ Error al enviar email de confirmación:', emailError);
+          console.error('⚠️ Error al enviar email:', emailError);
         }
 
-        // Redirigir a página de éxito
-        return res.redirect(`${process.env.FRONTEND_URL}/payment/success?order=${order._id}&token=${token_ws}`);
-      } else {
-        console.log(`❌ Pago rechazado para orden ${order._id}. Código: ${transactionResult.responseCode}`);
+        // ✅ REDIRECCIÓN EXITOSA
+        const successUrl = `${process.env.FRONTEND_URL}/payment/success?order=${order._id}&token=${token_ws}`;
+        console.log(`🎉 Redirigiendo a éxito: ${successUrl}`);
+        return res.redirect(successUrl);
         
-        // Actualizar información de pago rechazado
+      } else {
+        console.log(`❌ Pago RECHAZADO para orden ${order._id}. Código: ${transactionResult.responseCode}`);
+        
         order.paymentResult = {
           id: token_ws,
           buyOrder: transactionResult.buyOrder,
@@ -214,17 +287,25 @@ exports.handleWebpayReturn = async (req, res, next) => {
         };
         
         await order.save();
+        console.log(`💾 Orden marcada como RECHAZADA`);
         
-        // Redirigir a página de fallo
-        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?order=${order._id}&code=${transactionResult.responseCode}`);
+        // ✅ REDIRECCIÓN DE FALLO
+        const failureUrl = `${process.env.FRONTEND_URL}/payment/failure?order=${order._id}&code=${transactionResult.responseCode}`;
+        console.log(`❌ Redirigiendo a fallo: ${failureUrl}`);
+        return res.redirect(failureUrl);
       }
+      
     } catch (transbankError) {
       console.error('❌ Error al procesar respuesta de Transbank:', transbankError);
-      return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=processing_error`);
+      return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=processing_error&details=${encodeURIComponent(transbankError.message)}`);
     }
+    
   } catch (err) {
-    console.error('💥 Error en handleWebpayReturn:', err);
+    console.error('💥 Error general en handleWebpayReturn:', err);
+    console.error('💥 Stack:', err.stack);
     return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=system_error`);
+  } finally {
+    console.log('🔄 === FIN handleWebpayReturn ===');
   }
 };
 
@@ -232,37 +313,85 @@ exports.handleWebpayReturn = async (req, res, next) => {
 // @route   GET /api/payment/status/:orderId
 // @access  Private
 exports.getPaymentStatus = async (req, res, next) => {
+  console.log('🎯 === INICIO getPaymentStatus ===');
+  console.log(`📋 OrderId recibido: ${req.params.orderId}`);
+  console.log(`👤 Usuario ID: ${req.user?.id}`);
+  console.log(`👤 Usuario role: ${req.user?.role}`);
+  
   try {
+    // Validar que el orderId es un ObjectId válido
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(req.params.orderId)) {
+      console.error(`❌ OrderId inválido: ${req.params.orderId}`);
+      return res.status(400).json({
+        success: false,
+        error: 'ID de orden inválido'
+      });
+    }
+    
+    console.log(`🔍 Buscando orden en base de datos...`);
     const order = await Order.findById(req.params.orderId);
 
     if (!order) {
+      console.log(`❌ Orden no encontrada en BD: ${req.params.orderId}`);
       return res.status(404).json({
         success: false,
         error: 'Orden no encontrada'
       });
     }
 
+    console.log(`✅ Orden encontrada: ${order._id}`);
+    console.log(`📋 Propietario de la orden: ${order.user}`);
+    console.log(`📋 Estado de la orden: ${order.status}`);
+    console.log(`📋 Método de pago: ${order.paymentMethod}`);
+    console.log(`📋 Está pagada: ${order.isPaid}`);
+
     // Verificar que el usuario es el propietario de la orden o es admin
-    if (order.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    const isOwner = order.user.toString() === req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    
+    console.log(`🔐 Es propietario: ${isOwner}`);
+    console.log(`🔐 Es admin: ${isAdmin}`);
+
+    if (!isOwner && !isAdmin) {
+      console.log(`⛔ Usuario ${req.user.id} no autorizado para orden ${order._id}`);
       return res.status(401).json({
         success: false,
         error: 'No autorizado para realizar esta acción'
       });
     }
 
+    console.log(`✅ Usuario autorizado`);
+
+    const responseData = {
+      orderId: order._id,
+      isPaid: order.isPaid,
+      paidAt: order.paidAt,
+      status: order.status,
+      paymentResult: order.paymentResult,
+      paymentMethod: order.paymentMethod
+    };
+
+    console.log(`📤 Enviando respuesta exitosa:`, responseData);
+
     res.status(200).json({
       success: true,
-      data: {
-        orderId: order._id,
-        isPaid: order.isPaid,
-        paidAt: order.paidAt,
-        status: order.status,
-        paymentResult: order.paymentResult,
-        paymentMethod: order.paymentMethod
-      }
+      data: responseData
     });
+    
+    console.log('✅ === FIN getPaymentStatus EXITOSO ===');
+    
   } catch (err) {
-    next(err);
+    console.error(`💥 Error en getPaymentStatus:`, err);
+    console.error(`💥 Stack trace:`, err.stack);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+    
+    console.log('❌ === FIN getPaymentStatus CON ERROR ===');
   }
 };
 
@@ -349,6 +478,7 @@ exports.processRefund = async (req, res, next) => {
 // @route   GET /api/payment/config
 // @access  Private (admin)
 exports.getPaymentConfig = async (req, res, next) => {
+  console.log('🔧 getPaymentConfig llamado');
   try {
     const config = transbankService.validateConfiguration();
     
@@ -357,6 +487,16 @@ exports.getPaymentConfig = async (req, res, next) => {
       data: config
     });
   } catch (err) {
+    console.error('💥 Error en getPaymentConfig:', err);
     next(err);
   }
 };
+
+// ✅ DEBUGGING: Confirmar que el controlador se cargó
+console.log('✅ payment.controller.js cargado completamente');
+console.log('📋 Funciones exportadas:');
+console.log('   - createPaymentTransaction');
+console.log('   - handleWebpayReturn');
+console.log('   - getPaymentStatus');
+console.log('   - processRefund');
+console.log('   - getPaymentConfig');

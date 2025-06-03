@@ -8,101 +8,159 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 
-// Esta página maneja el retorno de Webpay después de un pago
 const PaymentReturnPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clearCart } = useCart();
   
-  const [status, setStatus] = useState('processing'); // 'success', 'failure', 'pending', 'processing'
+  const [status, setStatus] = useState('processing');
   const [orderId, setOrderId] = useState(null);
   const [error, setError] = useState('');
   const [paymentDetails, setPaymentDetails] = useState(null);
   
   useEffect(() => {
-    // Obtener parámetros de la URL
-    const queryParams = new URLSearchParams(location.search);
-    const orderIdParam = queryParams.get('order') || '';
-    const tokenParam = queryParams.get('token') || '';
-    const errorParam = queryParams.get('error') || '';
-    const codeParam = queryParams.get('code') || '';
-    
-    // Recuperar orderId del localStorage si está disponible
-    const storedOrderId = localStorage.getItem('currentOrderId');
-    const orderToUse = orderIdParam || storedOrderId;
-    
-    console.log('🔄 Procesando retorno de Webpay:', {
-      orderIdParam,
-      tokenParam,
-      errorParam,
-      codeParam,
-      storedOrderId
-    });
-    
-    if (orderToUse) {
-      setOrderId(orderToUse);
-      
-      // Validar el estado del pago con nuestro backend
-      const validatePayment = async () => {
-        try {
-          // Obtener el estado actual de la orden
-          const response = await axios.get(`/api/payment/status/${orderToUse}`);
-          const paymentData = response.data.data;
+    const validatePayment = async () => {
+      try {
+        const queryParams = new URLSearchParams(location.search);
+        const orderIdParam = queryParams.get('order') || '';
+        const tokenParam = queryParams.get('token') || '';
+        const errorParam = queryParams.get('error') || '';
+        const codeParam = queryParams.get('code') || '';
+        const buyOrderParam = queryParams.get('buyOrder') || '';
+        
+        const storedOrderId = localStorage.getItem('currentOrderId');
+        
+        console.log('🔄 Procesando retorno de Webpay:', {
+          orderIdParam,
+          tokenParam,
+          errorParam,
+          codeParam,
+          buyOrderParam,
+          storedOrderId,
+          fullURL: window.location.href
+        });
+        
+        // ✅ MANEJO MEJORADO DE ERRORES ESPECÍFICOS
+        if (errorParam) {
+          console.log(`⚠️ Error detectado en URL: ${errorParam}`);
+          setStatus('failure');
           
-          console.log('📊 Estado del pago:', paymentData);
-          setPaymentDetails(paymentData);
-          
-          // Determinar estado según la respuesta
-          if (paymentData.isPaid && paymentData.paymentResult?.status === 'approved') {
-            setStatus('success');
-            // Limpiar carrito después de un pago exitoso
-            clearCart();
-          } else if (paymentData.paymentResult?.status === 'rejected') {
-            setStatus('failure');
-            // Mostrar código de error si está disponible
-            if (paymentData.paymentResult.responseCode) {
-              setError(`Pago rechazado. Código: ${paymentData.paymentResult.responseCode}`);
-            }
-          } else if (paymentData.paymentResult?.status === 'pending') {
-            setStatus('pending');
-          } else if (errorParam) {
-            // Manejar errores específicos desde la URL
-            setStatus('failure');
-            switch (errorParam) {
-              case 'no_token':
-                setError('No se recibió el token de transacción desde Webpay');
-                break;
-              case 'order_not_found':
-                setError('No se pudo encontrar la orden asociada al pago');
-                break;
-              case 'processing_error':
-                setError('Error al procesar la respuesta de Webpay');
-                break;
-              case 'system_error':
-                setError('Error del sistema. Por favor contacte soporte');
-                break;
-              default:
-                setError('Error desconocido en el procesamiento del pago');
-            }
-          } else {
-            setStatus('processing');
+          switch (errorParam) {
+            case 'no_token':
+              setError(`No se recibió el token de transacción desde Webpay. 
+                ${buyOrderParam ? `BuyOrder: ${buyOrderParam}` : ''} 
+                ${tokenParam ? `Token recibido: ${tokenParam}` : 'No se recibió token'}`);
+              break;
+            case 'order_not_found':
+              setError(`No se pudo encontrar la orden asociada al pago. 
+                ${buyOrderParam ? `BuyOrder: ${buyOrderParam}` : ''} 
+                ${orderIdParam ? `OrderId: ${orderIdParam}` : ''}`);
+              break;
+            case 'processing_error':
+              setError('Error al procesar la respuesta de Webpay');
+              break;
+            case 'system_error':
+              setError('Error del sistema. Por favor contacte soporte');
+              break;
+            default:
+              setError(`Error desconocido: ${errorParam}`);
           }
           
-        } catch (err) {
-          console.error('❌ Error al validar el pago:', err);
-          setError('Hubo un problema al verificar el estado del pago.');
-          setStatus('failure');
-        } finally {
-          // Limpiar orden del localStorage
+          // ✅ Si tenemos orderIdParam del error, intentar usarlo
+          if (orderIdParam) {
+            setOrderId(orderIdParam);
+          } else if (storedOrderId) {
+            setOrderId(storedOrderId);
+          }
+          
           localStorage.removeItem('currentOrderId');
+          return;
         }
-      };
-      
-      validatePayment();
-    } else {
-      setError('No se pudo identificar la orden');
-      setStatus('failure');
-    }
+        
+        // ✅ DETERMINAR ORDERID CON PRIORIDAD
+        let finalOrderId = null;
+        
+        if (orderIdParam) {
+          finalOrderId = orderIdParam;
+          console.log(`✅ Usando orderId de URL: ${finalOrderId}`);
+        } else if (storedOrderId) {
+          finalOrderId = storedOrderId;
+          console.log(`✅ Usando orderId de localStorage: ${finalOrderId}`);
+        } else {
+          console.error('❌ No se pudo determinar orderId');
+          setError('No se pudo identificar la orden. Por favor verifica tu pedido en "Mis Órdenes".');
+          setStatus('failure');
+          return;
+        }
+        
+        setOrderId(finalOrderId);
+        
+        // ✅ CONSULTAR ESTADO DE LA ORDEN
+        console.log(`📡 Consultando estado de orden: ${finalOrderId}`);
+        
+        try {
+          const response = await axios.get(`/api/payment/status/${finalOrderId}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          const paymentData = response.data.data;
+          console.log('📊 Estado del pago obtenido:', paymentData);
+          
+          setPaymentDetails(paymentData);
+          
+          // ✅ DETERMINAR ESTADO FINAL
+          if (paymentData.isPaid && paymentData.paymentResult?.status === 'approved') {
+            console.log('✅ Pago confirmado como exitoso');
+            setStatus('success');
+            clearCart();
+          } else if (paymentData.paymentResult?.status === 'rejected') {
+            console.log('❌ Pago confirmado como rechazado');
+            setStatus('failure');
+            if (paymentData.paymentResult.responseCode) {
+              setError(`Pago rechazado por el banco. Código: ${paymentData.paymentResult.responseCode}`);
+            } else {
+              setError('El pago fue rechazado por el banco');
+            }
+          } else if (paymentData.paymentResult?.status === 'pending') {
+            console.log('⏳ Pago en estado pendiente');
+            setStatus('pending');
+          } else {
+            console.log('🔄 Estado de pago incierto');
+            
+            // Si tenemos código de error de la URL, usarlo
+            if (codeParam && codeParam !== '0') {
+              setStatus('failure');
+              setError(`Pago rechazado. Código de respuesta: ${codeParam}`);
+            } else {
+              setStatus('processing');
+            }
+          }
+          
+        } catch (apiError) {
+          console.error('❌ Error al consultar estado de pago:', apiError);
+          
+          if (apiError.response?.status === 404) {
+            setError(`La orden no fue encontrada en el sistema. OrderId: ${finalOrderId}`);
+          } else if (apiError.response?.status === 401) {
+            setError('No autorizado para consultar esta orden. Inicia sesión nuevamente.');
+          } else {
+            setError(`Error al verificar el estado del pago: ${apiError.message}`);
+          }
+          setStatus('failure');
+        }
+        
+      } catch (generalError) {
+        console.error('💥 Error general en validación de pago:', generalError);
+        setError('Error inesperado al procesar el pago');
+        setStatus('failure');
+      } finally {
+        localStorage.removeItem('currentOrderId');
+      }
+    };
+    
+    validatePayment();
   }, [location.search, clearCart]);
   
   const renderContent = () => {
@@ -150,9 +208,21 @@ const PaymentReturnPage = () => {
           <div className="text-center">
             <ExclamationCircleIcon className="h-16 w-16 text-red-500 mx-auto" />
             <h2 className="mt-3 text-2xl font-bold text-gray-900">Pago no procesado</h2>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 max-w-md mx-auto">
               {error || 'Hubo un problema con tu pago. Por favor, intenta nuevamente.'}
             </p>
+            
+            {/* Información de debugging para el usuario */}
+            {orderId && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-4 text-sm max-w-md mx-auto">
+                <p className="text-blue-700">
+                  <span className="font-medium">Número de orden:</span> {orderId}
+                </p>
+                <p className="text-blue-600 text-xs mt-2">
+                  Puedes consultar el estado de tu orden en "Mis Pedidos" usando este número.
+                </p>
+              </div>
+            )}
             
             {paymentDetails?.paymentResult?.responseCode && (
               <div className="mt-4 bg-red-50 rounded-lg p-4 text-sm max-w-md mx-auto">
@@ -180,6 +250,12 @@ const PaymentReturnPage = () => {
                   Ver detalles de la orden
                 </Link>
               )}
+              <Link
+                to="/orders"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+              >
+                Ver mis pedidos
+              </Link>
             </div>
           </div>
         );
@@ -197,15 +273,28 @@ const PaymentReturnPage = () => {
               <p className="text-yellow-700">
                 Este estado es temporal. El pago será confirmado o rechazado en los próximos minutos.
               </p>
+              {orderId && (
+                <p className="text-yellow-600 text-xs mt-2">
+                  Número de orden: {orderId}
+                </p>
+              )}
             </div>
             
-            <div className="mt-6">
-              <Link
-                to={`/order-confirmation/${orderId}`}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            <div className="mt-6 space-x-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50"
               >
-                Ver detalles de la orden
-              </Link>
+                Actualizar estado
+              </button>
+              {orderId && (
+                <Link
+                  to={`/order-confirmation/${orderId}`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Ver detalles de la orden
+                </Link>
+              )}
             </div>
           </div>
         );
@@ -221,11 +310,38 @@ const PaymentReturnPage = () => {
               <p className="text-blue-700">
                 No cierres esta ventana ni presiones el botón atrás del navegador.
               </p>
+              {orderId && (
+                <p className="text-blue-600 text-xs mt-2">
+                  Procesando orden: {orderId}
+                </p>
+              )}
+            </div>
+            
+            {/* Auto-refresh después de 10 segundos */}
+            <div className="mt-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="text-sm text-blue-600 hover:text-blue-500 underline"
+              >
+                Actualizar manualmente
+              </button>
             </div>
           </div>
         );
     }
   };
+  
+  // ✅ Auto-refresh para estado de procesamiento
+  useEffect(() => {
+    if (status === 'processing' && orderId) {
+      const timeout = setTimeout(() => {
+        console.log('🔄 Auto-refresh después de 15 segundos');
+        window.location.reload();
+      }, 15000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [status, orderId]);
   
   return (
     <div className="py-12 max-w-3xl mx-auto">
@@ -251,6 +367,21 @@ const PaymentReturnPage = () => {
               <span>•</span>
               <span>Transbank</span>
             </div>
+            
+            {/* Información de debugging en desarrollo */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-4 text-xs text-gray-400 text-center">
+                <details>
+                  <summary className="cursor-pointer">Debug Info (solo desarrollo)</summary>
+                  <div className="mt-2 text-left bg-gray-50 p-2 rounded text-xs">
+                    <p>URL actual: {window.location.href}</p>
+                    <p>OrderId: {orderId || 'No determinado'}</p>
+                    <p>Status: {status}</p>
+                    <p>Error: {error || 'Ninguno'}</p>
+                  </div>
+                </details>
+              </div>
+            )}
           </div>
         </div>
       </div>
