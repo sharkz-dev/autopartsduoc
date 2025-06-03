@@ -190,18 +190,7 @@ const ProductCard = ({ product }) => {
         {/* ✅ SECCIÓN DE PRECIOS ACTUALIZADA */}
         <div className="space-y-2">
           {/* Etiqueta del tipo de precio */}
-          {priceInfo.showWholesalePrice && (
-            <div className="flex items-center space-x-2">
-              <div className="bg-purple-100 text-purple-700 px-2 py-1 rounded-lg text-xs font-medium">
-                {priceInfo.priceLabel}
-              </div>
-              {isApprovedDistributor() && (
-                <div className="bg-green-100 text-green-700 px-2 py-1 rounded-lg text-xs font-medium">
-                  ✓ Aprobado
-                </div>
-              )}
-            </div>
-          )}
+
 
           {/* Precios */}
           <div className="space-y-1">
@@ -293,7 +282,6 @@ const ProductCard = ({ product }) => {
           <div className="pt-2 border-t border-gray-100">
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>Modo: {cartType}</span>
-              <span>Distribuidor Aprobado</span>
             </div>
           </div>
         )}

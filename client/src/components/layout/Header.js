@@ -339,7 +339,7 @@ const Header = () => {
                   </button>
                   
                   {isUserMenuOpen && user && (
-                    <div className="absolute right-0 mt-2 w-64 glass-card shadow-2xl border border-white/20 rounded-2xl overflow-hidden animate-scale-in">
+                    <div className="absolute right-0 mt-2 w-64 bg-white shadow-2xl border border-gray-200 rounded-2xl overflow-hidden animate-scale-in">
                       <div className={`p-4 ${
                         user.role === 'admin' ? 'bg-gradient-to-r from-blue-600 to-blue-700' :
                         user.role === 'distributor' ? 'bg-gradient-to-r from-purple-600 to-purple-700' :
@@ -440,7 +440,7 @@ const Header = () => {
         </div>
         {/* Menú móvil innovador */}
         {isMenuOpen && (
-          <div className="lg:hidden glass-card mt-2 mx-4 rounded-2xl shadow-2xl border border-white/20 animate-slide-in-up">
+          <div className="lg:hidden bg-white mt-2 mx-4 rounded-2xl shadow-2xl border border-gray-200 animate-slide-in-up">
             {/* Búsqueda móvil */}
             <div className="p-4 border-b border-gray-100">
               <form onSubmit={handleSearch} className="relative">

@@ -148,11 +148,6 @@ const CartPage = () => {
                                   <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-medium">
                                     💼 Precio Mayorista
                                   </span>
-                                  {canAccessWholesalePrices() && (
-                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                                      ✓ Aprobado
-                                    </span>
-                                  )}
                                 </div>
                               )}
                               
