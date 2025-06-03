@@ -427,7 +427,7 @@ const OrderConfirmationPage = () => {
                     <span>{formatCurrency(order.itemsPrice)}</span>
                   </div>
                   <div className="flex justify-between py-1">
-                    <span>Impuestos (19%):</span>
+                    <span>Impuestos ({order.taxRate || 19}%):</span>
                     <span>{formatCurrency(order.taxPrice)}</span>
                   </div>
                   <div className="flex justify-between py-1">
