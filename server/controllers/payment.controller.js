@@ -122,14 +122,20 @@ exports.handleWebpayReturn = async (req, res, next) => {
       
       console.log('📊 Resultado de transacción:', transactionResult);
       
-      // Buscar orden por buyOrder
-      const buyOrderParts = transactionResult.buyOrder.split('_');
-      const orderId = buyOrderParts[1]; // FORMAT: ORDER_{orderId}_{timestamp}
+      // ✅ CORREGIDO: Usar nueva función para extraer orderId
+      const orderId = transbankService.extractOrderIdFromBuyOrder(transactionResult.buyOrder);
+      
+      if (!orderId) {
+        console.error(`❌ No se pudo extraer orderId de buyOrder: ${transactionResult.buyOrder}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=invalid_buyorder`);
+      }
+      
+      console.log(`🔍 OrderId extraído: ${orderId}`);
       
       const order = await Order.findById(orderId);
       
       if (!order) {
-        console.error(`❌ Orden no encontrada para buyOrder: ${transactionResult.buyOrder}`);
+        console.error(`❌ Orden no encontrada para ID: ${orderId}`);
         return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found`);
       }
 

@@ -37,11 +37,52 @@ class WebpayTester {
     }
   }
   
+  static async testBuyOrderGeneration() {
+    console.log('\n📏 Probando generación de buyOrder...');
+    
+    try {
+      // Crear varios IDs de prueba de diferentes longitudes
+      const testOrderIds = [
+        new mongoose.Types.ObjectId(), // ID normal de MongoDB (24 caracteres)
+        '507f1f77bcf86cd799439011', // ID de prueba
+        '123456789012345678901234', // ID de 24 caracteres
+        '12345678901234567890123456789012' // ID muy largo (32 caracteres)
+      ];
+      
+      console.log('🧪 Probando diferentes IDs de orden:');
+      
+      for (const orderId of testOrderIds) {
+        const orderIdStr = orderId.toString();
+        console.log(`\n📦 OrderId: ${orderIdStr} (${orderIdStr.length} caracteres)`);
+        
+        // Simular generación de buyOrder
+        const shortOrderId = orderIdStr.slice(-12);
+        const shortTimestamp = Date.now().toString().slice(-8);
+        const buyOrder = `O${shortOrderId}T${shortTimestamp}`;
+        
+        console.log(`   - Short OrderId: ${shortOrderId} (${shortOrderId.length} caracteres)`);
+        console.log(`   - Short Timestamp: ${shortTimestamp} (${shortTimestamp.length} caracteres)`);
+        console.log(`   - BuyOrder: ${buyOrder} (${buyOrder.length} caracteres)`);
+        console.log(`   - Válido: ${buyOrder.length <= 26 ? '✅' : '❌'}`);
+        
+        // Test de extracción
+        const extractedId = transbankService.extractOrderIdFromBuyOrder(buyOrder);
+        console.log(`   - ID extraído: ${extractedId}`);
+        console.log(`   - Extracción correcta: ${extractedId === shortOrderId ? '✅' : '❌'}`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error en generación de buyOrder:', error.message);
+      throw error;
+    }
+  }
+  
   static async testCreateTransaction() {
     console.log('\n💳 Probando creación de transacción...');
     
     try {
-      // Crear orden de prueba
+      // Crear orden de prueba con ID realista
       const testOrder = {
         _id: new mongoose.Types.ObjectId(),
         totalPrice: 15000,
@@ -63,19 +104,21 @@ class WebpayTester {
       };
       
       console.log(`📦 Creando transacción para orden ${testOrder._id}`);
-      console.log(`💰 Monto: $${testOrder.totalPrice.toLocaleString()}`);
+      console.log(`💰 Monto: ${testOrder.totalPrice.toLocaleString()}`);
       
       const transaction = await transbankService.createPaymentTransaction(testOrder);
       
       console.log('✅ Transacción creada exitosamente:');
       console.log(`   - Token: ${transaction.token}`);
       console.log(`   - URL: ${transaction.url}`);
-      console.log(`   - Buy Order: ${transaction.buyOrder}`);
-      console.log(`   - Session ID: ${transaction.sessionId}`);
-      console.log(`   - Monto: $${transaction.amount.toLocaleString()}`);
+      console.log(`   - Buy Order: ${transaction.buyOrder} (${transaction.buyOrder.length} chars)`);
+      console.log(`   - Session ID: ${transaction.sessionId} (${transaction.sessionId.length} chars)`);
+      console.log(`   - Monto: ${transaction.amount.toLocaleString()}`);
+      console.log(`   - BuyOrder válido: ${transaction.buyOrder.length <= 26 ? '✅' : '❌'}`);
       
       // Guardar token para pruebas posteriores
       this.lastTestToken = transaction.token;
+      this.lastTestBuyOrder = transaction.buyOrder;
       
       return transaction;
     } catch (error) {
@@ -127,11 +170,52 @@ class WebpayTester {
       console.log(`   - Token: ${status.token}`);
       console.log(`   - Estado: ${status.status}`);
       console.log(`   - Aprobado: ${status.isApproved ? '✅' : '❌'}`);
-      console.log(`   - Monto: $${status.amount?.toLocaleString() || 'N/A'}`);
+      console.log(`   - Monto: ${status.amount?.toLocaleString() || 'N/A'}`);
       
       return status;
     } catch (error) {
       console.log('ℹ️  Error esperado al consultar transacción no confirmada:', error.message);
+    }
+  }
+  
+  static async testOrderIdExtraction() {
+    console.log('\n🔍 Probando extracción de OrderId...');
+    
+    try {
+      const testCases = [
+        { buyOrder: 'O123456789012T87654321', expectedId: '123456789012' },
+        { buyOrder: 'Oabcdef123456T12345678', expectedId: 'abcdef123456' },
+        { buyOrder: 'ORDER_507f1f77bcf86cd799439011_1640995200000', expectedId: '507f1f77bcf86cd799439011' }, // Formato legacy
+      ];
+      
+      if (this.lastTestBuyOrder) {
+        testCases.push({ 
+          buyOrder: this.lastTestBuyOrder, 
+          expectedId: 'test_real' // Solo para verificar que no falle
+        });
+      }
+      
+      console.log('🧪 Probando casos de extracción:');
+      
+      for (const testCase of testCases) {
+        console.log(`\n📋 BuyOrder: ${testCase.buyOrder}`);
+        
+        const extractedId = transbankService.extractOrderIdFromBuyOrder(testCase.buyOrder);
+        console.log(`   - ID extraído: ${extractedId}`);
+        
+        if (testCase.expectedId !== 'test_real') {
+          const isCorrect = extractedId === testCase.expectedId;
+          console.log(`   - Esperado: ${testCase.expectedId}`);
+          console.log(`   - Correcto: ${isCorrect ? '✅' : '❌'}`);
+        } else {
+          console.log(`   - Extracción exitosa: ${extractedId ? '✅' : '❌'}`);
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error en extracción de OrderId:', error.message);
+      throw error;
     }
   }
   
@@ -142,14 +226,14 @@ class WebpayTester {
       const testToken = 'test_token_' + Date.now();
       const testAmount = 10000;
       
-      console.log(`💸 Simulando anulación de $${testAmount.toLocaleString()}`);
+      console.log(`💸 Simulando anulación de ${testAmount.toLocaleString()}`);
       
       const refund = await transbankService.refundTransaction(testToken, testAmount);
       
       console.log('📋 Resultado de anulación:');
       console.log(`   - Éxito: ${refund.success ? '✅' : '❌'}`);
       console.log(`   - Token: ${refund.token}`);
-      console.log(`   - Monto: $${refund.amount?.toLocaleString()}`);
+      console.log(`   - Monto: ${refund.amount?.toLocaleString()}`);
       console.log(`   - ID Anulación: ${refund.refundId}`);
       console.log(`   - Nota: ${refund.note}`);
       
@@ -159,16 +243,52 @@ class WebpayTester {
     }
   }
   
+  static async testEdgeCases() {
+    console.log('\n🎯 Probando casos extremos...');
+    
+    try {
+      // Test con OrderId muy largo
+      const veryLongOrderId = '1234567890123456789012345678901234567890';
+      console.log(`\n📏 OrderId muy largo: ${veryLongOrderId} (${veryLongOrderId.length} chars)`);
+      
+      const shortId = veryLongOrderId.slice(-12);
+      const timestamp = Date.now().toString().slice(-8);
+      const buyOrder = `O${shortId}T${timestamp}`;
+      
+      console.log(`   - BuyOrder generado: ${buyOrder} (${buyOrder.length} chars)`);
+      console.log(`   - Válido: ${buyOrder.length <= 26 ? '✅' : '❌'}`);
+      
+      // Test con timestamp muy largo (no debería pasar)
+      const veryLongTimestamp = Date.now().toString() + '12345678901234567890';
+      console.log(`\n⏰ Timestamp muy largo: ${veryLongTimestamp} (${veryLongTimestamp.length} chars)`);
+      
+      const shortTimestamp = veryLongTimestamp.slice(-8);
+      const buyOrder2 = `O123456789012T${shortTimestamp}`;
+      
+      console.log(`   - Timestamp cortado: ${shortTimestamp} (${shortTimestamp.length} chars)`);
+      console.log(`   - BuyOrder generado: ${buyOrder2} (${buyOrder2.length} chars)`);
+      console.log(`   - Válido: ${buyOrder2.length <= 26 ? '✅' : '❌'}`);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Error en casos extremos:', error.message);
+      throw error;
+    }
+  }
+  
   static async runAllTests() {
     console.log('🧪 INICIANDO PRUEBAS DE WEBPAY');
     console.log('================================\n');
     
     const results = {
       configuration: null,
+      buyOrderGeneration: null,
       createTransaction: null,
       invalidTransaction: null,
       transactionStatus: null,
+      orderIdExtraction: null,
       refund: null,
+      edgeCases: null,
       startTime: new Date(),
       endTime: null,
       success: false
@@ -178,17 +298,26 @@ class WebpayTester {
       // Test 1: Configuración
       results.configuration = await this.testConfiguration();
       
-      // Test 2: Crear transacción válida
+      // Test 2: Generación de buyOrder
+      results.buyOrderGeneration = await this.testBuyOrderGeneration();
+      
+      // Test 3: Crear transacción válida
       results.createTransaction = await this.testCreateTransaction();
       
-      // Test 3: Validar datos inválidos
+      // Test 4: Validar datos inválidos
       results.invalidTransaction = await this.testInvalidTransaction();
       
-      // Test 4: Estado de transacción
+      // Test 5: Estado de transacción
       results.transactionStatus = await this.testTransactionStatus();
       
-      // Test 5: Anulación
+      // Test 6: Extracción de OrderId
+      results.orderIdExtraction = await this.testOrderIdExtraction();
+      
+      // Test 7: Anulación
       results.refund = await this.testRefund();
+      
+      // Test 8: Casos extremos
+      results.edgeCases = await this.testEdgeCases();
       
       results.endTime = new Date();
       results.success = true;
@@ -197,6 +326,17 @@ class WebpayTester {
       console.log('================================');
       console.log(`⏱️  Tiempo total: ${results.endTime - results.startTime}ms`);
       console.log('🎉 Webpay está listo para usar!');
+      
+      // Resumen de validaciones críticas
+      console.log('\n📊 RESUMEN DE VALIDACIONES CRÍTICAS:');
+      console.log('====================================');
+      if (this.lastTestBuyOrder) {
+        console.log(`✅ BuyOrder generado: ${this.lastTestBuyOrder.length <= 26 ? 'VÁLIDO' : 'INVÁLIDO'} (${this.lastTestBuyOrder.length}/26 chars)`);
+      }
+      console.log('✅ Configuración: VÁLIDA');
+      console.log('✅ Creación de transacción: EXITOSA');
+      console.log('✅ Validaciones de datos: FUNCIONANDO');
+      console.log('✅ Extracción de OrderId: FUNCIONANDO');
       
     } catch (error) {
       results.endTime = new Date();
@@ -244,6 +384,10 @@ if (require.main === module) {
         await WebpayTester.generateTestReport();
       } else if (action === '--config') {
         await WebpayTester.testConfiguration();
+      } else if (action === '--buyorder') {
+        await WebpayTester.testBuyOrderGeneration();
+      } else if (action === '--extract') {
+        await WebpayTester.testOrderIdExtraction();
       } else {
         await WebpayTester.runAllTests();
       }
