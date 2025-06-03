@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { useAuth } from './AuthContext'; // ✅ AGREGADO: Importar AuthContext
+import { useAuth } from './AuthContext';
 import { publicSystemConfigService } from '../services/systemConfig.service';
 import toast from 'react-hot-toast';
 
@@ -8,8 +8,8 @@ const CartContext = createContext();
 // Estados iniciales
 const initialState = {
   cartItems: [],
-  cartType: 'B2C', // Se actualizará automáticamente según el usuario
-  taxRate: 19, // Porcentaje de IVA por defecto
+  cartType: 'B2C',
+  taxRate: 19,
   isLoading: false
 };
 
@@ -120,9 +120,9 @@ const cartReducer = (state, action) => {
 // Proveedor del contexto
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
-  const { user, getCartType, canAccessWholesalePrices } = useAuth(); // ✅ AGREGADO: Usar AuthContext
+  const { user, getCartType, canAccessWholesalePrices } = useAuth();
 
-  // ✅ EFECTO PARA ACTUALIZAR AUTOMÁTICAMENTE EL TIPO DE CARRITO
+  // Efecto para actualizar automáticamente el tipo de carrito
   useEffect(() => {
     if (user) {
       const userCartType = getCartType();
@@ -133,7 +133,6 @@ export const CartProvider = ({ children }) => {
         payload: userCartType
       });
     } else {
-      // Si no hay usuario, usar B2C por defecto
       dispatch({
         type: CART_ACTIONS.SET_CART_TYPE,
         payload: 'B2C'
@@ -149,8 +148,6 @@ export const CartProvider = ({ children }) => {
         
         if (savedCart) {
           const cartData = JSON.parse(savedCart);
-          
-          // Determinar el tipo de carrito según el usuario
           const cartType = user ? getCartType() : 'B2C';
           
           dispatch({
@@ -166,8 +163,7 @@ export const CartProvider = ({ children }) => {
       }
     };
 
-    // Solo cargar del localStorage si ya tenemos información del usuario
-    if (user !== undefined) { // undefined significa que aún está cargando
+    if (user !== undefined) {
       loadCartFromStorage();
     }
   }, [user, getCartType]);
@@ -187,7 +183,6 @@ export const CartProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Error al cargar porcentaje de IVA:', error);
-        // Mantener valor por defecto si hay error
       } finally {
         dispatch({ type: CART_ACTIONS.SET_LOADING, payload: false });
       }
@@ -200,25 +195,34 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem('cart', JSON.stringify(state.cartItems));
-      // Ya no guardamos cartType en localStorage porque es automático
     } catch (error) {
       console.error('Error al guardar carrito en localStorage:', error);
     }
   }, [state.cartItems]);
 
-  // Función para actualizar el porcentaje de IVA (para uso interno cuando cambie la configuración)
-  const refreshTaxRate = async () => {
-    try {
-      const response = await publicSystemConfigService.getTaxRate();
-      if (response.data.success) {
-        dispatch({
-          type: CART_ACTIONS.SET_TAX_RATE,
-          payload: response.data.data.rate
-        });
-      }
-    } catch (error) {
-      console.error('Error al refrescar porcentaje de IVA:', error);
+  // ✅ FUNCIÓN CORREGIDA: Calcular precio final considerando descuentos
+  const calculateFinalPrice = (item) => {
+    const hasWholesaleAccess = canAccessWholesalePrices();
+    
+    // Determinar precio base según el tipo de usuario
+    let basePrice = item.price; // Precio minorista por defecto
+    
+    if (state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice) {
+      basePrice = item.wholesalePrice; // Usar precio mayorista
     }
+    
+    // Aplicar descuento si el producto está en oferta
+    if (item.onSale && item.discountPercentage > 0) {
+      // Si es mayorista con precio especial, aplicar descuento al precio mayorista
+      if (state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice) {
+        return Math.round(item.wholesalePrice * (1 - item.discountPercentage / 100));
+      } else {
+        // Para clientes normales, usar el precio de oferta calculado o calcular descuento
+        return item.salePrice || Math.round(item.price * (1 - item.discountPercentage / 100));
+      }
+    }
+    
+    return basePrice;
   };
 
   // Funciones del carrito
@@ -251,24 +255,30 @@ export const CartProvider = ({ children }) => {
     dispatch({ type: CART_ACTIONS.CLEAR_CART });
   };
 
-  // ✅ FUNCIÓN MODIFICADA: Ya no permite cambio manual
   const toggleCartType = () => {
-    // Mostrar mensaje informativo de que es automático
     const currentType = state.cartType === 'B2C' ? 'Cliente' : 'Mayorista';
     toast.info(`Modo ${currentType} - Automático según tu tipo de cuenta`);
   };
 
-  // Cálculos mejorados con IVA dinámico y precios según usuario
+  const refreshTaxRate = async () => {
+    try {
+      const response = await publicSystemConfigService.getTaxRate();
+      if (response.data.success) {
+        dispatch({
+          type: CART_ACTIONS.SET_TAX_RATE,
+          payload: response.data.data.rate
+        });
+      }
+    } catch (error) {
+      console.error('Error al refrescar porcentaje de IVA:', error);
+    }
+  };
+
+  // ✅ CÁLCULOS CORREGIDOS: Usar precio final con descuentos
   const getSubtotal = () => {
     return state.cartItems.reduce((total, item) => {
-      // ✅ LÓGICA ACTUALIZADA: Usar precio según el tipo de usuario y permisos
-      let price = item.price; // Precio por defecto (minorista)
-      
-      if (state.cartType === 'B2B' && canAccessWholesalePrices() && item.wholesalePrice) {
-        price = item.wholesalePrice;
-      }
-      
-      return total + (price * item.quantity);
+      const finalPrice = calculateFinalPrice(item);
+      return total + (finalPrice * item.quantity);
     }, 0);
   };
 
@@ -279,7 +289,6 @@ export const CartProvider = ({ children }) => {
 
   const getShippingAmount = () => {
     const subtotal = getSubtotal();
-    // Envío gratuito sobre $100,000 (esto también podría ser configurable)
     return subtotal >= 100000 ? 0 : 5000;
   };
 
@@ -287,27 +296,33 @@ export const CartProvider = ({ children }) => {
     return getSubtotal() + getTaxAmount() + getShippingAmount();
   };
 
-  // Función para calcular cantidad total de items en el carrito
   const getCartCount = () => {
     return state.cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // ✅ FUNCIÓN NUEVA: Obtener información de precios para mostrar en UI
+  // ✅ FUNCIÓN ACTUALIZADA: Información de precios completa
   const getPriceInfo = (item) => {
     const hasWholesaleAccess = canAccessWholesalePrices();
-    const showWholesalePrice = state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice;
+    const basePrice = state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice 
+      ? item.wholesalePrice 
+      : item.price;
+    
+    const finalPrice = calculateFinalPrice(item);
+    const isOnSale = item.onSale && item.discountPercentage > 0;
     
     return {
-      displayPrice: showWholesalePrice ? item.wholesalePrice : item.price,
+      basePrice,
+      finalPrice,
       originalPrice: item.price,
       wholesalePrice: item.wholesalePrice,
-      isUsingWholesalePrice: showWholesalePrice,
-      hasWholesaleAccess,
-      savings: showWholesalePrice ? (item.price - item.wholesalePrice) : 0
+      isUsingWholesalePrice: state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice,
+      isOnSale,
+      discountPercentage: item.discountPercentage,
+      savings: isOnSale ? (basePrice - finalPrice) : (hasWholesaleAccess && item.wholesalePrice ? item.price - item.wholesalePrice : 0),
+      hasWholesaleAccess
     };
   };
 
-  // Información adicional
   const getCartSummary = () => {
     const subtotal = getSubtotal();
     const taxAmount = getTaxAmount();
@@ -327,7 +342,7 @@ export const CartProvider = ({ children }) => {
       totalQuantity,
       cartType: state.cartType,
       canAccessWholesale: canAccessWholesalePrices(),
-      isAutomatic: true // ✅ INDICAR QUE EL TIPO ES AUTOMÁTICO
+      isAutomatic: true
     };
   };
 
@@ -346,7 +361,7 @@ export const CartProvider = ({ children }) => {
     removeFromCart,
     updateQuantity,
     clearCart,
-    toggleCartType, // ✅ MODIFICADA: Ya no cambia tipo, solo muestra mensaje
+    toggleCartType,
     refreshTaxRate,
     
     // Cálculos
@@ -356,9 +371,10 @@ export const CartProvider = ({ children }) => {
     getFinalTotal,
     getCartSummary,
     getCartCount,
-    getPriceInfo, // ✅ NUEVA: Para obtener información de precios
+    getPriceInfo,
+    calculateFinalPrice, // ✅ NUEVA: Exponer función de cálculo
     
-    // ✅ NUEVAS PROPIEDADES INFORMATIVAS
+    // Propiedades informativas
     isCartTypeAutomatic: true,
     canAccessWholesalePrices: canAccessWholesalePrices()
   };
@@ -370,7 +386,6 @@ export const CartProvider = ({ children }) => {
   );
 };
 
-// Hook personalizado para usar el contexto del carrito
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {

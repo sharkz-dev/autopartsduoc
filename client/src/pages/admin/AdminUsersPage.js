@@ -22,7 +22,7 @@ const AdminUsersPage = () => {
   // Estados para filtros y paginación
   const [filter, setFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState(''); // ✅ NUEVO: Filtro de estado para distribuidores
+  const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -31,9 +31,9 @@ const AdminUsersPage = () => {
   // Estados para modales
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false); // ✅ NUEVO: Modal para ver detalles
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null); // ✅ NUEVO: Para aprobar/rechazar distribuidores
+  const [confirmAction, setConfirmAction] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -61,36 +61,57 @@ const AdminUsersPage = () => {
     }
   };
   
-  // ✅ NUEVA FUNCIÓN: Aprobar distribuidor
+  // ✅ FUNCIÓN CORREGIDA: Aprobar distribuidor
   const handleApproveDistributor = async (userId) => {
     try {
-      await userService.updateUser(userId, {
+      console.log(`🟢 Aprobando distribuidor: ${userId}`);
+      
+      // ✅ CORRECCIÓN: Actualizar con la estructura correcta de distributorInfo
+      const updateData = {
         'distributorInfo.isApproved': true,
-        'distributorInfo.approvedAt': new Date(),
+        'distributorInfo.approvedAt': new Date().toISOString(),
         'distributorInfo.approvedBy': 'current_admin_id' // Esto debería venir del contexto de auth
-      });
+      };
+      
+      console.log('📝 Datos de actualización:', updateData);
+      
+      const response = await userService.updateUser(userId, updateData);
+      console.log('✅ Respuesta del servidor:', response.data);
+      
       toast.success('Distribuidor aprobado correctamente');
-      fetchUsers();
+      
+      // Actualizar la lista de usuarios
+      await fetchUsers();
     } catch (err) {
-      console.error('Error al aprobar distribuidor:', err);
+      console.error('❌ Error al aprobar distribuidor:', err);
+      console.error('Detalles del error:', err.response?.data);
       toast.error(err.response?.data?.error || 'Error al aprobar distribuidor');
     } finally {
       setConfirmAction(null);
     }
   };
   
-  // ✅ NUEVA FUNCIÓN: Rechazar distribuidor
+  // ✅ FUNCIÓN CORREGIDA: Rechazar distribuidor
   const handleRejectDistributor = async (userId) => {
     try {
-      await userService.updateUser(userId, {
+      console.log(`🔴 Rechazando distribuidor: ${userId}`);
+      
+      // ✅ CORRECCIÓN: Actualizar con la estructura correcta
+      const updateData = {
         'distributorInfo.isApproved': false,
         'distributorInfo.approvedAt': null,
         'distributorInfo.approvedBy': null
-      });
-      toast.success('Distribuidor rechazado');
-      fetchUsers();
+      };
+      
+      console.log('📝 Datos de actualización:', updateData);
+      
+      await userService.updateUser(userId, updateData);
+      toast.success('Aprobación de distribuidor revocada');
+      
+      // Actualizar la lista de usuarios
+      await fetchUsers();
     } catch (err) {
-      console.error('Error al rechazar distribuidor:', err);
+      console.error('❌ Error al rechazar distribuidor:', err);
       toast.error(err.response?.data?.error || 'Error al rechazar distribuidor');
     } finally {
       setConfirmAction(null);
@@ -123,7 +144,7 @@ const AdminUsersPage = () => {
     setIsEditModalOpen(true);
   };
 
-  // ✅ NUEVA FUNCIÓN: Abrir modal de detalles
+  // Abrir modal de detalles
   const openViewModal = (user) => {
     setSelectedUser(user);
     setIsViewModalOpen(true);
@@ -165,13 +186,13 @@ const AdminUsersPage = () => {
     setCurrentPage(1);
   };
 
-  // ✅ NUEVA FUNCIÓN: Manejar cambio de filtro de estado
+  // Manejar cambio de filtro de estado
   const handleStatusFilterChange = (e) => {
     setStatusFilter(e.target.value);
     setCurrentPage(1);
   };
   
-  // ✅ FUNCIÓN ACTUALIZADA: Filtrar usuarios con nuevos criterios
+  // ✅ FUNCIÓN CORREGIDA: Filtrar usuarios con verificación mejorada
   const filteredUsers = users.filter(user => {
     const nameMatch = user.name.toLowerCase().includes(filter.toLowerCase());
     const emailMatch = user.email.toLowerCase().includes(filter.toLowerCase());
@@ -180,13 +201,16 @@ const AdminUsersPage = () => {
     // Filtro de estado (para distribuidores)
     let statusMatch = true;
     if (statusFilter && user.role === 'distributor') {
+      // ✅ CORRECCIÓN: Verificar correctamente el estado de aprobación
+      const isApproved = user.distributorInfo?.isApproved === true;
+      
       if (statusFilter === 'approved') {
-        statusMatch = user.distributorInfo?.isApproved === true;
+        statusMatch = isApproved;
       } else if (statusFilter === 'pending') {
-        statusMatch = user.distributorInfo?.isApproved !== true;
+        statusMatch = !isApproved;
       }
     } else if (statusFilter && user.role !== 'distributor') {
-      statusMatch = false; // Si filtra por estado pero no es distribuidor, no mostrar
+      statusMatch = false;
     }
     
     return (nameMatch || emailMatch) && roleMatch && statusMatch;
@@ -206,18 +230,18 @@ const AdminUsersPage = () => {
     return new Date(dateString).toLocaleDateString('es-ES', options);
   };
   
-  // ✅ FUNCIÓN ACTUALIZADA: Traducir rol
+  // Traducir rol
   const getRoleTranslation = (role) => {
     const translations = {
       'admin': 'Administrador',
       'client': 'Cliente',
-      'distributor': 'Distribuidor' // ✅ AGREGADO
+      'distributor': 'Distribuidor'
     };
     
     return translations[role] || role;
   };
   
-  // ✅ FUNCIÓN ACTUALIZADA: Obtener color de insignia según rol
+  // Obtener color de insignia según rol
   const getRoleBadgeClass = (role) => {
     switch(role) {
       case 'admin':
@@ -231,21 +255,27 @@ const AdminUsersPage = () => {
     }
   };
 
-  // ✅ NUEVA FUNCIÓN: Obtener estado del distribuidor
+  // ✅ FUNCIÓN CORREGIDA: Obtener estado del distribuidor
   const getDistributorStatus = (user) => {
     if (user.role !== 'distributor') return null;
     
-    const isApproved = user.distributorInfo?.isApproved;
+    // ✅ CORRECCIÓN: Verificar correctamente el estado
+    const isApproved = user.distributorInfo?.isApproved === true;
+    
+    console.log(`🔍 Estado del distribuidor ${user.name}:`, {
+      distributorInfo: user.distributorInfo,
+      isApproved: isApproved
+    });
     
     return {
-      approved: isApproved === true,
-      pending: isApproved !== true,
+      approved: isApproved,
+      pending: !isApproved,
       text: isApproved ? 'Aprobado' : 'Pendiente',
       color: isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
     };
   };
 
-  // ✅ NUEVA FUNCIÓN: Obtener icono según el rol
+  // Obtener icono según el rol
   const getRoleIcon = (role) => {
     switch(role) {
       case 'admin':
@@ -279,7 +309,7 @@ const AdminUsersPage = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Administración de Usuarios</h1>
         
-        {/* ✅ NUEVO: Estadísticas rápidas */}
+        {/* Estadísticas rápidas */}
         <div className="flex space-x-4">
           <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm font-medium">
             Admins: {users.filter(u => u.role === 'admin').length}
@@ -293,7 +323,7 @@ const AdminUsersPage = () => {
         </div>
       </div>
 
-      {/* ✅ FILTROS ACTUALIZADOS */}
+      {/* Filtros */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
         <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
           <div className="flex-grow">
@@ -340,7 +370,7 @@ const AdminUsersPage = () => {
             </select>
           </div>
 
-          {/* ✅ NUEVO: Filtro de estado para distribuidores */}
+          {/* Filtro de estado para distribuidores */}
           <div className="sm:w-48">
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
               Estado Distribuidor
@@ -437,7 +467,7 @@ const AdminUsersPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          {/* ✅ NUEVO: Botón para ver detalles */}
+                          {/* Botón para ver detalles */}
                           <button
                             onClick={() => openViewModal(user)}
                             className="text-indigo-600 hover:text-indigo-900"
@@ -446,25 +476,27 @@ const AdminUsersPage = () => {
                             <EyeIcon className="h-5 w-5" />
                           </button>
                           
-                          {/* ✅ NUEVOS: Botones para aprobar/rechazar distribuidores */}
-                          {user.role === 'distributor' && !distributorStatus?.approved && (
-                            <button
-                              onClick={() => setConfirmAction({ type: 'approve', user })}
-                              className="text-green-600 hover:text-green-900"
-                              title="Aprobar distribuidor"
-                            >
-                              <CheckIcon className="h-5 w-5" />
-                            </button>
-                          )}
-                          
-                          {user.role === 'distributor' && distributorStatus?.approved && (
-                            <button
-                              onClick={() => setConfirmAction({ type: 'reject', user })}
-                              className="text-yellow-600 hover:text-yellow-900"
-                              title="Revocar aprobación"
-                            >
-                              <XIcon className="h-5 w-5" />
-                            </button>
+                          {/* ✅ BOTONES CORREGIDOS: Verificar estado correctamente */}
+                          {user.role === 'distributor' && (
+                            <>
+                              {!distributorStatus?.approved ? (
+                                <button
+                                  onClick={() => setConfirmAction({ type: 'approve', user })}
+                                  className="text-green-600 hover:text-green-900"
+                                  title="Aprobar distribuidor"
+                                >
+                                  <CheckIcon className="h-5 w-5" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmAction({ type: 'reject', user })}
+                                  className="text-yellow-600 hover:text-yellow-900"
+                                  title="Revocar aprobación"
+                                >
+                                  <XIcon className="h-5 w-5" />
+                                </button>
+                              )}
+                            </>
                           )}
                           
                           <button
@@ -479,7 +511,7 @@ const AdminUsersPage = () => {
                             onClick={() => setConfirmDelete(user._id)}
                             className="text-red-600 hover:text-red-900"
                             title="Eliminar"
-                            disabled={user.role === 'admin'} // No permitir eliminar administradores
+                            disabled={user.role === 'admin'}
                           >
                             <TrashIcon className={`h-5 w-5 ${user.role === 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`} />
                           </button>
@@ -492,7 +524,54 @@ const AdminUsersPage = () => {
             </table>
           </div>
 
-          {/* Paginación aquí... (mismo código anterior) */}
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Mostrando <span className="font-medium">{indexOfFirstUser + 1}</span> a{' '}
+                    <span className="font-medium">{Math.min(indexOfLastUser, filteredUsers.length)}</span> de{' '}
+                    <span className="font-medium">{filteredUsers.length}</span> resultados
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {/* Botones de paginación */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNumber => (
+                      <button
+                        key={pageNumber}
+                        onClick={() => paginate(pageNumber)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === pageNumber
+                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm p-8 text-center">
@@ -500,7 +579,7 @@ const AdminUsersPage = () => {
         </div>
       )}
 
-      {/* ✅ NUEVO: Modal para ver detalles del usuario */}
+      {/* Modal para ver detalles del usuario */}
       {isViewModalOpen && selectedUser && (
         <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -571,7 +650,7 @@ const AdminUsersPage = () => {
                     </div>
                   )}
 
-                  {/* ✅ INFORMACIÓN DE DISTRIBUIDOR */}
+                  {/* Información de distribuidor */}
                   {selectedUser.role === 'distributor' && selectedUser.distributorInfo && (
                     <div className="bg-purple-50 rounded-lg p-4">
                       <h4 className="text-md font-medium text-gray-900 mb-3 flex items-center">
@@ -667,7 +746,7 @@ const AdminUsersPage = () => {
         </div>
       )}
 
-      {/* ✅ NUEVO: Modal de confirmación para aprobar/rechazar distribuidor */}
+      {/* ✅ MODAL CORREGIDO: Confirmación para aprobar/rechazar distribuidor */}
       {confirmAction && (
         <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -695,6 +774,18 @@ const AdminUsersPage = () => {
                         : `¿Estás seguro de que deseas revocar la aprobación de ${confirmAction.user.name}? Perderá el acceso a precios mayoristas.`
                       }
                     </p>
+                    
+                    {/* ✅ INFORMACIÓN ADICIONAL: Mostrar datos del distribuidor */}
+                    {confirmAction.user.distributorInfo && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                        <p className="text-xs text-gray-600">
+                          <strong>Empresa:</strong> {confirmAction.user.distributorInfo.companyName}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          <strong>RUT:</strong> {confirmAction.user.distributorInfo.companyRUT}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -707,6 +798,7 @@ const AdminUsersPage = () => {
                       : 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
                   }`}
                   onClick={() => {
+                    console.log(`🎯 Ejecutando acción: ${confirmAction.type} para usuario: ${confirmAction.user._id}`);
                     if (confirmAction.type === 'approve') {
                       handleApproveDistributor(confirmAction.user._id);
                     } else {
@@ -729,17 +821,132 @@ const AdminUsersPage = () => {
         </div>
       )}
 
-      {/* Modal de edición de usuario (código existente, sin cambios...) */}
+      {/* Modal de edición de usuario */}
       {isEditModalOpen && selectedUser && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
-          {/* Contenido del modal de edición existente */}
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setIsEditModalOpen(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <form onSubmit={handleUpdateUser}>
+                <div className="mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">Editar Usuario</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre</label>
+                    <input
+                      type="text"
+                      name="name"
+                      id="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      id="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      id="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-gray-700">Rol</label>
+                    <select
+                      name="role"
+                      id="role"
+                      value={formData.role}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    >
+                      <option value="client">Cliente</option>
+                      <option value="distributor">Distribuidor</option>
+                      <option value="admin">Administrador</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:text-sm"
+                  >
+                    Actualizar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Modal de confirmación de eliminación (código existente, sin cambios...) */}
+      {/* Modal de confirmación de eliminación */}
       {confirmDelete && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
-          {/* Contenido del modal de eliminación existente */}
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setConfirmDelete(null)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                  <TrashIcon className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Eliminar Usuario
+                  </h3>
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500">
+                      ¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => handleDeleteUser(confirmDelete)}
+                >
+                  Eliminar
+                </button>
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                  onClick={() => setConfirmDelete(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

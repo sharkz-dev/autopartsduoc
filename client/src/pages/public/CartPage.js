@@ -6,7 +6,8 @@ import {
   TrashIcon, 
   ShoppingBagIcon,
   ArrowRightIcon,
-  ExclamationCircleIcon
+  ExclamationCircleIcon,
+  TagIcon
 } from '@heroicons/react/24/outline';
 import { getProductImageUrl, handleImageError } from '../../utils/imageHelpers';
 
@@ -17,14 +18,16 @@ const CartPage = () => {
     updateQuantity, 
     clearCart, 
     cartType,
-    taxRate, // ✅ AGREGADO: taxRate dinámico
+    taxRate,
     getSubtotal,
     getTaxAmount,
     getShippingAmount,
-    getFinalTotal
+    getFinalTotal,
+    calculateFinalPrice,
+    getPriceInfo
   } = useCart();
   
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, canAccessWholesalePrices } = useAuth();
   const navigate = useNavigate();
   
   const [couponCode, setCouponCode] = useState('');
@@ -108,10 +111,9 @@ const CartPage = () => {
             <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
               <ul className="divide-y divide-gray-200">
                 {cartItems.map((item) => {
-                  // Determinar el precio según el tipo de carrito (B2B o B2C)
-                  const price = cartType === 'B2B' && item.wholesalePrice 
-                    ? item.wholesalePrice 
-                    : item.price;
+                  // ✅ USAR LÓGICA CORREGIDA: Obtener información completa de precios
+                  const priceInfo = getPriceInfo(item);
+                  const finalPrice = calculateFinalPrice(item);
                   
                   return (
                     <li key={item._id} className="p-4 sm:p-6 flex flex-col sm:flex-row">
@@ -128,7 +130,7 @@ const CartPage = () => {
                       {/* Información del producto */}
                       <div className="flex-1 sm:ml-6 flex flex-col">
                         <div className="flex justify-between">
-                          <div>
+                          <div className="flex-1">
                             <h3 className="text-base font-medium text-gray-900">
                               <Link to={`/product/${item._id}`} className="hover:text-blue-600">
                                 {item.name}
@@ -137,16 +139,75 @@ const CartPage = () => {
                             <p className="mt-1 text-sm text-gray-500">
                               Marca: {item.brand}
                             </p>
-                            <p className="mt-1 text-sm text-gray-500">
-                              {cartType === 'B2B' && item.wholesalePrice 
-                                ? 'Precio mayorista' 
-                                : 'Precio unitario'}: {formatCurrency(price)}
-                            </p>
+                            
+                            {/* ✅ INFORMACIÓN DE PRECIOS CORREGIDA */}
+                            <div className="mt-2 space-y-1">
+                              {/* Mostrar tipo de precio */}
+                              {priceInfo.isUsingWholesalePrice && (
+                                <div className="flex items-center space-x-2">
+                                  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-medium">
+                                    💼 Precio Mayorista
+                                  </span>
+                                  {canAccessWholesalePrices() && (
+                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
+                                      ✓ Aprobado
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Mostrar precios */}
+                              {priceInfo.isOnSale ? (
+                                // Producto en oferta
+                                <div className="space-y-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-lg font-bold text-red-600">
+                                      {formatCurrency(finalPrice)}
+                                    </span>
+                                    <span className="text-sm text-gray-500 line-through">
+                                      {formatCurrency(priceInfo.basePrice)}
+                                    </span>
+                                    <TagIcon className="h-4 w-4 text-red-500" />
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">
+                                      -{priceInfo.discountPercentage}% OFF
+                                    </span>
+                                    <span className="text-green-600 text-xs font-medium">
+                                      Ahorras {formatCurrency(priceInfo.savings)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                // Producto sin oferta
+                                <div className="space-y-1">
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {formatCurrency(finalPrice)}
+                                  </span>
+                                  
+                                  {/* Mostrar precio minorista como referencia para distribuidores */}
+                                  {priceInfo.isUsingWholesalePrice && priceInfo.originalPrice && (
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-gray-500">
+                                        Precio minorista: {formatCurrency(priceInfo.originalPrice)}
+                                      </div>
+                                      <div className="text-green-600 text-xs font-medium">
+                                        Ahorras {formatCurrency(priceInfo.savings)} ({Math.round((priceInfo.savings / priceInfo.originalPrice) * 100)}%)
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              <p className="text-xs text-gray-500">
+                                Precio unitario • Total: {formatCurrency(finalPrice * item.quantity)}
+                              </p>
+                            </div>
                           </div>
                           
-                          <div className="flex items-start">
-                            <p className="text-base font-medium text-gray-900">
-                              {formatCurrency(price * item.quantity)}
+                          <div className="ml-4 flex items-start">
+                            <p className="text-lg font-bold text-gray-900">
+                              {formatCurrency(finalPrice * item.quantity)}
                             </p>
                           </div>
                         </div>
@@ -308,13 +369,30 @@ const CartPage = () => {
                 
                 {/* Información del tipo de carrito */}
                 <div className="bg-gray-50 p-4 rounded-md mt-4">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Modo de compra: </span>
-                    {cartType === 'B2B' ? 'Mayorista (B2B)' : 'Cliente final (B2C)'}
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Modo de compra: </span>
+                      {cartType === 'B2B' ? 'Mayorista (B2B)' : 'Cliente final (B2C)'}
+                    </p>
+                    {cartType === 'B2B' && (
+                      <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-medium">
+                        💼 B2B
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    El modo se asigna automáticamente según tu tipo de cuenta.
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Puedes cambiar el modo de compra en la parte superior derecha.
-                  </p>
+                  
+                  {/* ✅ INFORMACIÓN ADICIONAL PARA DISTRIBUIDORES */}
+                  {cartType === 'B2B' && canAccessWholesalePrices() && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="flex items-center space-x-1 text-xs text-green-600">
+                        <span>✓</span>
+                        <span>Distribuidor aprobado - Precios mayoristas aplicados</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
