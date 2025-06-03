@@ -36,28 +36,37 @@ const tx = new WebpayPlus.Transaction({
 console.log(`🏪 Transbank configurado en modo: ${process.env.TRANSBANK_ENVIRONMENT || 'integration'}`);
 
 /**
- * Genera un buyOrder válido para Transbank (máximo 26 caracteres)
+ * ✅ FUNCIÓN CORREGIDA: Genera un buyOrder válido para Transbank
+ * Ahora usa un formato más simple y confiable
  * @param {string} orderId - ID de la orden
  * @returns {string} - buyOrder válido
  */
 const generateBuyOrder = (orderId) => {
-  // Tomar solo los últimos 12 caracteres del orderId (suficiente para MongoDB ObjectId)
-  const shortOrderId = orderId.toString().slice(-12);
+  // Convertir orderId a string y limpiar
+  const cleanOrderId = orderId.toString().trim();
   
-  // Generar timestamp corto (últimos 8 dígitos del timestamp)
-  const shortTimestamp = Date.now().toString().slice(-8);
-  
-  // Formato: O + shortOrderId + T + shortTimestamp = máximo 23 caracteres
-  const buyOrder = `O${shortOrderId}T${shortTimestamp}`;
-  
-  // Verificar que no exceda 26 caracteres
-  if (buyOrder.length > 26) {
-    console.warn(`⚠️ buyOrder muy largo (${buyOrder.length}): ${buyOrder}`);
-    // Si aún es muy largo, usar solo timestamp
-    return `ORDER${Date.now().toString().slice(-18)}`;
+  // Para MongoDB ObjectIds (24 chars), usar directamente
+  // Para otros IDs, truncar si es necesario
+  let shortOrderId = cleanOrderId;
+  if (cleanOrderId.length > 20) {
+    // Tomar los últimos 20 caracteres para mantener unicidad
+    shortOrderId = cleanOrderId.slice(-20);
   }
   
-  console.log(`📋 buyOrder generado: ${buyOrder} (${buyOrder.length} caracteres)`);
+  // Formato simple: {orderId} + timestamp corto
+  const timestamp = Date.now().toString().slice(-6); // Últimos 6 dígitos
+  const buyOrder = `${shortOrderId}_${timestamp}`;
+  
+  // Verificar longitud máxima (26 caracteres para Transbank)
+  if (buyOrder.length > 26) {
+    // Si aún es muy largo, usar hash más corto
+    const hash = require('crypto').createHash('md5').update(cleanOrderId).digest('hex').slice(0, 16);
+    const finalBuyOrder = `${hash}_${timestamp}`;
+    console.log(`📋 buyOrder generado (hash): ${finalBuyOrder} (${finalBuyOrder.length} chars)`);
+    return finalBuyOrder;
+  }
+  
+  console.log(`📋 buyOrder generado: ${buyOrder} (${buyOrder.length} chars) para orden: ${cleanOrderId}`);
   return buyOrder;
 };
 
@@ -94,13 +103,14 @@ exports.createPaymentTransaction = async (orderData) => {
       throw new Error('Datos de orden incompletos para crear transacción');
     }
 
-    // ✅ CORREGIDO: Generar buyOrder con longitud válida
+    // ✅ CORREGIDO: Generar buyOrder con el nuevo formato
     const buyOrder = generateBuyOrder(orderData._id);
     const sessionId = generateSessionId(orderData.user._id);
     const amount = Math.round(orderData.totalPrice); // Transbank requiere enteros
     const returnUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/api/payment/webpay/return`;
 
     console.log('📊 Datos de transacción Webpay:', {
+      orderId: orderData._id,
       buyOrder,
       sessionId,
       amount,
@@ -117,6 +127,14 @@ exports.createPaymentTransaction = async (orderData) => {
     if (sessionId.length > 61) {
       throw new Error(`sessionId muy largo: ${sessionId.length} caracteres (máximo 61)`);
     }
+
+    // ✅ IMPORTANTE: Guardar la relación buyOrder -> orderId en memoria temporalmente
+    // En producción, esto debería guardarse en Redis o base de datos
+    if (!global.buyOrderMap) {
+      global.buyOrderMap = new Map();
+    }
+    global.buyOrderMap.set(buyOrder, orderData._id.toString());
+    console.log(`🗺️ Guardando mapeo: ${buyOrder} -> ${orderData._id}`);
 
     // Crear transacción en Transbank
     const response = await tx.create(buyOrder, sessionId, amount, returnUrl);
@@ -285,27 +303,96 @@ exports.validateConfiguration = () => {
 };
 
 /**
- * Función de utilidad para extraer orderId de buyOrder
+ * ✅ FUNCIÓN COMPLETAMENTE REESCRITA: Extraer orderId de buyOrder
+ * Ahora maneja múltiples formatos y usa el mapa de buyOrder
  * @param {string} buyOrder - buyOrder generado
  * @returns {string} - orderId extraído
  */
 exports.extractOrderIdFromBuyOrder = (buyOrder) => {
   try {
-    // Formato: O{orderId}T{timestamp}
-    if (buyOrder.startsWith('O') && buyOrder.includes('T')) {
-      const parts = buyOrder.split('T');
-      return parts[0].substring(1); // Remover la 'O' inicial
+    console.log(`🔍 Extrayendo orderId de buyOrder: "${buyOrder}"`);
+    
+    // Método 1: Usar el mapa global (más confiable)
+    if (global.buyOrderMap && global.buyOrderMap.has(buyOrder)) {
+      const orderId = global.buyOrderMap.get(buyOrder);
+      console.log(`✅ OrderId encontrado en mapa: ${orderId}`);
+      
+      // Limpiar el mapa después de usar (opcional, para liberar memoria)
+      global.buyOrderMap.delete(buyOrder);
+      
+      return orderId;
     }
     
-    // Formato legacy: ORDER_{orderId}_{timestamp}
+    // Método 2: Parsing del formato {orderId}_{timestamp}
     if (buyOrder.includes('_')) {
       const parts = buyOrder.split('_');
-      return parts[1];
+      if (parts.length >= 2) {
+        const extractedOrderId = parts.slice(0, -1).join('_'); // Todo excepto el último elemento (timestamp)
+        console.log(`✅ OrderId extraído por parsing: ${extractedOrderId}`);
+        return extractedOrderId;
+      }
     }
     
+    // Método 3: Formato legacy O{orderId}T{timestamp}
+    if (buyOrder.startsWith('O') && buyOrder.includes('T')) {
+      const match = buyOrder.match(/^O(.+)T\d+$/);
+      if (match && match[1]) {
+        const extractedOrderId = match[1];
+        console.log(`✅ OrderId extraído (formato legacy): ${extractedOrderId}`);
+        return extractedOrderId;
+      }
+    }
+    
+    // Método 4: Si es un hash MD5 (16 chars) + timestamp, buscar en base de datos
+    if (buyOrder.length <= 26 && buyOrder.includes('_')) {
+      const parts = buyOrder.split('_');
+      const possibleHash = parts[0];
+      
+      if (possibleHash.length === 16) {
+        console.log(`⚠️ BuyOrder parece ser un hash: ${possibleHash}`);
+        console.log(`⚠️ Se requiere búsqueda en base de datos por hash`);
+        // Aquí podrías implementar una búsqueda en la base de datos
+        // por el momento, retornamos null para que el código de arriba maneje el error
+      }
+    }
+    
+    console.error(`❌ No se pudo extraer orderId de buyOrder: "${buyOrder}"`);
     return null;
+    
   } catch (error) {
-    console.error('Error extrayendo orderId de buyOrder:', error);
+    console.error('❌ Error extrayendo orderId de buyOrder:', error);
+    return null;
+  }
+};
+
+/**
+ * ✅ NUEVA FUNCIÓN: Buscar orderId por buyOrder en la base de datos
+ * Para casos donde el mapa en memoria no esté disponible
+ * @param {string} buyOrder - buyOrder a buscar
+ * @returns {Promise<string|null>} - orderId encontrado o null
+ */
+exports.findOrderIdByBuyOrder = async (buyOrder) => {
+  try {
+    // Importar modelo de Order
+    const Order = require('../models/Order');
+    
+    console.log(`🔍 Buscando orderId en base de datos para buyOrder: ${buyOrder}`);
+    
+    // Buscar orden que tenga este buyOrder en su paymentResult
+    const order = await Order.findOne({
+      'paymentResult.buyOrder': buyOrder
+    }).select('_id');
+    
+    if (order) {
+      console.log(`✅ OrderId encontrado en base de datos: ${order._id}`);
+      return order._id.toString();
+    }
+    
+    console.log(`❌ No se encontró orden con buyOrder: ${buyOrder}`);
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error buscando orderId en base de datos:', error);
     return null;
   }
 };

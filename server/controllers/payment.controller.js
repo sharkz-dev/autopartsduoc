@@ -122,20 +122,45 @@ exports.handleWebpayReturn = async (req, res, next) => {
       
       console.log('📊 Resultado de transacción:', transactionResult);
       
-      // ✅ CORREGIDO: Usar nueva función para extraer orderId
-      const orderId = transbankService.extractOrderIdFromBuyOrder(transactionResult.buyOrder);
+      // ✅ MÉTODO MEJORADO: Intentar múltiples formas de obtener orderId
+      let orderId = null;
       
+      // Método 1: Usar función de extracción directa
+      orderId = transbankService.extractOrderIdFromBuyOrder(transactionResult.buyOrder);
+      
+      // Método 2: Si falla, buscar en base de datos
       if (!orderId) {
-        console.error(`❌ No se pudo extraer orderId de buyOrder: ${transactionResult.buyOrder}`);
-        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=invalid_buyorder`);
+        console.log(`⚠️ No se pudo extraer orderId directamente, buscando en base de datos...`);
+        orderId = await transbankService.findOrderIdByBuyOrder(transactionResult.buyOrder);
       }
       
-      console.log(`🔍 OrderId extraído: ${orderId}`);
+      // Método 3: Si aún falla, buscar por token en paymentResult
+      if (!orderId) {
+        console.log(`⚠️ Búsqueda por buyOrder falló, buscando por token...`);
+        const orderByToken = await Order.findOne({
+          'paymentResult.id': token_ws
+        }).select('_id');
+        
+        if (orderByToken) {
+          orderId = orderByToken._id.toString();
+          console.log(`✅ OrderId encontrado por token: ${orderId}`);
+        }
+      }
+      
+      // Si no se pudo encontrar la orden de ninguna manera
+      if (!orderId) {
+        console.error(`❌ No se pudo encontrar orderId con ningún método:`);
+        console.error(`   - buyOrder: ${transactionResult.buyOrder}`);
+        console.error(`   - token: ${token_ws}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found&buyOrder=${encodeURIComponent(transactionResult.buyOrder)}`);
+      }
+      
+      console.log(`🎯 OrderId final determinado: ${orderId}`);
       
       const order = await Order.findById(orderId);
       
       if (!order) {
-        console.error(`❌ Orden no encontrada para ID: ${orderId}`);
+        console.error(`❌ Orden no encontrada en base de datos para ID: ${orderId}`);
         return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found`);
       }
 
@@ -155,7 +180,8 @@ exports.handleWebpayReturn = async (req, res, next) => {
           paymentMethod: 'webpay',
           amount: transactionResult.amount,
           cardDetail: transactionResult.cardDetail,
-          installments: transactionResult.installmentsNumber
+          installments: transactionResult.installmentsNumber,
+          responseCode: transactionResult.responseCode
         };
 
         await order.save();
@@ -183,7 +209,8 @@ exports.handleWebpayReturn = async (req, res, next) => {
           status: 'rejected',
           responseCode: transactionResult.responseCode,
           updateTime: new Date(),
-          paymentMethod: 'webpay'
+          paymentMethod: 'webpay',
+          amount: transactionResult.amount
         };
         
         await order.save();
