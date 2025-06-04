@@ -200,28 +200,42 @@ export const CartProvider = ({ children }) => {
     }
   }, [state.cartItems]);
 
-  // ✅ FUNCIÓN CORREGIDA: Calcular precio final considerando descuentos
+  // ✅ FUNCIÓN CORREGIDA: Calcular precio final considerando descuentos y tipo de usuario
   const calculateFinalPrice = (item) => {
     const hasWholesaleAccess = canAccessWholesalePrices();
+    
+    console.log('💰 Calculando precio final para:', item.name);
+    console.log('   - Precio base:', item.price);
+    console.log('   - Precio mayorista:', item.wholesalePrice);
+    console.log('   - En oferta:', item.onSale);
+    console.log('   - Descuento:', item.discountPercentage);
+    console.log('   - Tipo de carrito:', state.cartType);
+    console.log('   - Acceso mayorista:', hasWholesaleAccess);
     
     // Determinar precio base según el tipo de usuario
     let basePrice = item.price; // Precio minorista por defecto
     
     if (state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice) {
       basePrice = item.wholesalePrice; // Usar precio mayorista
+      console.log('   - Usando precio mayorista como base:', basePrice);
+    } else {
+      console.log('   - Usando precio minorista como base:', basePrice);
     }
     
-    // Aplicar descuento si el producto está en oferta
+    // ✅ CORREGIDO: Aplicar descuento si el producto está en oferta
     if (item.onSale && item.discountPercentage > 0) {
-      // Si es mayorista con precio especial, aplicar descuento al precio mayorista
-      if (state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice) {
-        return Math.round(item.wholesalePrice * (1 - item.discountPercentage / 100));
-      } else {
-        // Para clientes normales, usar el precio de oferta calculado o calcular descuento
-        return item.salePrice || Math.round(item.price * (1 - item.discountPercentage / 100));
-      }
+      console.log('   - Aplicando descuento del', item.discountPercentage + '%');
+      
+      // ✅ CRUCIAL: Aplicar descuento al precio base correcto (mayorista o minorista)
+      const discountedPrice = Math.round(basePrice * (1 - item.discountPercentage / 100));
+      
+      console.log('   - Precio con descuento:', discountedPrice);
+      console.log('   - Ahorro:', basePrice - discountedPrice);
+      
+      return discountedPrice;
     }
     
+    console.log('   - Precio final (sin descuento):', basePrice);
     return basePrice;
   };
 
@@ -276,49 +290,97 @@ export const CartProvider = ({ children }) => {
 
   // ✅ CÁLCULOS CORREGIDOS: Usar precio final con descuentos
   const getSubtotal = () => {
-    return state.cartItems.reduce((total, item) => {
+    const subtotal = state.cartItems.reduce((total, item) => {
       const finalPrice = calculateFinalPrice(item);
-      return total + (finalPrice * item.quantity);
+      const itemTotal = finalPrice * item.quantity;
+      console.log(`💰 Item: ${item.name} - Precio: ${finalPrice} x ${item.quantity} = ${itemTotal}`);
+      return total + itemTotal;
     }, 0);
+    
+    console.log('💰 Subtotal total:', subtotal);
+    return subtotal;
   };
 
   const getTaxAmount = () => {
     const subtotal = getSubtotal();
-    return Math.round(subtotal * (state.taxRate / 100));
+    const taxAmount = Math.round(subtotal * (state.taxRate / 100));
+    console.log(`💰 IVA ${state.taxRate}%: ${subtotal} * ${state.taxRate/100} = ${taxAmount}`);
+    return taxAmount;
   };
 
   const getShippingAmount = () => {
     const subtotal = getSubtotal();
-    return subtotal >= 100000 ? 0 : 5000;
+    const shippingAmount = subtotal >= 100000 ? 0 : 5000;
+    console.log(`💰 Envío: Subtotal ${subtotal} >= 100000 ? 0 : 5000 = ${shippingAmount}`);
+    return shippingAmount;
   };
 
   const getFinalTotal = () => {
-    return getSubtotal() + getTaxAmount() + getShippingAmount();
+    const subtotal = getSubtotal();
+    const tax = getTaxAmount();
+    const shipping = getShippingAmount();
+    const total = subtotal + tax + shipping;
+    
+    console.log('💰 Cálculo final:', {
+      subtotal,
+      tax,
+      shipping,
+      total
+    });
+    
+    return total;
   };
 
   const getCartCount = () => {
     return state.cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // ✅ FUNCIÓN ACTUALIZADA: Información de precios completa
+  // ✅ FUNCIÓN CORREGIDA: Información de precios completa
   const getPriceInfo = (item) => {
     const hasWholesaleAccess = canAccessWholesalePrices();
-    const basePrice = state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice 
-      ? item.wholesalePrice 
-      : item.price;
+    const isUsingWholesalePrice = state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice;
     
+    // Precio base según el tipo de usuario
+    const basePrice = isUsingWholesalePrice ? item.wholesalePrice : item.price;
+    
+    // Precio final con descuentos aplicados
     const finalPrice = calculateFinalPrice(item);
+    
+    // Verificar si está en oferta
     const isOnSale = item.onSale && item.discountPercentage > 0;
+    
+    // Calcular ahorros
+    let savings = 0;
+    
+    if (isOnSale) {
+      // Ahorro por descuento
+      savings = basePrice - finalPrice;
+    } else if (isUsingWholesalePrice) {
+      // Ahorro por precio mayorista vs minorista
+      savings = item.price - item.wholesalePrice;
+    }
+    
+    console.log('📊 Info de precios para', item.name + ':', {
+      basePrice,
+      finalPrice,
+      originalPrice: item.price,
+      wholesalePrice: item.wholesalePrice,
+      isUsingWholesalePrice,
+      isOnSale,
+      discountPercentage: item.discountPercentage,
+      savings,
+      hasWholesaleAccess
+    });
     
     return {
       basePrice,
       finalPrice,
       originalPrice: item.price,
       wholesalePrice: item.wholesalePrice,
-      isUsingWholesalePrice: state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice,
+      isUsingWholesalePrice,
       isOnSale,
       discountPercentage: item.discountPercentage,
-      savings: isOnSale ? (basePrice - finalPrice) : (hasWholesaleAccess && item.wholesalePrice ? item.price - item.wholesalePrice : 0),
+      savings,
       hasWholesaleAccess
     };
   };

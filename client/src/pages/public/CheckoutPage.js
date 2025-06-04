@@ -53,6 +53,9 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
+  // ✅ NUEVO: Estado para forzar re-render del resumen
+  const [summaryKey, setSummaryKey] = useState(0);
+  
   // Cargar dirección guardada del usuario
   useEffect(() => {
     if (user && user.address) {
@@ -76,12 +79,21 @@ const CheckoutPage = () => {
   
   // Cuando cambia el método de envío, actualizar método de pago si es necesario
   useEffect(() => {
-    // Si el método de envío cambia a delivery y el método de pago era cash,
-    // cambiar a webpay porque no se acepta efectivo para delivery
     if (shipmentMethod === 'delivery' && paymentMethod === 'cash') {
       setPaymentMethod('webpay');
     }
+    // ✅ NUEVO: Limpiar pickupLocation cuando se cambia a delivery
+    if (shipmentMethod === 'delivery') {
+      setPickupLocation(null);
+      setSummaryKey(prev => prev + 1); // Forzar actualización del resumen
+    }
   }, [shipmentMethod, paymentMethod]);
+  
+  // ✅ NUEVO: Efecto para actualizar resumen cuando cambia pickupLocation
+  useEffect(() => {
+    console.log('📍 Pickup location changed:', pickupLocation);
+    setSummaryKey(prev => prev + 1); // Forzar re-render del resumen
+  }, [pickupLocation]);
   
   // Formatear moneda
   const formatCurrency = (value) => {
@@ -92,15 +104,20 @@ const CheckoutPage = () => {
     }).format(value);
   };
   
-  // Manejar selección de ubicación de retiro
-  const handlePickupLocationChange = (e) => {
-    const locationId = parseInt(e.target.value);
-    const selectedLocation = PICKUP_LOCATIONS.find(loc => loc.id === locationId);
+  // ✅ NUEVO: Callback para manejar cambio de ubicación de retiro
+  const handlePickupLocationChange = (selectedLocation) => {
+    console.log('📍 Callback - Nueva ubicación de retiro:', selectedLocation);
     setPickupLocation(selectedLocation);
+    setError(''); // Limpiar errores previos
   };
   
-  // Validar formulario antes de enviar
+  // ✅ SIMPLIFICADO: Validar formulario antes de enviar
   const validateForm = () => {
+    console.log('🔍 Validando formulario...');
+    console.log('   - Método de envío:', shipmentMethod);
+    console.log('   - Método de pago:', paymentMethod);
+    console.log('   - Pickup location:', pickupLocation);
+    
     // Validar método de envío
     if (shipmentMethod === 'delivery') {
       // Validar dirección para delivery
@@ -108,98 +125,135 @@ const CheckoutPage = () => {
         setError('Por favor, complete todos los campos de la dirección de envío');
         return false;
       }
+      console.log('✅ Dirección de envío válida');
     } else if (shipmentMethod === 'pickup') {
-      // Validar ubicación de retiro
-      const selectedLocationEl = document.querySelector('input[name="pickupLocation"]:checked');
-      if (!selectedLocationEl) {
+      // ✅ SIMPLIFICADO: Solo verificar que pickupLocation esté establecido
+      if (!pickupLocation) {
         setError('Por favor, seleccione una tienda para retiro');
         return false;
       }
-      
-      const locationId = parseInt(selectedLocationEl.value);
-      const selectedLocation = PICKUP_LOCATIONS.find(loc => loc.id === locationId);
-      setPickupLocation(selectedLocation);
+      console.log('✅ Ubicación de retiro válida:', pickupLocation.name);
     }
     
+    console.log('✅ Formulario válido');
     return true;
   };
   
-  // Enviar pedido
+  // ✅ SIMPLIFICADO: Enviar pedido
   const handleSubmitOrder = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    return;
-  }
-  
-  setLoading(true);
-  setError('');
-  
-  try {
-    // Preparar datos de la orden
-    const orderData = {
-      items: cartItems.map(item => ({
-        product: item._id,
-        quantity: item.quantity
-      })),
-      shipmentMethod,
-      paymentMethod,
-      itemsPrice: getSubtotal(),
-      taxPrice: getTaxAmount(),
-      shippingPrice: getShippingAmount(),
-      totalPrice: getFinalTotal()
-    };
+    e.preventDefault();
     
-    // Añadir datos según el método de envío
-    if (shipmentMethod === 'delivery') {
-      orderData.shippingAddress = shippingAddress;
-    } else {
-      orderData.pickupLocation = {
-        name: pickupLocation.name,
-        address: pickupLocation.address,
-        notes: pickupLocation.notes
+    console.log('🚀 Iniciando proceso de creación de orden...');
+    
+    if (!validateForm()) {
+      console.log('❌ Validación de formulario falló');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Preparar datos de la orden
+      const orderData = {
+        items: cartItems.map(item => ({
+          product: item._id,
+          quantity: item.quantity
+        })),
+        shipmentMethod,
+        paymentMethod,
+        itemsPrice: getSubtotal(),
+        taxPrice: getTaxAmount(),
+        shippingPrice: getShippingAmount(),
+        totalPrice: getFinalTotal()
       };
-    }
-    
-    // Crear la orden usando el servicio importado
-    const response = await orderService.createOrder(orderData);
-    const order = response.data.data;
-    
-    // Manejar según el método de pago
-    if (paymentMethod === 'webpay') {
-      // Crear transacción de pago en Webpay
-      try {
-        const transactionResponse = await api.post(`/payment/create-transaction/${order._id}`);
-        const transactionData = transactionResponse.data.data;
+      
+      console.log('📋 Datos base de la orden:', {
+        itemCount: orderData.items.length,
+        shipmentMethod: orderData.shipmentMethod,
+        paymentMethod: orderData.paymentMethod,
+        itemsPrice: orderData.itemsPrice,
+        taxPrice: orderData.taxPrice,
+        shippingPrice: orderData.shippingPrice,
+        totalPrice: orderData.totalPrice
+      });
+      
+      // Añadir datos según el método de envío
+      if (shipmentMethod === 'delivery') {
+        orderData.shippingAddress = shippingAddress;
+        console.log('📦 Agregado dirección de envío:', shippingAddress);
+      } else if (shipmentMethod === 'pickup') {
+        // ✅ SIMPLIFICADO: Usar pickupLocation directamente
+        if (!pickupLocation) {
+          throw new Error('No se ha seleccionado una ubicación de retiro');
+        }
         
-        // Guardar ID de orden en localStorage para recuperarla después del pago
-        localStorage.setItem('currentOrderId', order._id);
+        orderData.pickupLocation = {
+          name: pickupLocation.name,
+          address: pickupLocation.address,
+          notes: pickupLocation.notes || ''
+        };
         
-        // Redirigir a Webpay
-        console.log('🔄 Redirigiendo a Webpay:', transactionData.url);
-        window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
-      } catch (webpayError) {
-        console.error('❌ Error al crear transacción Webpay:', webpayError);
-        throw new Error('Error al procesar el pago con Webpay');
+        console.log('📍 Agregado ubicación de retiro:', orderData.pickupLocation);
       }
-    } else {
-      // Para otros métodos de pago, redirigir directamente a la confirmación
-      clearCart();
-      navigate(`/order-confirmation/${order._id}`);
+      
+      console.log('💾 Creando orden con orderService...');
+      
+      // Crear la orden usando el servicio importado
+      const response = await orderService.createOrder(orderData);
+      const order = response.data.data;
+      
+      console.log('✅ Orden creada exitosamente:', {
+        orderId: order._id,
+        status: order.status,
+        totalPrice: order.totalPrice,
+        paymentMethod: order.paymentMethod
+      });
+      
+      // Manejar según el método de pago
+      if (paymentMethod === 'webpay') {
+        console.log('💳 Procesando pago con Webpay...');
+        try {
+          const transactionResponse = await api.post(`/payment/create-transaction/${order._id}`);
+          const transactionData = transactionResponse.data.data;
+          
+          console.log('✅ Transacción Webpay creada:', {
+            token: transactionData.token,
+            url: transactionData.url,
+            orderId: order._id
+          });
+          
+          localStorage.setItem('currentOrderId', order._id);
+          window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
+        } catch (webpayError) {
+          console.error('❌ Error al crear transacción Webpay:', webpayError);
+          throw new Error('Error al procesar el pago con Webpay');
+        }
+      } else {
+        console.log('💰 Pago no es Webpay, redirigiendo a confirmación...');
+        clearCart();
+        navigate(`/order-confirmation/${order._id}`);
+      }
+    } catch (err) {
+      console.error('❌ Error al crear la orden:', err);
+      console.error('📋 Stack trace:', err.stack);
+      console.error('📋 Response data:', err.response?.data);
+      
+      let errorMessage = 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.';
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+        console.error('📋 Detalle del error del servidor:', err.response.data);
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+      console.log('🏁 Proceso de creación de orden finalizado');
     }
-  } catch (err) {
-    console.error('Error al crear la orden:', err);
-    let errorMessage = 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.';
-    if (err.response?.data?.error) {
-      errorMessage = err.response.data.error;
-      console.error('Detalle del error del servidor:', err.response.data);
-    }
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   
   return (
     <div className="py-8">
@@ -217,11 +271,12 @@ const CheckoutPage = () => {
           <div className="lg:col-span-8">
             <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
               <div className="p-6">
-                {/* Selector de método de envío */}
+                {/* ✅ ACTUALIZADO: Selector de método de envío con callback */}
                 <ShipmentMethodSelector 
                   selectedMethod={shipmentMethod}
                   setSelectedMethod={setShipmentMethod}
                   pickupLocations={PICKUP_LOCATIONS}
+                  onPickupLocationChange={handlePickupLocationChange}
                 />
                 
                 {/* Formulario de dirección (solo para delivery) */}
@@ -253,9 +308,9 @@ const CheckoutPage = () => {
                       <div className="flex items-center">
                         {item.images && item.images.length > 0 ? (
                           <img 
-            src={getProductImageUrl(item)}  // Usar la función helper
-            alt={item.name}
-            className="h-16 w-16 object-cover rounded mr-4"
+                            src={getProductImageUrl(item)}
+                            alt={item.name}
+                            className="h-16 w-16 object-cover rounded mr-4"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = "https://via.placeholder.com/150";
@@ -283,7 +338,8 @@ const CheckoutPage = () => {
           
           {/* Columna derecha: resumen */}
           <div className="lg:col-span-4">
-            <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6 sticky top-6">
+            {/* ✅ NUEVO: Key para forzar re-render cuando cambie la ubicación */}
+            <div key={summaryKey} className="bg-white shadow-sm rounded-lg overflow-hidden mb-6 sticky top-6">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-lg font-medium text-gray-900">Resumen de compra</h2>
               </div>
@@ -316,17 +372,26 @@ const CheckoutPage = () => {
                   </div>
                 </div>
                 
-                {/* Método de envío seleccionado */}
+                {/* ✅ ACTUALIZADO: Método de envío seleccionado */}
                 <div className="mt-6 bg-gray-50 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Método de envío seleccionado</h3>
                   <p className="text-sm text-gray-600">
                     {shipmentMethod === 'delivery' ? 'Envío a domicilio' : 'Retiro en tienda'}
                   </p>
                   
-                  {shipmentMethod === 'pickup' && pickupLocation && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      Tienda: {pickupLocation.name}
-                    </p>
+                  {/* ✅ MEJORADO: Mostrar información de pickup location */}
+                  {shipmentMethod === 'pickup' && (
+                    <div className="mt-2">
+                      {pickupLocation ? (
+                        <div className="text-sm">
+                          <p className="font-medium text-green-700">✅ Tienda seleccionada:</p>
+                          <p className="text-gray-700">{pickupLocation.name}</p>
+                          <p className="text-gray-500 text-xs">{pickupLocation.address}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-amber-600">⚠️ Selecciona una tienda arriba</p>
+                      )}
+                    </div>
                   )}
                 </div>
                 
@@ -344,9 +409,11 @@ const CheckoutPage = () => {
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (shipmentMethod === 'pickup' && !pickupLocation)}
                   className={`w-full flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white ${
-                    loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                    loading || (shipmentMethod === 'pickup' && !pickupLocation)
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
                   } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
                   {loading ? (
@@ -357,6 +424,8 @@ const CheckoutPage = () => {
                       </svg>
                       Procesando...
                     </>
+                  ) : shipmentMethod === 'pickup' && !pickupLocation ? (
+                    'Selecciona una tienda primero'
                   ) : (
                     'Confirmar Pedido'
                   )}

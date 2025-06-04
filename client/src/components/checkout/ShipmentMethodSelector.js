@@ -1,7 +1,21 @@
 import React from 'react';
 import { TruckIcon, HomeIcon } from '@heroicons/react/24/outline';
 
-const ShipmentMethodSelector = ({ selectedMethod, setSelectedMethod, pickupLocations }) => {
+const ShipmentMethodSelector = ({ selectedMethod, setSelectedMethod, pickupLocations, onPickupLocationChange }) => {
+  
+  // ✅ NUEVO: Manejar cambio de ubicación de retiro
+  const handlePickupLocationChange = (e) => {
+    const locationId = parseInt(e.target.value);
+    const selectedLocation = pickupLocations.find(loc => loc.id === locationId);
+    
+    console.log('📍 Ubicación de retiro seleccionada:', selectedLocation);
+    
+    // Llamar al callback del componente padre si existe
+    if (onPickupLocationChange) {
+      onPickupLocationChange(selectedLocation);
+    }
+  };
+
   return (
     <div className="mb-6">
       <h2 className="text-lg font-medium text-gray-900 mb-4">Método de Envío</h2>
@@ -66,7 +80,7 @@ const ShipmentMethodSelector = ({ selectedMethod, setSelectedMethod, pickupLocat
         </div>
       </div>
       
-      {/* Detalles adicionales según el método seleccionado */}
+      {/* ✅ CORREGIDO: Detalles adicionales según el método seleccionado */}
       {selectedMethod === 'pickup' && (
         <div className="mt-4 border rounded-lg p-4 bg-gray-50">
           <h3 className="text-md font-medium text-gray-900 mb-3">Selecciona una tienda para retiro</h3>
@@ -74,17 +88,18 @@ const ShipmentMethodSelector = ({ selectedMethod, setSelectedMethod, pickupLocat
           <div className="space-y-3">
             {pickupLocations.map((location, index) => (
               <div 
-                key={index} 
+                key={location.id} 
                 className="flex items-start"
               >
                 <input 
                   type="radio" 
-                  id={`location-${index}`} 
+                  id={`location-${location.id}`} 
                   name="pickupLocation" 
                   value={location.id} 
+                  onChange={handlePickupLocationChange}
                   className="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
-                <label htmlFor={`location-${index}`} className="ml-3 flex-1">
+                <label htmlFor={`location-${location.id}`} className="ml-3 flex-1 cursor-pointer">
                   <span className="block font-medium text-gray-700">{location.name}</span>
                   <span className="block text-sm text-gray-500">{location.address}</span>
                   <span className="block text-xs text-gray-500 mt-1">{location.hours}</span>
