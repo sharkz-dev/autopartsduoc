@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import axios from 'axios';
+import api from '../../services/api'; // ✅ AGREGADO: Para consistencia con OrderDetailsPage
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
-  ClockIcon
+  ClockIcon,
+  ArrowPathIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/outline';
 
 const PaymentReturnPage = () => {
@@ -17,6 +20,8 @@ const PaymentReturnPage = () => {
   const [orderId, setOrderId] = useState(null);
   const [error, setError] = useState('');
   const [paymentDetails, setPaymentDetails] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [canRetry, setCanRetry] = useState(false);
   
   useEffect(() => {
     const validatePayment = async () => {
@@ -27,6 +32,7 @@ const PaymentReturnPage = () => {
         const errorParam = queryParams.get('error') || '';
         const codeParam = queryParams.get('code') || '';
         const buyOrderParam = queryParams.get('buyOrder') || '';
+        const retryParam = queryParams.get('retry') || '';
         
         const storedOrderId = localStorage.getItem('currentOrderId');
         
@@ -37,6 +43,7 @@ const PaymentReturnPage = () => {
           codeParam,
           buyOrderParam,
           storedOrderId,
+          retryParam,
           fullURL: window.location.href
         });
         
@@ -69,8 +76,10 @@ const PaymentReturnPage = () => {
           // ✅ Si tenemos orderIdParam del error, intentar usarlo
           if (orderIdParam) {
             setOrderId(orderIdParam);
+            setCanRetry(true); // Permitir reintento si tenemos orderId
           } else if (storedOrderId) {
             setOrderId(storedOrderId);
+            setCanRetry(true);
           }
           
           localStorage.removeItem('currentOrderId');
@@ -109,6 +118,7 @@ const PaymentReturnPage = () => {
           console.log('📊 Estado del pago obtenido:', paymentData);
           
           setPaymentDetails(paymentData);
+          setCanRetry(paymentData.canRetryPayment || false);
           
           // ✅ DETERMINAR ESTADO FINAL
           if (paymentData.isPaid && paymentData.paymentResult?.status === 'approved') {
@@ -118,6 +128,8 @@ const PaymentReturnPage = () => {
           } else if (paymentData.paymentResult?.status === 'rejected') {
             console.log('❌ Pago confirmado como rechazado');
             setStatus('failure');
+            setCanRetry(true); // ✅ NUEVO: Permitir reintento en caso de rechazo
+            
             if (paymentData.paymentResult.responseCode) {
               setError(`Pago rechazado por el banco. Código: ${paymentData.paymentResult.responseCode}`);
             } else {
@@ -132,6 +144,7 @@ const PaymentReturnPage = () => {
             // Si tenemos código de error de la URL, usarlo
             if (codeParam && codeParam !== '0') {
               setStatus('failure');
+              setCanRetry(true); // ✅ NUEVO: Permitir reintento en caso de código de error
               setError(`Pago rechazado. Código de respuesta: ${codeParam}`);
             } else {
               setStatus('processing');
@@ -162,6 +175,37 @@ const PaymentReturnPage = () => {
     
     validatePayment();
   }, [location.search, clearCart]);
+
+  // ✅ FUNCIÓN ACTUALIZADA: Reintentar pago con la misma estructura que OrderDetailsPage
+  const handleRetryPayment = async () => {
+    if (!orderId || isRetrying) return;
+    
+    setIsRetrying(true);
+    
+    try {
+      console.log(`🔄 Iniciando reintento de pago para orden: ${orderId}`);
+      
+      // ✅ USANDO API SERVICE COMO EN OrderDetailsPage
+      const response = await api.post(`/payment/create-transaction/${orderId}`);
+      const transactionData = response.data.data;
+      
+      console.log('✅ Nueva transacción creada para reintento:', transactionData);
+      
+      // Guardar el orderId en localStorage para el retorno
+      localStorage.setItem('currentOrderId', orderId);
+      
+      // ✅ REDIRIGIR IGUAL QUE EN OrderDetailsPage
+      window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
+      
+    } catch (retryError) {
+      console.error('❌ Error al reintentar pago:', retryError);
+      
+      const errorMessage = retryError.response?.data?.error || 'Error al procesar el pago';
+      setError(`Error al reintentar el pago: ${errorMessage}`);
+    } finally {
+      setIsRetrying(false);
+    }
+  };
   
   const renderContent = () => {
     switch (status) {
@@ -223,7 +267,7 @@ const PaymentReturnPage = () => {
                 </p>
               </div>
             )}
-            
+
             {paymentDetails?.paymentResult?.responseCode && (
               <div className="mt-4 bg-red-50 rounded-lg p-4 text-sm max-w-md mx-auto">
                 <p className="text-red-700">
@@ -235,28 +279,78 @@ const PaymentReturnPage = () => {
               </div>
             )}
             
-            <div className="mt-6 space-x-4">
-              <Link
-                to="/cart"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Volver al carrito
-              </Link>
-              {orderId && (
-                <Link
-                  to={`/order-confirmation/${orderId}`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            <div className="mt-6 space-y-4 flex flex-col items-center">
+              {/* ✅ BOTÓN DE REINTENTO MEJORADO - Igual que en OrderDetailsPage */}
+              {canRetry && (
+                <button
+                  onClick={handleRetryPayment}
+                  disabled={isRetrying}
+                  className={`w-full max-w-md flex items-center justify-center px-6 py-3 rounded-md font-medium transition-colors ${
+                    isRetrying
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                  }`}
                 >
-                  Ver detalles de la orden
-                </Link>
+                  {isRetrying ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                      Procesando pago...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCardIcon className="h-4 w-4 mr-2" />
+                      Reintentar Pago
+                    </>
+                  )}
+                </button>
               )}
+              
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                <Link
+                  to="/cart"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Volver al carrito
+                </Link>
+                
+                {orderId && (
+                  <Link
+                    to={`/order-confirmation/${orderId}`}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    Ver detalles de la orden
+                  </Link>
+                )}
+              </div>
+              
               <Link
                 to="/orders"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 Ver mis pedidos
               </Link>
             </div>
+
+            {/* ✅ INFORMACIÓN MEJORADA SOBRE EL REINTENTO - Igual que en OrderDetailsPage */}
+            {canRetry && (
+              <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+                <div className="flex items-center mb-3">
+                  <CreditCardIcon className="h-5 w-5 text-yellow-600 mr-2" />
+                  <h4 className="text-sm font-medium text-yellow-800">¿Qué puedes hacer?</h4>
+                </div>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  <li>• Verifica que tu tarjeta tenga fondos suficientes</li>
+                  <li>• Asegúrate de que tu tarjeta esté habilitada para compras online</li>
+                  <li>• Intenta con una tarjeta diferente</li>
+                  <li>• Contacta a tu banco si el problema persiste</li>
+                </ul>
+                <div className="mt-3 p-3 bg-yellow-100 rounded-lg">
+                  <p className="text-yellow-800 text-sm font-medium">
+                    💡 Tu pedido se mantiene reservado. Solo necesitas completar el pago.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         );
         
@@ -378,6 +472,8 @@ const PaymentReturnPage = () => {
                     <p>OrderId: {orderId || 'No determinado'}</p>
                     <p>Status: {status}</p>
                     <p>Error: {error || 'Ninguno'}</p>
+                    <p>Can Retry: {canRetry ? 'Sí' : 'No'}</p>
+                    <p>Is Retrying: {isRetrying ? 'Sí' : 'No'}</p>
                   </div>
                 </details>
               </div>

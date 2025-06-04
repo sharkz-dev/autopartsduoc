@@ -235,21 +235,6 @@ const ProductCard = ({ product }) => {
               </div>
             )}
           </div>
-
-          {/* ✅ INDICADOR DE ACCESO A PRECIOS MAYORISTAS */}
-          {!priceInfo.hasWholesaleAccess && product.wholesalePrice && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <div className="flex items-center space-x-2">
-                <TagIcon className="h-4 w-4 text-yellow-600" />
-                <span className="text-yellow-700 text-sm font-medium">
-                  Precio mayorista disponible
-                </span>
-              </div>
-              <p className="text-yellow-600 text-xs mt-1">
-                Regístrate como distribuidor para acceder a precios especiales
-              </p>
-            </div>
-          )}
         </div>
 
         {/* SKU */}
