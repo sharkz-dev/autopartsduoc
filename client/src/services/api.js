@@ -117,7 +117,7 @@ export const authService = {
   uploadCompanyLogo: (userId, formData, options = {}) => {
     console.log('📸 Subiendo logo de empresa para usuario:', userId);
     
-    return api.put(`/users/${userId}/logo`, formData, {
+    return api.put(`/auth/upload-logo`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -129,6 +129,12 @@ export const authService = {
       console.error('❌ Error al subir logo:', error.response?.data);
       throw error;
     });
+  },
+
+  // Logout
+  logout: () => {
+    console.log('👋 Cerrando sesión...');
+    return api.get('/auth/logout');
   }
 };
 
@@ -257,9 +263,9 @@ export const orderService = {
     return api.get(`/orders/${id}`);
   },
   
-  cancelOrder: (id) => {
+  cancelOrder: (id, reason = '') => {
     console.log('❌ Cancelando orden:', id);
-    return api.put(`/orders/${id}/cancel`);
+    return api.put(`/orders/${id}/cancel`, { reason });
   },
   
   getOrders: () => {
@@ -275,6 +281,45 @@ export const orderService = {
   updateOrderStatus: (id, statusData) => {
     console.log('🔄 Actualizando estado de orden:', id, 'a:', statusData.status);
     return api.put(`/orders/${id}/status`, statusData);
+  },
+
+  // NUEVA: Obtener historial de estados de una orden
+  getOrderHistory: (orderId) => {
+    console.log('📋 Obteniendo historial de orden:', orderId);
+    return api.get(`/orders/${orderId}/history`);
+  },
+
+  // NUEVA: Solicitar reembolso
+  requestRefund: (orderId, refundData) => {
+    console.log('💰 Solicitando reembolso para orden:', orderId);
+    return api.post(`/orders/${orderId}/refund`, refundData);
+  }
+};
+
+// Servicios de pago
+export const paymentService = {
+  // Crear transacción de pago
+  createPaymentTransaction: (orderId) => {
+    console.log('💳 Creando transacción de pago para orden:', orderId);
+    return api.post(`/payment/create-transaction/${orderId}`);
+  },
+
+  // Obtener estado de pago
+  getPaymentStatus: (orderId) => {
+    console.log('📊 Obteniendo estado de pago para orden:', orderId);
+    return api.get(`/payment/status/${orderId}`);
+  },
+
+  // Procesar reembolso (admin)
+  processRefund: (orderId, refundData) => {
+    console.log('💰 Procesando reembolso para orden:', orderId);
+    return api.post(`/payment/refund/${orderId}`, refundData);
+  },
+
+  // Obtener configuración de pago (admin)
+  getPaymentConfig: () => {
+    console.log('🔧 Obteniendo configuración de pago...');
+    return api.get('/payment/config');
   }
 };
 
@@ -338,6 +383,222 @@ export const systemConfigService = {
   
   // Resetear configuraciones
   resetConfigurations: () => api.post('/system-config/reset')
+};
+
+// NUEVO: Servicio de notificaciones
+export const notificationService = {
+  // Obtener notificaciones del usuario
+  getNotifications: () => {
+    console.log('🔔 Obteniendo notificaciones...');
+    return api.get('/notifications');
+  },
+
+  // Marcar notificación como leída
+  markAsRead: (notificationId) => {
+    console.log('✅ Marcando notificación como leída:', notificationId);
+    return api.put(`/notifications/${notificationId}/read`);
+  },
+
+  // Marcar todas las notificaciones como leídas
+  markAllAsRead: () => {
+    console.log('✅ Marcando todas las notificaciones como leídas');
+    return api.put('/notifications/mark-all-read');
+  },
+
+  // Eliminar notificación
+  deleteNotification: (notificationId) => {
+    console.log('🗑️ Eliminando notificación:', notificationId);
+    return api.delete(`/notifications/${notificationId}`);
+  },
+
+  // Obtener número de notificaciones no leídas
+  getUnreadCount: () => {
+    console.log('🔢 Obteniendo número de notificaciones no leídas...');
+    return api.get('/notifications/unread-count');
+  }
+};
+
+// NUEVO: Servicio de favoritos/wishlist
+export const wishlistService = {
+  // Obtener lista de favoritos
+  getWishlist: () => {
+    console.log('❤️ Obteniendo lista de favoritos...');
+    return api.get('/wishlist');
+  },
+
+  // Agregar producto a favoritos
+  addToWishlist: (productId) => {
+    console.log('❤️ Agregando producto a favoritos:', productId);
+    return api.post(`/wishlist/${productId}`);
+  },
+
+  // Remover producto de favoritos
+  removeFromWishlist: (productId) => {
+    console.log('💔 Removiendo producto de favoritos:', productId);
+    return api.delete(`/wishlist/${productId}`);
+  },
+
+  // Verificar si un producto está en favoritos
+  isInWishlist: (productId) => {
+    console.log('🔍 Verificando si producto está en favoritos:', productId);
+    return api.get(`/wishlist/check/${productId}`);
+  },
+
+  // Limpiar lista de favoritos
+  clearWishlist: () => {
+    console.log('🗑️ Limpiando lista de favoritos...');
+    return api.delete('/wishlist/clear');
+  }
+};
+
+// NUEVO: Servicio de direcciones
+export const addressService = {
+  // Obtener direcciones del usuario
+  getAddresses: () => {
+    console.log('📍 Obteniendo direcciones del usuario...');
+    return api.get('/addresses');
+  },
+
+  // Crear nueva dirección
+  createAddress: (addressData) => {
+    console.log('➕ Creando nueva dirección...');
+    return api.post('/addresses', addressData);
+  },
+
+  // Actualizar dirección
+  updateAddress: (addressId, addressData) => {
+    console.log('🔄 Actualizando dirección:', addressId);
+    return api.put(`/addresses/${addressId}`, addressData);
+  },
+
+  // Eliminar dirección
+  deleteAddress: (addressId) => {
+    console.log('🗑️ Eliminando dirección:', addressId);
+    return api.delete(`/addresses/${addressId}`);
+  },
+
+  // Establecer dirección como predeterminada
+  setDefaultAddress: (addressId) => {
+    console.log('⭐ Estableciendo dirección predeterminada:', addressId);
+    return api.put(`/addresses/${addressId}/set-default`);
+  }
+};
+
+// NUEVO: Servicio de soporte/tickets
+export const supportService = {
+  // Crear ticket de soporte
+  createTicket: (ticketData) => {
+    console.log('🎫 Creando ticket de soporte...');
+    return api.post('/support/tickets', ticketData);
+  },
+
+  // Obtener tickets del usuario
+  getMyTickets: () => {
+    console.log('📋 Obteniendo mis tickets de soporte...');
+    return api.get('/support/my-tickets');
+  },
+
+  // Obtener ticket específico
+  getTicket: (ticketId) => {
+    console.log('🔍 Obteniendo ticket:', ticketId);
+    return api.get(`/support/tickets/${ticketId}`);
+  },
+
+  // Responder a ticket
+  replyToTicket: (ticketId, replyData) => {
+    console.log('💬 Respondiendo a ticket:', ticketId);
+    return api.post(`/support/tickets/${ticketId}/reply`, replyData);
+  },
+
+  // Cerrar ticket
+  closeTicket: (ticketId) => {
+    console.log('✅ Cerrando ticket:', ticketId);
+    return api.put(`/support/tickets/${ticketId}/close`);
+  }
+};
+
+// NUEVO: Servicio de reportes
+export const reportService = {
+  // Generar reporte de ventas
+  getSalesReport: (params) => {
+    console.log('📊 Generando reporte de ventas...');
+    return api.get('/reports/sales', { params });
+  },
+
+  // Generar reporte de productos
+  getProductsReport: (params) => {
+    console.log('📊 Generando reporte de productos...');
+    return api.get('/reports/products', { params });
+  },
+
+  // Generar reporte de usuarios
+  getUsersReport: (params) => {
+    console.log('📊 Generando reporte de usuarios...');
+    return api.get('/reports/users', { params });
+  },
+
+  // Exportar reporte
+  exportReport: (reportType, format, params) => {
+    console.log('📥 Exportando reporte:', reportType, 'formato:', format);
+    return api.get(`/reports/${reportType}/export`, {
+      params: { ...params, format },
+      responseType: 'blob'
+    });
+  }
+};
+
+// NUEVO: Servicio de búsqueda avanzada
+export const searchService = {
+  // Búsqueda global
+  globalSearch: (query, filters = {}) => {
+    console.log('🔍 Realizando búsqueda global:', query);
+    return api.get('/search/global', {
+      params: { q: query, ...filters }
+    });
+  },
+
+  // Búsqueda de productos avanzada
+  searchProducts: (query, filters = {}) => {
+    console.log('🔍 Búsqueda avanzada de productos:', query);
+    return api.get('/search/products', {
+      params: { q: query, ...filters }
+    });
+  },
+
+  // Sugerencias de búsqueda
+  getSearchSuggestions: (query) => {
+    console.log('💡 Obteniendo sugerencias para:', query);
+    return api.get('/search/suggestions', {
+      params: { q: query }
+    });
+  },
+
+  // Búsquedas populares
+  getPopularSearches: () => {
+    console.log('🔥 Obteniendo búsquedas populares...');
+    return api.get('/search/popular');
+  }
+};
+
+// NUEVO: Servicio de configuración de usuario
+export const userConfigService = {
+  // Obtener configuraciones del usuario
+  getUserConfig: () => {
+    console.log('⚙️ Obteniendo configuraciones del usuario...');
+    return api.get('/user-config');
+  },
+
+  // Actualizar configuración específica
+  updateUserConfig: (key, value) => {
+    console.log('🔄 Actualizando configuración de usuario:', key);
+    return api.put('/user-config', { key, value });
+  },
+
+  // Resetear configuraciones a valores por defecto
+  resetUserConfig: () => {
+    console.log('🔄 Reseteando configuraciones de usuario...');
+    return api.post('/user-config/reset');
+  }
 };
 
 export default api;

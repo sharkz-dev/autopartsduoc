@@ -374,3 +374,329 @@ code {
     }
   }
 }
+
+/* Estilos para impresión */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .card-modern {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  body {
+    background: white !important;
+  }
+  
+  .bg-gradient-to-r {
+    background: #f9fafb !important;
+    color: #111827 !important;
+  }
+  
+  .text-white {
+    color: #111827 !important;
+  }
+  
+  .bg-blue-50,
+  .bg-green-50,
+  .bg-yellow-50,
+  .bg-red-50,
+  .bg-purple-50 {
+    background: #f9fafb !important;
+  }
+  
+  /* Asegurar que las páginas se rompan correctamente */
+  .card-modern {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  h1, h2, h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+}
+
+/* Animaciones personalizadas para las páginas de cliente */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Clases de animación */
+.animate-slide-in-right {
+  animation: slideInFromRight 0.5s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInFromLeft 0.5s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.4s ease-out forwards;
+}
+
+/* Estilos para los estados de pedidos */
+.order-status-pending {
+  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+}
+
+.order-status-processing {
+  @apply bg-blue-100 text-blue-800 border-blue-200;
+}
+
+.order-status-shipped {
+  @apply bg-purple-100 text-purple-800 border-purple-200;
+}
+
+.order-status-delivered {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+.order-status-cancelled {
+  @apply bg-red-100 text-red-800 border-red-200;
+}
+
+.order-status-ready_for_pickup {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+/* Estilos para el formulario de perfil */
+.profile-section {
+  @apply space-y-6;
+}
+
+.profile-field-readonly {
+  @apply p-3 bg-gray-50 rounded-xl text-gray-700;
+}
+
+.profile-field-editing {
+  @apply form-input-modern;
+}
+
+/* Mejoras para dispositivos móviles */
+@media (max-width: 640px) {
+  .order-card {
+    @apply p-4;
+  }
+  
+  .order-summary {
+    @apply flex-col space-y-4;
+  }
+  
+  .order-actions {
+    @apply w-full;
+  }
+  
+  .profile-grid {
+    @apply grid-cols-1;
+  }
+  
+  .order-details-header {
+    @apply flex-col items-start space-y-4;
+  }
+}
+
+/* Estilos para tooltips y hints */
+.hint-text {
+  @apply text-xs text-gray-500 mt-1;
+}
+
+.error-text {
+  @apply text-xs text-red-600 mt-1 flex items-center;
+}
+
+.success-text {
+  @apply text-xs text-green-600 mt-1 flex items-center;
+}
+
+/* Estilos para badges */
+.badge-distributor-approved {
+  @apply bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-distributor-pending {
+  @apply bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-payment-paid {
+  @apply bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium;
+}
+
+.badge-payment-pending {
+  @apply bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium;
+}
+
+/* Estilos para el tracker de estados */
+.status-tracker {
+  @apply relative;
+}
+
+.status-tracker-line {
+  @apply absolute left-6 top-12 bottom-0 w-0.5 bg-gray-200;
+}
+
+.status-tracker-step {
+  @apply relative flex items-start;
+}
+
+.status-tracker-icon {
+  @apply relative z-10 flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-200;
+}
+
+.status-tracker-icon.completed {
+  @apply bg-green-100 border-green-500;
+}
+
+.status-tracker-icon.current {
+  @apply bg-blue-100 border-blue-500 animate-pulse;
+}
+
+.status-tracker-icon.upcoming {
+  @apply bg-gray-100 border-gray-300;
+}
+
+/* Responsive tables para móvil */
+@media (max-width: 768px) {
+  .responsive-table {
+    @apply block;
+  }
+  
+  .responsive-table thead,
+  .responsive-table tbody,
+  .responsive-table th,
+  .responsive-table td,
+  .responsive-table tr {
+    @apply block;
+  }
+  
+  .responsive-table thead tr {
+    @apply absolute -top-full -left-full;
+  }
+  
+  .responsive-table tr {
+    @apply border border-gray-200 mb-2 rounded-lg p-4;
+  }
+  
+  .responsive-table td {
+    @apply border-none relative pl-12 py-2;
+  }
+  
+  .responsive-table td:before {
+    @apply absolute left-2 w-8 whitespace-nowrap font-medium text-gray-600 text-sm;
+    content: attr(data-label) ":";
+  }
+}
+
+/* Efectos hover mejorados */
+.order-card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:bg-gray-50;
+}
+
+.profile-card-hover {
+  @apply transition-all duration-300 hover:shadow-md;
+}
+
+/* Loading states */
+.loading-skeleton {
+  @apply animate-pulse bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 bg-[length:200%_100%] rounded-lg;
+}
+
+.loading-text {
+  @apply loading-skeleton h-4 w-3/4 mb-2;
+}
+
+.loading-title {
+  @apply loading-skeleton h-6 w-1/2 mb-4;
+}
+
+/* Estados de formulario */
+.form-field-success {
+  @apply border-green-500 focus:border-green-500 focus:ring-green-500;
+}
+
+.form-field-error {
+  @apply border-red-500 focus:border-red-500 focus:ring-red-500;
+}
+
+/* Mejoras visuales adicionales */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Scrollbar personalizado para las páginas de cliente */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Transiciones suaves para cambios de estado */
+.smooth-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Estilos para campos de solo lectura */
+.readonly-field {
+  @apply bg-gray-50 border-gray-200 text-gray-700 cursor-not-allowed;
+}
+
+/* Estilos para indicadores de carga */
+.loading-indicator {
+  @apply animate-spin rounded-full h-4 w-4 border-t-2 border-current;
+}
