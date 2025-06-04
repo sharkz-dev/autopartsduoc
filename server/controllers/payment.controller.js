@@ -44,6 +44,7 @@ exports.createPaymentTransaction = async (req, res, next) => {
     console.log(`📋 Total: $${order.totalPrice}`);
     console.log(`📋 Método de pago: ${order.paymentMethod}`);
     console.log(`📋 Ya pagada: ${order.isPaid}`);
+    console.log(`📋 Estado: ${order.status}`);
 
     // Verificar que el usuario es el propietario de la orden
     if (order.user._id.toString() !== req.user.id) {
@@ -54,12 +55,22 @@ exports.createPaymentTransaction = async (req, res, next) => {
       });
     }
 
-    // Verificar que la orden no esté pagada
+    // ✅ NUEVO: Permitir reintentos de pago para órdenes pendientes
     if (order.isPaid) {
       console.log(`💰 Orden ${order._id} ya ha sido pagada`);
       return res.status(400).json({
         success: false,
         error: 'Esta orden ya ha sido pagada'
+      });
+    }
+
+    // ✅ MEJORADO: Permitir pago si está en estado 'pending' o 'cancelled' por fallo de pago
+    const allowedStatuses = ['pending'];
+    if (!allowedStatuses.includes(order.status)) {
+      console.log(`📋 Estado de orden no válido para pago: ${order.status}`);
+      return res.status(400).json({
+        success: false,
+        error: `No se puede procesar el pago para una orden en estado: ${order.status}`
       });
     }
 
@@ -74,6 +85,17 @@ exports.createPaymentTransaction = async (req, res, next) => {
 
     console.log(`✅ Todas las validaciones pasaron`);
 
+    // ✅ NUEVO: Limpiar transacción anterior si existe
+    if (order.paymentResult && order.paymentResult.id) {
+      console.log(`🔄 Limpiando transacción anterior: ${order.paymentResult.id}`);
+      order.paymentResult = {
+        status: 'retrying',
+        previousAttempt: order.paymentResult,
+        updateTime: new Date()
+      };
+      await order.save();
+    }
+
     // Crear transacción con Transbank
     try {
       console.log(`💻 Enviando orden ${order._id} al servicio de Transbank`);
@@ -84,15 +106,21 @@ exports.createPaymentTransaction = async (req, res, next) => {
       console.log(`   - URL: ${transaction.url}`);
       console.log(`   - Amount: ${transaction.amount}`);
       
-      // Guardar información de la transacción en la orden
+      // ✅ MEJORADO: Guardar información de la nueva transacción
       order.paymentResult = {
         id: transaction.token,
         buyOrder: transaction.buyOrder,
         sessionId: transaction.sessionId,
         status: 'pending',
         paymentMethod: 'webpay',
-        updateTime: new Date()
+        updateTime: new Date(),
+        // ✅ NUEVO: Marcar como reintento si había una transacción anterior
+        isRetry: !!(order.paymentResult?.previousAttempt),
+        retryCount: (order.paymentResult?.retryCount || 0) + 1
       };
+      
+      // ✅ NUEVO: Asegurar que el estado sea 'pending' para reintentos
+      order.status = 'pending';
       
       await order.save();
       console.log(`💾 Información de transacción guardada en la orden`);
@@ -105,13 +133,25 @@ exports.createPaymentTransaction = async (req, res, next) => {
           token: transaction.token,
           url: transaction.url,
           orderId: order._id,
-          amount: transaction.amount
+          amount: transaction.amount,
+          isRetry: order.paymentResult.isRetry,
+          retryCount: order.paymentResult.retryCount
         }
       });
       
     } catch (transbankError) {
       console.error(`❌ Error de Transbank para orden ${order._id}:`, transbankError);
       console.error(`💥 Stack trace:`, transbankError.stack);
+      
+      // ✅ NUEVO: Marcar el intento fallido en la orden
+      order.paymentResult = {
+        ...(order.paymentResult || {}),
+        status: 'failed',
+        error: transbankError.message,
+        updateTime: new Date(),
+        failedAttempts: (order.paymentResult?.failedAttempts || 0) + 1
+      };
+      await order.save();
       
       return res.status(500).json({
         success: false,
@@ -251,7 +291,11 @@ exports.handleWebpayReturn = async (req, res, next) => {
           amount: transactionResult.amount,
           cardDetail: transactionResult.cardDetail,
           installments: transactionResult.installmentsNumber,
-          responseCode: transactionResult.responseCode
+          responseCode: transactionResult.responseCode,
+          // ✅ NUEVO: Preservar información de reintentos
+          isRetry: order.paymentResult?.isRetry || false,
+          retryCount: order.paymentResult?.retryCount || 1,
+          previousAttempts: order.paymentResult?.previousAttempt ? [order.paymentResult.previousAttempt] : []
         };
 
         await order.save();
@@ -283,14 +327,20 @@ exports.handleWebpayReturn = async (req, res, next) => {
           responseCode: transactionResult.responseCode,
           updateTime: new Date(),
           paymentMethod: 'webpay',
-          amount: transactionResult.amount
+          amount: transactionResult.amount,
+          // ✅ NUEVO: Preservar información de reintentos para futuros intentos
+          isRetry: order.paymentResult?.isRetry || false,
+          retryCount: order.paymentResult?.retryCount || 1,
+          failedAttempts: (order.paymentResult?.failedAttempts || 0) + 1
         };
         
+        // ✅ NUEVO: Mantener orden en estado pendiente para permitir reintentos
+        // No cambiar a 'cancelled' automáticamente
         await order.save();
-        console.log(`💾 Orden marcada como RECHAZADA`);
+        console.log(`💾 Orden marcada como RECHAZADA pero disponible para reintento`);
         
         // ✅ REDIRECCIÓN DE FALLO
-        const failureUrl = `${process.env.FRONTEND_URL}/payment/failure?order=${order._id}&code=${transactionResult.responseCode}`;
+        const failureUrl = `${process.env.FRONTEND_URL}/payment/failure?order=${order._id}&code=${transactionResult.responseCode}&retry=true`;
         console.log(`❌ Redirigiendo a fallo: ${failureUrl}`);
         return res.redirect(failureUrl);
       }
@@ -369,7 +419,11 @@ exports.getPaymentStatus = async (req, res, next) => {
       paidAt: order.paidAt,
       status: order.status,
       paymentResult: order.paymentResult,
-      paymentMethod: order.paymentMethod
+      paymentMethod: order.paymentMethod,
+      // ✅ NUEVO: Información adicional para reintentos
+      canRetryPayment: !order.isPaid && order.paymentMethod === 'webpay' && order.status === 'pending',
+      retryCount: order.paymentResult?.retryCount || 0,
+      lastPaymentAttempt: order.paymentResult?.updateTime
     };
 
     console.log(`📤 Enviando respuesta exitosa:`, responseData);
@@ -492,6 +546,72 @@ exports.getPaymentConfig = async (req, res, next) => {
   }
 };
 
+// ✅ NUEVA FUNCIÓN: Cancelar transacción pendiente y permitir reintento
+// @desc    Cancelar transacción pendiente
+// @route   POST /api/payment/cancel-transaction/:orderId
+// @access  Private
+exports.cancelPendingTransaction = async (req, res, next) => {
+  try {
+    console.log(`🚫 Cancelando transacción pendiente para orden: ${req.params.orderId}`);
+    
+    const order = await Order.findById(req.params.orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Orden no encontrada'
+      });
+    }
+
+    // Verificar que el usuario es el propietario
+    if (order.user.toString() !== req.user.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'No autorizado para realizar esta acción'
+      });
+    }
+
+    // Solo permitir cancelar si no está pagada y está pendiente
+    if (order.isPaid) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se puede cancelar una orden ya pagada'
+      });
+    }
+
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        error: 'Solo se pueden cancelar órdenes pendientes'
+      });
+    }
+
+    // Limpiar información de pago para permitir nuevo intento
+    order.paymentResult = {
+      status: 'cancelled_by_user',
+      cancelledAt: new Date(),
+      previousAttempt: order.paymentResult
+    };
+
+    await order.save();
+
+    console.log(`✅ Transacción cancelada para orden ${order._id}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Transacción cancelada. Puedes intentar el pago nuevamente.',
+      data: {
+        orderId: order._id,
+        canRetryPayment: true
+      }
+    });
+
+  } catch (err) {
+    console.error('💥 Error en cancelPendingTransaction:', err);
+    next(err);
+  }
+};
+
 // ✅ DEBUGGING: Confirmar que el controlador se cargó
 console.log('✅ payment.controller.js cargado completamente');
 console.log('📋 Funciones exportadas:');
@@ -500,3 +620,6 @@ console.log('   - handleWebpayReturn');
 console.log('   - getPaymentStatus');
 console.log('   - processRefund');
 console.log('   - getPaymentConfig');
+console.log('   - cancelPendingTransaction (NUEVA)');
+
+module.exports = exports;

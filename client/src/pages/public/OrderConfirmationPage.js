@@ -21,6 +21,7 @@ const OrderConfirmationPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false); // ✅ NUEVO: Estado para procesar pago
   
   // Formatear moneda
   const formatCurrency = (value) => {
@@ -103,6 +104,45 @@ const OrderConfirmationPage = () => {
       return () => clearTimeout(timer);
     }
   }, [orderId, isAuthenticated, navigate, user]);
+  
+  // ✅ NUEVA FUNCIÓN: Procesar pago pendiente
+  const handlePayNow = async () => {
+    if (!order || order.paymentMethod !== 'webpay') {
+      console.error('❌ No se puede procesar pago para esta orden');
+      return;
+    }
+
+    setProcessingPayment(true);
+    
+    try {
+      console.log('💳 Iniciando pago para orden:', order._id);
+      
+      // Crear nueva transacción de pago
+      const response = await api.post(`/payment/create-transaction/${order._id}`);
+      const transactionData = response.data.data;
+      
+      console.log('✅ Transacción creada:', transactionData);
+      
+      // Guardar ID de orden en localStorage para recuperarla después del pago
+      localStorage.setItem('currentOrderId', order._id);
+      
+      // Redirigir a Webpay
+      window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
+      
+    } catch (error) {
+      console.error('❌ Error al procesar pago:', error);
+      
+      const errorMessage = error.response?.data?.error || 'Error al procesar el pago';
+      setError(errorMessage);
+      
+      // Opcional: Mostrar toast de error
+      if (window.toast) {
+        window.toast.error(errorMessage);
+      }
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
   
   // Renderizar el ícono y texto según el estado
   const renderStatusInfo = () => {
@@ -441,6 +481,37 @@ const OrderConfirmationPage = () => {
                     <span className="text-blue-600">{formatCurrency(order.totalPrice)}</span>
                   </div>
                 </div>
+                
+                {/* ✅ NUEVA SECCIÓN: Botón de pago para órdenes pendientes */}
+                {!order.isPaid && order.paymentMethod === 'webpay' && order.status === 'pending' && (
+                  <div className="mt-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-800 mb-2">💳 Pago Pendiente</h4>
+                    <p className="text-yellow-700 text-sm mb-3">
+                      Tu pedido está esperando el pago. Puedes completar el pago ahora con Webpay.
+                    </p>
+                    <button
+                      onClick={handlePayNow}
+                      disabled={processingPayment}
+                      className={`w-full flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
+                        processingPayment
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {processingPayment ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                          Procesando...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCardIcon className="h-4 w-4 mr-2" />
+                          Pagar Ahora con Webpay
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
                 
                 {!order.isPaid && order.paymentMethod === 'bankTransfer' && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-md text-sm">

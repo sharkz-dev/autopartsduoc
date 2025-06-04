@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { orderService } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import OrderStatusTracker from '../../components/common/OrderStatusTracker'; // Importar el nuevo componente
+import api from '../../services/api'; // ✅ AGREGADO: Para manejar pagos
 import { 
   ArrowLeftIcon,
   ShoppingBagIcon,
@@ -31,6 +32,7 @@ const OrderDetailsPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [processingPayment, setProcessingPayment] = useState(false); // ✅ NUEVO: Estado para procesar pago
   
   useEffect(() => {
     fetchOrderDetails();
@@ -56,6 +58,41 @@ const OrderDetailsPage = () => {
       toast.error('Error al cargar el pedido');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // ✅ NUEVA FUNCIÓN: Procesar pago pendiente
+  const handlePayNow = async () => {
+    if (!order || order.paymentMethod !== 'webpay') {
+      console.error('❌ No se puede procesar pago para esta orden');
+      return;
+    }
+
+    setProcessingPayment(true);
+    
+    try {
+      console.log('💳 Iniciando pago para orden:', order._id);
+      
+      // Crear nueva transacción de pago
+      const response = await api.post(`/payment/create-transaction/${order._id}`);
+      const transactionData = response.data.data;
+      
+      console.log('✅ Transacción creada:', transactionData);
+      
+      // Guardar ID de orden en localStorage para recuperarla después del pago
+      localStorage.setItem('currentOrderId', order._id);
+      
+      // Redirigir a Webpay
+      window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
+      
+    } catch (error) {
+      console.error('❌ Error al procesar pago:', error);
+      
+      const errorMessage = error.response?.data?.error || 'Error al procesar el pago';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setProcessingPayment(false);
     }
   };
   
@@ -515,7 +552,7 @@ const OrderDetailsPage = () => {
                   <div>
                     <div className="flex items-center text-green-600 font-medium mb-2">
                       <CheckCircleIcon className="h-5 w-5 mr-2" />
-                      Pago Confirmado
+                      <span>Pago Confirmado</span>
                     </div>
                     {order.paidAt && (
                       <p className="text-sm text-gray-600">
@@ -532,7 +569,7 @@ const OrderDetailsPage = () => {
                   <div>
                     <div className="flex items-center text-yellow-600 font-medium mb-2">
                       <ClockIcon className="h-5 w-5 mr-2" />
-                      Pago Pendiente
+                      <span>Pago Pendiente</span>
                     </div>
                     {order.paymentMethod === 'bankTransfer' && (
                       <p className="text-sm text-gray-600">
@@ -544,11 +581,50 @@ const OrderDetailsPage = () => {
                         Se pagará al momento del retiro
                       </p>
                     )}
+                    {order.paymentMethod === 'webpay' && (
+                      <p className="text-sm text-gray-600">
+                        El pago con Webpay no se ha completado
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             </div>
           </div>
+          
+          {/* ✅ NUEVA SECCIÓN: Botón de pago para órdenes pendientes con Webpay */}
+          {!order.isPaid && order.paymentMethod === 'webpay' && order.status === 'pending' && (
+            <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <h4 className="font-semibold text-yellow-800 mb-2 flex items-center">
+                <CreditCardIcon className="h-5 w-5 mr-2" />
+                Completar Pago Pendiente
+              </h4>
+              <p className="text-yellow-700 text-sm mb-4">
+                Tu pedido está esperando el pago. Puedes completar el pago ahora con Webpay para que procesemos tu orden.
+              </p>
+              <button
+                onClick={handlePayNow}
+                disabled={processingPayment}
+                className={`w-full flex items-center justify-center px-4 py-3 rounded-md font-medium transition-colors ${
+                  processingPayment
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {processingPayment ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                    Procesando pago...
+                  </>
+                ) : (
+                  <>
+                    <CreditCardIcon className="h-4 w-4 mr-2" />
+                    Pagar Ahora con Webpay
+                  </>
+                )}
+              </button>
+            </div>
+          )}
           
           {/* Información adicional de pago */}
           {order.paymentResult && order.paymentResult.cardDetail && (
@@ -689,9 +765,24 @@ const OrderDetailsPage = () => {
             </Link>
           )}
           
-          {order.status === 'pending' && !order.isPaid && order.paymentMethod !== 'cash' && (
-            <button className="btn-modern btn-accent">
-              Completar Pago
+          {/* ✅ BOTÓN ACTUALIZADO: Solo para Webpay y estado pendiente */}
+          {order.status === 'pending' && !order.isPaid && order.paymentMethod === 'webpay' && (
+            <button 
+              onClick={handlePayNow}
+              disabled={processingPayment}
+              className={`btn-modern ${processingPayment ? 'btn-disabled' : 'btn-accent'}`}
+            >
+              {processingPayment ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <CreditCardIcon className="h-4 w-4 mr-2" />
+                  Completar Pago
+                </>
+              )}
             </button>
           )}
         </div>
