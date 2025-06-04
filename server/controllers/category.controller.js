@@ -2,7 +2,7 @@ const Category = require('../models/Category');
 const path = require('path');
 const fs = require('fs');
 
-// ✅ FUNCIÓN HELPER CORREGIDA - con populate
+// Función helper para buscar categoría por slug o ID
 const findCategoryBySlugOrId = async (identifier, populate = true) => {
   let category = null;
   
@@ -15,9 +15,8 @@ const findCategoryBySlugOrId = async (identifier, populate = true) => {
       category = await Category.findOne({ slug: identifier });
     }
     
-    // Si no se encuentra por slug, intentar por ID (para compatibilidad)
+    // Si no se encuentra por slug, intentar por ID
     if (!category) {
-      // Verificar si el identifier parece ser un ObjectId válido
       if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
         if (populate) {
           category = await Category.findById(identifier)
@@ -39,14 +38,13 @@ const findCategoryBySlugOrId = async (identifier, populate = true) => {
 const generateUniqueSlug = async (name, categoryId = null) => {
   let baseSlug = name
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales
-    .replace(/\s+/g, '_')     // Reemplazar espacios con _
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '_')
     .trim();
 
   let slug = baseSlug;
   let counter = 1;
 
-  // Verificar si el slug ya existe (excluyendo la categoría actual si es una actualización)
   while (true) {
     const query = { slug };
     if (categoryId) {
@@ -63,9 +61,7 @@ const generateUniqueSlug = async (name, categoryId = null) => {
   return slug;
 };
 
-// @desc    Obtener todas las categorías
-// @route   GET /api/categories
-// @access  Public
+// Obtener todas las categorías
 exports.getCategories = async (req, res, next) => {
   try {
     const categories = await Category.find().sort('name').populate('parent', 'name slug');
@@ -80,56 +76,42 @@ exports.getCategories = async (req, res, next) => {
   }
 };
 
-// ✅ CORREGIDO: Obtener una categoría por slug o ID
-// @desc    Obtener una categoría por slug o ID
-// @route   GET /api/categories/:slug
-// @access  Public
+// Obtener una categoría por slug o ID
 exports.getCategory = async (req, res, next) => {
   try {
-    console.log(`🔍 Buscando categoría con identificador: ${req.params.slug}`);
-    
     const category = await findCategoryBySlugOrId(req.params.slug, true);
 
     if (!category) {
-      console.log(`❌ Categoría no encontrada: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Categoría no encontrada'
       });
     }
 
-    console.log(`✅ Categoría encontrada: ${category.name} (ID: ${category._id})`);
-
     res.status(200).json({
       success: true,
       data: category
     });
   } catch (err) {
-    console.error('💥 Error en getCategory:', err);
+    console.error('Error en getCategory:', err);
     next(err);
   }
 };
 
-// @desc    Crear una nueva categoría
-// @route   POST /api/categories
-// @access  Private (admin)
+// Crear una nueva categoría
 exports.createCategory = async (req, res, next) => {
   try {
-    console.log(`➕ Creando nueva categoría: ${req.body.name}`);
-    
     // Generar slug único
     req.body.slug = await generateUniqueSlug(req.body.name);
-    console.log(`🔗 Slug generado: ${req.body.slug}`);
     
     const category = await Category.create(req.body);
-    console.log(`✅ Categoría creada exitosamente: ${category.name} (ID: ${category._id})`);
 
     res.status(201).json({
       success: true,
       data: category
     });
   } catch (err) {
-    console.error('💥 Error al crear categoría:', err);
+    console.error('Error al crear categoría:', err);
     // Manejar error de nombre duplicado
     if (err.code === 11000) {
       return res.status(400).json({
@@ -141,33 +123,23 @@ exports.createCategory = async (req, res, next) => {
   }
 };
 
-// ✅ CORREGIDO: Actualizar una categoría
-// @desc    Actualizar una categoría
-// @route   PUT /api/categories/:slug
-// @access  Private (admin)
+// Actualizar una categoría
 exports.updateCategory = async (req, res, next) => {
   try {
-    console.log(`🔄 Actualizando categoría con identificador: ${req.params.slug}`);
-    
-    let category = await findCategoryBySlugOrId(req.params.slug, false); // Sin populate para actualización
+    let category = await findCategoryBySlugOrId(req.params.slug, false);
 
     if (!category) {
-      console.log(`❌ Categoría no encontrada para actualizar: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Categoría no encontrada'
       });
     }
 
-    console.log(`📝 Categoría encontrada para actualizar: ${category.name} (ID: ${category._id})`);
-
     // Si se cambia el nombre, generar nuevo slug
     if (req.body.name && req.body.name !== category.name) {
       req.body.slug = await generateUniqueSlug(req.body.name, category._id);
-      console.log(`🔗 Nuevo slug generado: ${req.body.slug}`);
     }
 
-    // Actualizar usando el ID de la categoría encontrada
     category = await Category.findByIdAndUpdate(
       category._id, 
       req.body, 
@@ -177,14 +149,12 @@ exports.updateCategory = async (req, res, next) => {
       }
     ).populate('parent', 'name slug');
 
-    console.log(`✅ Categoría actualizada exitosamente: ${category.name}`);
-
     res.status(200).json({
       success: true,
       data: category
     });
   } catch (err) {
-    console.error('💥 Error al actualizar categoría:', err);
+    console.error('Error al actualizar categoría:', err);
     // Manejar error de nombre duplicado
     if (err.code === 11000) {
       return res.status(400).json({
@@ -196,32 +166,23 @@ exports.updateCategory = async (req, res, next) => {
   }
 };
 
-// ✅ CORREGIDO: Eliminar una categoría
-// @desc    Eliminar una categoría
-// @route   DELETE /api/categories/:slug
-// @access  Private (admin)
+// Eliminar una categoría
 exports.deleteCategory = async (req, res, next) => {
   try {
-    console.log(`🗑️ Eliminando categoría con identificador: ${req.params.slug}`);
-    
     const category = await findCategoryBySlugOrId(req.params.slug, false);
 
     if (!category) {
-      console.log(`❌ Categoría no encontrada para eliminar: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Categoría no encontrada'
       });
     }
 
-    console.log(`🔍 Categoría encontrada para eliminar: ${category.name} (ID: ${category._id})`);
-
     // Verificar si la categoría tiene productos asociados
     const Product = require('../models/Product');
     const products = await Product.countDocuments({ category: category._id });
 
     if (products > 0) {
-      console.log(`⚠️ Categoría tiene ${products} productos asociados`);
       return res.status(400).json({
         success: false,
         error: `No se puede eliminar la categoría porque tiene ${products} productos asociados`
@@ -232,7 +193,6 @@ exports.deleteCategory = async (req, res, next) => {
     const subcategories = await Category.countDocuments({ parent: category._id });
 
     if (subcategories > 0) {
-      console.log(`⚠️ Categoría tiene ${subcategories} subcategorías`);
       return res.status(400).json({
         success: false,
         error: `No se puede eliminar la categoría porque tiene ${subcategories} subcategorías`
@@ -244,35 +204,27 @@ exports.deleteCategory = async (req, res, next) => {
       const imagePath = path.join(__dirname, '../uploads', category.image);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
-        console.log(`🖼️ Imagen eliminada: ${category.image}`);
       }
     }
 
     await category.deleteOne();
-    console.log(`✅ Categoría eliminada exitosamente`);
 
     res.status(200).json({
       success: true,
       data: {}
     });
   } catch (err) {
-    console.error('💥 Error al eliminar categoría:', err);
+    console.error('Error al eliminar categoría:', err);
     next(err);
   }
 };
 
-// ✅ CORREGIDO: Subir imagen de categoría
-// @desc    Subir imagen de categoría
-// @route   PUT /api/categories/:slug/image
-// @access  Private (admin)
+// Subir imagen de categoría
 exports.uploadCategoryImage = async (req, res, next) => {
   try {
-    console.log(`📸 Subiendo imagen para categoría: ${req.params.slug}`);
-    
     const category = await findCategoryBySlugOrId(req.params.slug, false);
 
     if (!category) {
-      console.log(`❌ Categoría no encontrada para subir imagen: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Categoría no encontrada'
@@ -312,7 +264,6 @@ exports.uploadCategoryImage = async (req, res, next) => {
       const imagePath = path.join(__dirname, '../uploads', category.image);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
-        console.log(`🖼️ Imagen anterior eliminada: ${category.image}`);
       }
     }
 
@@ -326,14 +277,12 @@ exports.uploadCategoryImage = async (req, res, next) => {
         });
       }
 
-      // Actualizar categoría con nueva imagen usando el ID
+      // Actualizar categoría con nueva imagen
       await Category.findByIdAndUpdate(
         category._id,
         { image: file.name },
         { new: true }
       );
-
-      console.log(`✅ Imagen subida exitosamente: ${file.name}`);
 
       res.status(200).json({
         success: true,
@@ -341,35 +290,25 @@ exports.uploadCategoryImage = async (req, res, next) => {
       });
     });
   } catch (err) {
-    console.error('💥 Error al subir imagen:', err);
+    console.error('Error al subir imagen:', err);
     next(err);
   }
 };
 
-// ✅ CORREGIDO: Obtener subcategorías
-// @desc    Obtener subcategorías
-// @route   GET /api/categories/:slug/subcategories
-// @access  Public
+// Obtener subcategorías
 exports.getSubcategories = async (req, res, next) => {
   try {
-    console.log(`🔍 Buscando subcategorías para: ${req.params.slug}`);
-    
     // Buscar la categoría padre por slug o ID
     const parentCategory = await findCategoryBySlugOrId(req.params.slug, false);
     
     if (!parentCategory) {
-      console.log(`❌ Categoría padre no encontrada: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Categoría no encontrada'
       });
     }
 
-    console.log(`✅ Categoría padre encontrada: ${parentCategory.name} (ID: ${parentCategory._id})`);
-
     const subcategories = await Category.find({ parent: parentCategory._id }).sort('name');
-
-    console.log(`📂 Encontradas ${subcategories.length} subcategorías`);
 
     res.status(200).json({
       success: true,
@@ -377,7 +316,7 @@ exports.getSubcategories = async (req, res, next) => {
       data: subcategories
     });
   } catch (err) {
-    console.error('💥 Error al obtener subcategorías:', err);
+    console.error('Error al obtener subcategorías:', err);
     next(err);
   }
 };

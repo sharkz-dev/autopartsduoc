@@ -2,19 +2,10 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-// @desc    Registrar usuario
-// @route   POST /api/auth/register
-// @access  Public
+// Registrar usuario
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role, address, phone, distributorInfo } = req.body;
-
-    console.log('📝 Datos de registro recibidos:', {
-      name,
-      email,
-      role,
-      distributorInfo: distributorInfo ? 'Presente' : 'No presente'
-    });
 
     // Verificar si el usuario ya existe
     let user = await User.findOne({ email });
@@ -26,7 +17,7 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // ✅ CORREGIDO: Preparar datos de usuario según el rol
+    // Preparar datos de usuario según el rol
     const userData = {
       name,
       email,
@@ -36,10 +27,8 @@ exports.register = async (req, res, next) => {
       phone
     };
 
-    // ✅ NUEVO: Si es distribuidor, agregar información específica
+    // Si es distribuidor, agregar información específica
     if (role === 'distributor') {
-      console.log('👔 Procesando registro de distribuidor...');
-      
       // Validar que se proporcione información de distribuidor
       if (!distributorInfo) {
         return res.status(400).json({
@@ -55,8 +44,6 @@ exports.register = async (req, res, next) => {
           error: 'El nombre de la empresa y RUT son requeridos para distribuidores'
         });
       }
-
-      console.log('✅ Información de distribuidor válida:', distributorInfo);
       
       // Agregar información de distribuidor al userData
       userData.distributorInfo = {
@@ -65,30 +52,16 @@ exports.register = async (req, res, next) => {
         businessLicense: distributorInfo.businessLicense || '',
         creditLimit: 0,
         discountPercentage: 0,
-        isApproved: false // Por defecto no aprobado, requiere revisión de admin
+        isApproved: false
       };
     }
-
-    console.log('💾 Creando usuario con datos:', {
-      ...userData,
-      password: '[REDACTED]'
-    });
 
     // Crear usuario
     user = await User.create(userData);
 
-    console.log('✅ Usuario creado exitosamente:', {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      isDistributor: user.role === 'distributor',
-      companyName: user.distributorInfo?.companyName
-    });
-
     sendTokenResponse(user, 201, res);
   } catch (err) {
-    console.error('❌ Error en registro:', err);
+    console.error('Error en registro:', err);
     
     // Manejar errores específicos de validación
     if (err.name === 'ValidationError') {
@@ -103,9 +76,7 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// @desc    Login de usuario
-// @route   POST /api/auth/login
-// @access  Public
+// Login de usuario
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -144,9 +115,7 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// @desc    Obtener usuario actual
-// @route   GET /api/auth/me
-// @access  Private
+// Obtener usuario actual
 exports.getMe = async (req, res, next) => {
   try {
     // Verifica si req.user existe antes de acceder a su id
@@ -176,9 +145,7 @@ exports.getMe = async (req, res, next) => {
   }
 };
 
-// @desc    Actualizar detalles de usuario
-// @route   PUT /api/auth/updatedetails
-// @access  Private
+// Actualizar detalles de usuario
 exports.updateDetails = async (req, res, next) => {
   try {
     const fieldsToUpdate = {
@@ -189,7 +156,7 @@ exports.updateDetails = async (req, res, next) => {
     if (req.body.address) fieldsToUpdate.address = req.body.address;
     if (req.body.phone) fieldsToUpdate.phone = req.body.phone;
 
-    // ✅ NUEVO: Permitir actualización de información de distribuidor
+    // Permitir actualización de información de distribuidor
     if (req.body.distributorInfo && req.user && req.user.role === 'distributor') {
       fieldsToUpdate.distributorInfo = {
         ...req.user.distributorInfo,
@@ -215,9 +182,7 @@ exports.updateDetails = async (req, res, next) => {
   }
 };
 
-// @desc    Actualizar contraseña
-// @route   PUT /api/auth/updatepassword
-// @access  Private
+// Actualizar contraseña
 exports.updatePassword = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select('+password');
@@ -239,9 +204,7 @@ exports.updatePassword = async (req, res, next) => {
   }
 };
 
-// @desc    Logout / limpiar cookie
-// @route   GET /api/auth/logout
-// @access  Private
+// Logout / limpiar cookie
 exports.logout = (req, res, next) => {
   res.status(200).json({
     success: true,
@@ -267,7 +230,7 @@ const sendTokenResponse = (user, statusCode, res) => {
     options.secure = true;
   }
 
-  // ✅ MEJORADO: Incluir información más completa del usuario en la respuesta
+  // Incluir información más completa del usuario en la respuesta
   const userResponse = {
     id: user._id,
     name: user.name,

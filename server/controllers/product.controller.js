@@ -3,7 +3,7 @@ const User = require('../models/User');
 const path = require('path');
 const fs = require('fs');
 
-// ✅ FUNCIÓN HELPER CORREGIDA - con populate
+// Función helper para buscar producto por slug o ID
 const findProductBySlugOrId = async (identifier, populate = true) => {
   let product = null;
   
@@ -16,9 +16,8 @@ const findProductBySlugOrId = async (identifier, populate = true) => {
       product = await Product.findOne({ slug: identifier });
     }
     
-    // Si no se encuentra por slug, intentar por ID (para compatibilidad)
+    // Si no se encuentra por slug, intentar por ID
     if (!product) {
-      // Verificar si el identifier parece ser un ObjectId válido
       if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
         if (populate) {
           product = await Product.findById(identifier)
@@ -40,14 +39,13 @@ const findProductBySlugOrId = async (identifier, populate = true) => {
 const generateUniqueSlug = async (name, productId = null) => {
   let baseSlug = name
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales
-    .replace(/\s+/g, '_')     // Reemplazar espacios con _
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '_')
     .trim();
 
   let slug = baseSlug;
   let counter = 1;
 
-  // Verificar si el slug ya existe (excluyendo el producto actual si es una actualización)
   while (true) {
     const query = { slug };
     if (productId) {
@@ -64,19 +62,14 @@ const generateUniqueSlug = async (name, productId = null) => {
   return slug;
 };
 
-// @desc    Obtener todos los productos
-// @route   GET /api/products
-// @access  Public
+// Obtener todos los productos
 exports.getProducts = async (req, res, next) => {
   try {
-    console.log('📊 Parámetros de consulta recibidos:', req.query);
-    
     // Construir objeto de consulta MongoDB
     let mongoQuery = {};
 
     // Manejar búsqueda por texto
     if (req.query.search) {
-      console.log('🔍 Aplicando filtro de búsqueda:', req.query.search);
       mongoQuery.$or = [
         { name: { $regex: req.query.search, $options: 'i' } },
         { description: { $regex: req.query.search, $options: 'i' } },
@@ -94,7 +87,6 @@ exports.getProducts = async (req, res, next) => {
         const minPrice = parseFloat(req.query.minPrice);
         if (!isNaN(minPrice)) {
           mongoQuery.price.$gte = minPrice;
-          console.log('💰 Aplicando precio mínimo:', minPrice);
         }
       }
       
@@ -102,34 +94,24 @@ exports.getProducts = async (req, res, next) => {
         const maxPrice = parseFloat(req.query.maxPrice);
         if (!isNaN(maxPrice)) {
           mongoQuery.price.$lte = maxPrice;
-          console.log('💰 Aplicando precio máximo:', maxPrice);
         }
       }
     }
 
-    // ✅ CORREGIDO: Manejar filtros múltiples de categorías
+    // Manejar filtros múltiples de categorías
     if (req.query.categories) {
-      console.log('📂 Procesando filtro de categorías:', req.query.categories);
-      
       const categoryFilters = req.query.categories.split(',').map(cat => cat.trim()).filter(cat => cat);
-      console.log('📂 Categorías separadas:', categoryFilters);
       
       if (categoryFilters.length > 0) {
-        // Buscar categorías por slug
         const Category = require('../models/Category');
         const foundCategories = await Category.find({ 
           slug: { $in: categoryFilters } 
         }).select('_id slug name');
         
-        console.log('📂 Categorías encontradas:', foundCategories.map(c => ({ id: c._id, slug: c.slug, name: c.name })));
-        
         if (foundCategories.length > 0) {
           const categoryIds = foundCategories.map(cat => cat._id);
           mongoQuery.category = { $in: categoryIds };
-          console.log('📂 IDs de categorías aplicados al filtro:', categoryIds);
         } else {
-          console.log('⚠️ No se encontraron categorías válidas para los slugs proporcionados');
-          // Si no se encuentran categorías válidas, devolver array vacío
           return res.status(200).json({
             success: true,
             count: 0,
@@ -141,54 +123,43 @@ exports.getProducts = async (req, res, next) => {
       }
     }
 
-    // ✅ NUEVO: Manejar filtros múltiples de marcas
+    // Manejar filtros múltiples de marcas
     if (req.query.brands) {
-      console.log('🏷️ Procesando filtro de marcas:', req.query.brands);
-      
       const brandFilters = req.query.brands.split(',').map(brand => brand.trim()).filter(brand => brand);
-      console.log('🏷️ Marcas separadas:', brandFilters);
       
       if (brandFilters.length > 0) {
-        // Crear expresión regular para búsqueda case-insensitive
         const brandRegexes = brandFilters.map(brand => new RegExp(`^${brand}$`, 'i'));
         mongoQuery.brand = { $in: brandRegexes };
-        console.log('🏷️ Filtros de marca aplicados:', brandFilters);
       }
     }
 
-    // Manejar filtro de marca individual (para compatibilidad)
+    // Manejar filtro de marca individual
     if (req.query.brand && !req.query.brands) {
-      console.log('🏷️ Aplicando filtro de marca individual:', req.query.brand);
       mongoQuery.brand = new RegExp(`^${req.query.brand}$`, 'i');
     }
 
     // Manejar filtro de productos en oferta
     if (req.query.onSale === 'true') {
-      console.log('🔥 Aplicando filtro de productos en oferta');
       mongoQuery.onSale = true;
       mongoQuery.discountPercentage = { $gt: 0 };
     }
 
     // Manejar filtro de productos destacados
     if (req.query.featured === 'true') {
-      console.log('⭐ Aplicando filtro de productos destacados');
       mongoQuery.featured = true;
     }
 
     // Manejar filtro de stock disponible
     if (req.query.inStock === 'true') {
-      console.log('📦 Aplicando filtro de productos en stock');
       mongoQuery.stockQuantity = { $gt: 0 };
     }
-
-    console.log('🔍 Query MongoDB final:', JSON.stringify(mongoQuery, null, 2));
 
     // Crear query base con los filtros construidos
     let query = Product.find(mongoQuery)
       .populate('category', 'name slug');
 
-    // ✅ MEJORADO: Ordenamiento más robusto
-    let sortOption = '-createdAt'; // Por defecto más recientes primero
+    // Ordenamiento
+    let sortOption = '-createdAt';
     
     if (req.query.sort) {
       const validSortOptions = [
@@ -205,27 +176,22 @@ exports.getProducts = async (req, res, next) => {
       }
     }
     
-    console.log('📊 Aplicando ordenamiento:', sortOption);
     query = query.sort(sortOption);
 
-    // ✅ MEJORADO: Paginación con límites más seguros
+    // Paginación
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12)); // Límite entre 1 y 50
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12));
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
     
-    console.log('📄 Paginación:', { page, limit, startIndex });
-    
-    // Contar total de documentos que coinciden con la consulta
+    // Contar total de documentos
     const total = await Product.countDocuments(mongoQuery);
-    console.log('📊 Total de productos encontrados:', total);
 
     // Aplicar paginación
     query = query.skip(startIndex).limit(limit);
 
     // Ejecutar query
     const products = await query;
-    console.log('✅ Productos devueltos:', products.length);
 
     // Resultado de paginación
     const pagination = {};
@@ -245,7 +211,6 @@ exports.getProducts = async (req, res, next) => {
       };
     }
 
-    // ✅ NUEVO: Agregar información adicional útil
     const responseData = {
       success: true,
       count: products.length,
@@ -255,7 +220,6 @@ exports.getProducts = async (req, res, next) => {
       currentPage: page,
       limit,
       data: products,
-      // Información de filtros aplicados para depuración
       appliedFilters: {
         search: req.query.search || null,
         categories: req.query.categories ? req.query.categories.split(',') : [],
@@ -275,18 +239,14 @@ exports.getProducts = async (req, res, next) => {
 
     res.status(200).json(responseData);
   } catch (err) {
-    console.error('💥 Error en getProducts:', err);
+    console.error('Error en getProducts:', err);
     next(err);
   }
 };
 
-// @desc    Obtener productos en oferta
-// @route   GET /api/products/on-sale
-// @access  Public
+// Obtener productos en oferta
 exports.getProductsOnSale = async (req, res, next) => {
   try {
-    console.log('🔥 Obteniendo productos en oferta...');
-    
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
@@ -295,7 +255,7 @@ exports.getProductsOnSale = async (req, res, next) => {
     const query = {
       onSale: true,
       discountPercentage: { $gt: 0 },
-      stockQuantity: { $gt: 0 } // Solo productos en stock
+      stockQuantity: { $gt: 0 }
     };
     
     const products = await Product.find(query)
@@ -314,8 +274,6 @@ exports.getProductsOnSale = async (req, res, next) => {
       pagination.prev = { page: page - 1, limit };
     }
     
-    console.log(`✅ Productos en oferta encontrados: ${products.length}/${total}`);
-    
     res.status(200).json({
       success: true,
       count: products.length,
@@ -324,27 +282,19 @@ exports.getProductsOnSale = async (req, res, next) => {
       data: products
     });
   } catch (err) {
-    console.error('💥 Error en getProductsOnSale:', err);
+    console.error('Error en getProductsOnSale:', err);
     next(err);
   }
 };
 
-// ✅ NUEVO: Obtener marcas únicas disponibles
-// @desc    Obtener todas las marcas únicas
-// @route   GET /api/products/brands
-// @access  Public
+// Obtener marcas únicas disponibles
 exports.getBrands = async (req, res, next) => {
   try {
-    console.log('🏷️ Obteniendo marcas únicas...');
-    
     const brands = await Product.distinct('brand', { 
       brand: { $exists: true, $ne: '', $ne: null } 
     });
     
-    // Ordenar alfabéticamente
     const sortedBrands = brands.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-    
-    console.log(`✅ Marcas encontradas: ${sortedBrands.length}`);
     
     res.status(200).json({
       success: true,
@@ -352,48 +302,36 @@ exports.getBrands = async (req, res, next) => {
       data: sortedBrands
     });
   } catch (err) {
-    console.error('💥 Error en getBrands:', err);
+    console.error('Error en getBrands:', err);
     next(err);
   }
 };
 
-// ✅ CORREGIDO: Obtener un producto por slug o ID
-// @desc    Obtener un producto por slug o ID
-// @route   GET /api/products/:slug
-// @access  Public
+// Obtener un producto por slug o ID
 exports.getProduct = async (req, res, next) => {
   try {
-    console.log(`🔍 Buscando producto con identificador: ${req.params.slug}`);
-    
     const product = await findProductBySlugOrId(req.params.slug, true);
 
     if (!product) {
-      console.log(`❌ Producto no encontrado: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
-
-    console.log(`✅ Producto encontrado: ${product.name} (ID: ${product._id})`);
     
     res.status(200).json({
       success: true,
       data: product
     });
   } catch (err) {
-    console.error('💥 Error en getProduct:', err);
+    console.error('Error en getProduct:', err);
     next(err);
   }
 };
 
-// @desc    Crear un nuevo producto
-// @route   POST /api/products
-// @access  Private (distribuidores y admin)
+// Crear un nuevo producto
 exports.createProduct = async (req, res, next) => {
   try {
-    console.log('➕ Creando nuevo producto:', req.body.name);
-    
     // Generar slug único
     req.body.slug = await generateUniqueSlug(req.body.name);
     
@@ -405,42 +343,32 @@ exports.createProduct = async (req, res, next) => {
     }
 
     const product = await Product.create(req.body);
-    console.log(`✅ Producto creado: ${product.name} (${product.slug})`);
 
     res.status(201).json({
       success: true,
       data: product
     });
   } catch (err) {
-    console.error('💥 Error al crear producto:', err);
+    console.error('Error al crear producto:', err);
     next(err);
   }
 };
 
-// ✅ CORREGIDO: Actualizar un producto
-// @desc    Actualizar un producto
-// @route   PUT /api/products/:slug
-// @access  Private (distribuidor dueño y admin)
+// Actualizar un producto
 exports.updateProduct = async (req, res, next) => {
   try {
-    console.log(`🔄 Actualizando producto con identificador: ${req.params.slug}`);
-    
-    let product = await findProductBySlugOrId(req.params.slug, false); // Sin populate para actualización
+    let product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
-      console.log(`❌ Producto no encontrado para actualizar: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
 
-    console.log(`📝 Producto encontrado para actualizar: ${product.name} (ID: ${product._id})`);
-
     // Si se cambia el nombre, generar nuevo slug
     if (req.body.name && req.body.name !== product.name) {
       req.body.slug = await generateUniqueSlug(req.body.name, product._id);
-      console.log(`🔗 Nuevo slug generado: ${req.body.slug}`);
     }
 
     // Calcular el porcentaje de descuento si hay precio de oferta pero no porcentaje
@@ -452,7 +380,6 @@ exports.updateProduct = async (req, res, next) => {
 
     req.body.updatedAt = Date.now();
 
-    // Actualizar usando el ID del producto encontrado
     product = await Product.findByIdAndUpdate(
       product._id, 
       req.body, 
@@ -462,41 +389,27 @@ exports.updateProduct = async (req, res, next) => {
       }
     ).populate('category', 'name slug');
 
-    console.log(`✅ Producto actualizado exitosamente: ${product.name}`);
-
     res.status(200).json({
       success: true,
       data: product
     });
   } catch (err) {
-    console.error('💥 Error al actualizar producto:', err);
+    console.error('Error al actualizar producto:', err);
     next(err);
   }
 };
 
-// ✅ CORREGIDO: Eliminar un producto
-// @desc    Eliminar un producto
-// @route   DELETE /api/products/:slug
-// @access  Private (distribuidor dueño y admin)
+// Eliminar un producto
 exports.deleteProduct = async (req, res, next) => {
   try {
-    console.log(`🗑️ Eliminando producto con identificador: ${req.params.slug}`);
-    
     const product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
-      console.log(`❌ Producto no encontrado para eliminar: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
-
-    console.log(`🔍 Producto encontrado para eliminar: ${product.name} (ID: ${product._id})`);
-
-    // ✅ CORRECCIÓN: Eliminar verificación de distributor ya que no existe en el modelo
-    // Solo verificar que sea admin (ya se verifica en las rutas con middleware authorize('admin'))
-    console.log(`👨‍💼 Usuario admin autorizado para eliminar producto`);
 
     // Eliminar imágenes asociadas
     if (product.images && product.images.length > 0) {
@@ -504,14 +417,11 @@ exports.deleteProduct = async (req, res, next) => {
         const imagePath = path.join(__dirname, '../uploads', image);
         if (fs.existsSync(imagePath)) {
           fs.unlinkSync(imagePath);
-          console.log(`🖼️ Imagen eliminada: ${image}`);
         }
       });
     }
 
-    // ✅ MÉTODO CORRECTO: Usar deleteOne() en lugar de remove()
     await product.deleteOne();
-    console.log(`✅ Producto eliminado exitosamente`);
 
     res.status(200).json({
       success: true,
@@ -519,24 +429,17 @@ exports.deleteProduct = async (req, res, next) => {
       message: 'Producto eliminado correctamente'
     });
   } catch (err) {
-    console.error('💥 Error al eliminar producto:', err);
+    console.error('Error al eliminar producto:', err);
     next(err);
   }
 };
 
-
-// ✅ CORREGIDO: Subir imágenes de producto
-// @desc    Subir imágenes de producto
-// @route   PUT /api/products/:slug/images
-// @access  Private (distribuidor dueño y admin)
+// Subir imágenes de producto
 exports.uploadProductImages = async (req, res, next) => {
   try {
-    console.log(`📸 Subiendo imagen para producto: ${req.params.slug}`);
-    
     const product = await findProductBySlugOrId(req.params.slug, false);
 
     if (!product) {
-      console.log(`❌ Producto no encontrado para subir imagen: ${req.params.slug}`);
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
@@ -581,14 +484,12 @@ exports.uploadProductImages = async (req, res, next) => {
         });
       }
 
-      // Actualizar el producto con la nueva imagen usando el ID
+      // Actualizar el producto con la nueva imagen
       await Product.findByIdAndUpdate(
         product._id,
         { $push: { images: file.name } },
         { new: true }
       );
-
-      console.log(`✅ Imagen subida exitosamente: ${file.name}`);
 
       res.status(200).json({
         success: true,
@@ -596,14 +497,12 @@ exports.uploadProductImages = async (req, res, next) => {
       });
     });
   } catch (err) {
-    console.error('💥 Error al subir imagen:', err);
+    console.error('Error al subir imagen:', err);
     next(err);
   }
 };
 
-// @desc    Obtener productos por distribuidor
-// @route   GET /api/products/distributor/:id
-// @access  Public
+// Obtener productos por distribuidor
 exports.getProductsByDistributor = async (req, res, next) => {
   try {
     const products = await Product.find({ distributor: req.params.id })
@@ -619,9 +518,7 @@ exports.getProductsByDistributor = async (req, res, next) => {
   }
 };
 
-// @desc    Obtener productos del distribuidor actual
-// @route   GET /api/products/my/products
-// @access  Private (distribuidor)
+// Obtener productos del distribuidor actual
 exports.getMyProducts = async (req, res, next) => {
   try {
     const products = await Product.find({ distributor: req.user.id })
@@ -637,10 +534,7 @@ exports.getMyProducts = async (req, res, next) => {
   }
 };
 
-// ✅ CORREGIDO: Obtener valoraciones de un producto
-// @desc    Obtener valoraciones de un producto
-// @route   GET /api/products/:slug/ratings
-// @access  Public
+// Obtener valoraciones de un producto
 exports.getProductRatings = async (req, res, next) => {
   try {
     const product = await findProductBySlugOrId(req.params.slug, false);
@@ -686,10 +580,7 @@ exports.getProductRatings = async (req, res, next) => {
   }
 };
 
-// ✅ CORREGIDO: Añadir una valoración a un producto
-// @desc    Añadir una valoración a un producto
-// @route   POST /api/products/:slug/ratings
-// @access  Private (clientes)
+// Añadir una valoración a un producto
 exports.addProductRating = async (req, res, next) => {
   try {
     const { rating, comment, userName } = req.body;
@@ -750,31 +641,4 @@ exports.addProductRating = async (req, res, next) => {
   }
 };
 
-// ✅ NUEVO: Obtener marcas únicas disponibles
-// @desc    Obtener todas las marcas únicas
-// @route   GET /api/products/brands
-// @access  Public
-exports.getBrands = async (req, res, next) => {
-  try {
-    console.log('🏷️ Obteniendo marcas únicas...');
-    
-    const brands = await Product.distinct('brand', { 
-      brand: { $exists: true, $ne: '', $ne: null } 
-    });
-    
-    // Ordenar alfabéticamente
-    const sortedBrands = brands.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-    
-    console.log(`✅ Marcas encontradas: ${sortedBrands.length}`);
-    console.log('Marcas:', sortedBrands);
-    
-    res.status(200).json({
-      success: true,
-      count: sortedBrands.length,
-      data: sortedBrands
-    });
-  } catch (err) {
-    console.error('💥 Error en getBrands:', err);
-    next(err);
-  }
-};
+module.exports = exports;

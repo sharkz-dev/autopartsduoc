@@ -239,14 +239,14 @@ exports.resetConfigurations = async (req, res, next) => {
       },
       {
         key: 'site_name',
-        value: 'AutoRepuestos',
+        value: 'AutoParts',
         description: 'Nombre del sitio web',
         type: 'string',
         category: 'general'
       },
       {
         key: 'contact_email',
-        value: 'info@autorepuestos.com',
+        value: 'info@AutoParts.com',
         description: 'Email de contacto principal',
         type: 'string',
         category: 'general'

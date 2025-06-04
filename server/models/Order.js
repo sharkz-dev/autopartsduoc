@@ -109,7 +109,6 @@ const OrderSchema = new mongoose.Schema({
     required: true,
     default: 0.0
   },
-  // NUEVO: Campo para almacenar la tasa de IVA aplicada en esta orden
   taxRate: {
     type: Number,
     required: true,
@@ -155,7 +154,6 @@ const OrderSchema = new mongoose.Schema({
     enum: ['B2C', 'B2B'],
     default: 'B2C'
   },
-  // NUEVO: Campos adicionales para auditoría de cambios fiscales
   fiscalInfo: {
     appliedTaxRate: {
       type: Number,
