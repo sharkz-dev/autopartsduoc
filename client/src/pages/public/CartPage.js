@@ -30,10 +30,6 @@ const CartPage = () => {
   const { isAuthenticated, canAccessWholesalePrices } = useAuth();
   const navigate = useNavigate();
   
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
-  
   // Debug para ver el contenido del carrito
   useEffect(() => {
     console.log("Contenido del carrito:", cartItems);
@@ -61,26 +57,6 @@ const CartPage = () => {
       navigate('/checkout');
     } else {
       navigate('/login', { state: { from: '/checkout' } });
-    }
-  };
-  
-  // Aplicar cupón (simulado)
-  const applyCoupon = (e) => {
-    e.preventDefault();
-    
-    if (!couponCode.trim()) {
-      setCouponError('Por favor ingrese un código de cupón');
-      setCouponSuccess('');
-      return;
-    }
-    
-    // Simular verificación de cupón
-    if (couponCode.toUpperCase() === 'DESCUENTO10') {
-      setCouponSuccess('¡Cupón aplicado con éxito! 10% de descuento.');
-      setCouponError('');
-    } else {
-      setCouponError('Código de cupón inválido o expirado');
-      setCouponSuccess('');
     }
   };
   
@@ -296,36 +272,8 @@ const CartPage = () => {
               </div>
               
               <div className="px-6 py-4 space-y-4">
-                {/* Cupón */}
-                <form onSubmit={applyCoupon}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código de descuento
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      placeholder="Ingresa tu código"
-                    />
-                    <button
-                      type="submit"
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      Aplicar
-                    </button>
-                  </div>
-                  {couponError && (
-                    <p className="mt-1 text-xs text-red-600">{couponError}</p>
-                  )}
-                  {couponSuccess && (
-                    <p className="mt-1 text-xs text-green-600">{couponSuccess}</p>
-                  )}
-                </form>
-                
                 {/* Detalles del costo */}
-                <div className="border-t border-gray-200 pt-4">
+
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm text-gray-600">Subtotal</p>
                     <p className="text-sm font-medium text-gray-900">{formatCurrency(getSubtotal())}</p>
@@ -342,12 +290,6 @@ const CartPage = () => {
                         : formatCurrency(getShippingAmount())}
                     </p>
                   </div>
-                  {couponSuccess && (
-                    <div className="flex justify-between items-center mb-2 text-green-600">
-                      <p className="text-sm">Descuento (10%)</p>
-                      <p className="text-sm font-medium">-{formatCurrency(getSubtotal() * 0.1)}</p>
-                    </div>
-                  )}
                 </div>
                 
                 {/* Total */}
@@ -355,9 +297,7 @@ const CartPage = () => {
                   <div className="flex justify-between items-center">
                     <p className="text-base font-medium text-gray-900">Total</p>
                     <p className="text-xl font-semibold text-gray-900">
-                      {couponSuccess 
-                        ? formatCurrency(getFinalTotal() * 0.9) 
-                        : formatCurrency(getFinalTotal())}
+                      {formatCurrency(getFinalTotal())}
                     </p>
                   </div>
                 </div>
@@ -409,7 +349,7 @@ const CartPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        
       )}
     </div>
   );
