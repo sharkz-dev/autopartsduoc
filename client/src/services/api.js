@@ -165,6 +165,20 @@ export const productService = {
   // Función para obtener marcas únicas
   getBrands: () => {
     return api.get('/products/brands');
+  },
+
+  // ✅ NUEVAS FUNCIONES: Modelos compatibles y búsqueda avanzada
+  
+  // Obtener modelos compatibles únicos
+  getCompatibleModels: () => {
+    return api.get('/products/compatible-models');
+  },
+
+  // Obtener sugerencias de búsqueda
+  getSearchSuggestions: (query) => {
+    return api.get('/products/search/suggestions', {
+      params: { q: query }
+    });
   }
 };
 
@@ -467,7 +481,7 @@ export const reportService = {
   }
 };
 
-// Servicio de búsqueda avanzada
+// ✅ NUEVO: Servicio de búsqueda avanzada
 export const searchService = {
   // Búsqueda global
   globalSearch: (query, filters = {}) => {
@@ -485,9 +499,7 @@ export const searchService = {
 
   // Sugerencias de búsqueda
   getSearchSuggestions: (query) => {
-    return api.get('/search/suggestions', {
-      params: { q: query }
-    });
+    return productService.getSearchSuggestions(query);
   },
 
   // Búsquedas populares

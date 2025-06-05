@@ -10,7 +10,9 @@ const {
   addProductRating,
   getProductsOnSale,
   getProductRatings,
-  getBrands  // ✅ AGREGADO: Importar la nueva función
+  getBrands,
+  getCompatibleModels,  // ✅ NUEVO
+  getSearchSuggestions  // ✅ NUEVO
 } = require('../controllers/product.controller');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -27,13 +29,19 @@ router.get('/on-sale', getProductsOnSale);
 // ✅ CORREGIDO: Obtener todas las marcas únicas - DEBE ir antes de /:slug
 router.get('/brands', getBrands);
 
+// ✅ NUEVO: Obtener modelos compatibles únicos - DEBE ir antes de /:slug
+router.get('/compatible-models', getCompatibleModels);
+
+// ✅ NUEVO: Obtener sugerencias de búsqueda - DEBE ir antes de /:slug
+router.get('/search/suggestions', getSearchSuggestions);
+
 // ============ RUTAS DE CREACIÓN ============
 // Crear nuevo producto (solo admin)
 router.post('/', protect, authorize('admin'), createProduct);
 
 // ============ RUTAS CON SLUGS/IDs DINÁMICOS (AL FINAL) ============
 // CRÍTICO: Estas rutas deben ir AL FINAL para evitar que capturen 
-// las rutas específicas de arriba como "on-sale" y "brands"
+// las rutas específicas de arriba como "on-sale", "brands", "compatible-models", etc.
 
 // Obtener un producto específico por slug o ID
 router.get('/:slug', getProduct);

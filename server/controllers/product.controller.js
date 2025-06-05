@@ -62,20 +62,32 @@ const generateUniqueSlug = async (name, productId = null) => {
   return slug;
 };
 
-// Obtener todos los productos
+// ✅ BÚSQUEDA MEJORADA - Obtener todos los productos con búsqueda avanzada
 exports.getProducts = async (req, res, next) => {
   try {
     // Construir objeto de consulta MongoDB
     let mongoQuery = {};
 
-    // Manejar búsqueda por texto
+    // ✅ BÚSQUEDA MEJORADA POR TEXTO - Incluye modelos compatibles
     if (req.query.search) {
+      const searchTerm = req.query.search.trim();
+      
       mongoQuery.$or = [
-        { name: { $regex: req.query.search, $options: 'i' } },
-        { description: { $regex: req.query.search, $options: 'i' } },
-        { brand: { $regex: req.query.search, $options: 'i' } },
-        { sku: { $regex: req.query.search, $options: 'i' } },
-        { partNumber: { $regex: req.query.search, $options: 'i' } }
+        // Búsqueda en campos básicos
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { description: { $regex: searchTerm, $options: 'i' } },
+        { brand: { $regex: searchTerm, $options: 'i' } },
+        { sku: { $regex: searchTerm, $options: 'i' } },
+        { partNumber: { $regex: searchTerm, $options: 'i' } },
+        
+        // ✅ NUEVO: Búsqueda en modelos compatibles
+        { 'compatibleModels.make': { $regex: searchTerm, $options: 'i' } },
+        { 'compatibleModels.model': { $regex: searchTerm, $options: 'i' } },
+        
+        // ✅ NUEVO: Búsqueda por año (si es un número)
+        ...(isNaN(searchTerm) ? [] : [
+          { 'compatibleModels.year': parseInt(searchTerm) }
+        ])
       ];
     }
 
@@ -136,6 +148,22 @@ exports.getProducts = async (req, res, next) => {
     // Manejar filtro de marca individual
     if (req.query.brand && !req.query.brands) {
       mongoQuery.brand = new RegExp(`^${req.query.brand}$`, 'i');
+    }
+
+    // ✅ NUEVO: Filtro por modelo compatible específico
+    if (req.query.vehicleMake) {
+      mongoQuery['compatibleModels.make'] = { $regex: req.query.vehicleMake, $options: 'i' };
+    }
+
+    if (req.query.vehicleModel) {
+      mongoQuery['compatibleModels.model'] = { $regex: req.query.vehicleModel, $options: 'i' };
+    }
+
+    if (req.query.vehicleYear) {
+      const year = parseInt(req.query.vehicleYear);
+      if (!isNaN(year)) {
+        mongoQuery['compatibleModels.year'] = year;
+      }
     }
 
     // Manejar filtro de productos en oferta
@@ -224,6 +252,11 @@ exports.getProducts = async (req, res, next) => {
         search: req.query.search || null,
         categories: req.query.categories ? req.query.categories.split(',') : [],
         brands: req.query.brands ? req.query.brands.split(',') : [],
+        vehicleFilters: {
+          make: req.query.vehicleMake || null,
+          model: req.query.vehicleModel || null,
+          year: req.query.vehicleYear || null
+        },
         priceRange: {
           min: req.query.minPrice || null,
           max: req.query.maxPrice || null
@@ -303,6 +336,119 @@ exports.getBrands = async (req, res, next) => {
     });
   } catch (err) {
     console.error('Error en getBrands:', err);
+    next(err);
+  }
+};
+
+// ✅ NUEVO: Obtener modelos compatibles únicos disponibles
+exports.getCompatibleModels = async (req, res, next) => {
+  try {
+    // Usar agregación para obtener modelos únicos
+    const models = await Product.aggregate([
+      { $unwind: '$compatibleModels' },
+      {
+        $group: {
+          _id: {
+            make: '$compatibleModels.make',
+            model: '$compatibleModels.model',
+            year: '$compatibleModels.year'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          make: '$_id.make',
+          model: '$_id.model',
+          year: '$_id.year',
+          count: 1
+        }
+      },
+      { $sort: { make: 1, model: 1, year: -1 } }
+    ]);
+
+    // Agrupar por marca para mejor organización
+    const groupedModels = models.reduce((acc, item) => {
+      if (!acc[item.make]) {
+        acc[item.make] = [];
+      }
+      acc[item.make].push({
+        model: item.model,
+        year: item.year,
+        count: item.count
+      });
+      return acc;
+    }, {});
+
+    res.status(200).json({
+      success: true,
+      count: models.length,
+      data: {
+        models: models,
+        groupedByMake: groupedModels
+      }
+    });
+  } catch (err) {
+    console.error('Error en getCompatibleModels:', err);
+    next(err);
+  }
+};
+
+// ✅ NUEVO: Búsqueda de sugerencias para autocompletado
+exports.getSearchSuggestions = async (req, res, next) => {
+  try {
+    const { q: query } = req.query;
+    
+    if (!query || query.length < 2) {
+      return res.status(200).json({
+        success: true,
+        data: []
+      });
+    }
+
+    const searchRegex = { $regex: query, $options: 'i' };
+    
+    // Búsqueda en paralelo de diferentes tipos de sugerencias
+    const [productNames, brands, compatibleMakes, compatibleModels] = await Promise.all([
+      // Nombres de productos
+      Product.find({ name: searchRegex })
+        .select('name')
+        .limit(5),
+      
+      // Marcas
+      Product.distinct('brand', { brand: searchRegex }),
+      
+      // Marcas de vehículos compatibles
+      Product.aggregate([
+        { $unwind: '$compatibleModels' },
+        { $match: { 'compatibleModels.make': searchRegex } },
+        { $group: { _id: '$compatibleModels.make' } },
+        { $limit: 5 }
+      ]),
+      
+      // Modelos de vehículos compatibles
+      Product.aggregate([
+        { $unwind: '$compatibleModels' },
+        { $match: { 'compatibleModels.model': searchRegex } },
+        { $group: { _id: '$compatibleModels.model' } },
+        { $limit: 5 }
+      ])
+    ]);
+
+    const suggestions = [
+      ...productNames.map(p => ({ type: 'product', value: p.name })),
+      ...brands.slice(0, 3).map(b => ({ type: 'brand', value: b })),
+      ...compatibleMakes.map(m => ({ type: 'vehicle_make', value: m._id })),
+      ...compatibleModels.map(m => ({ type: 'vehicle_model', value: m._id }))
+    ];
+
+    res.status(200).json({
+      success: true,
+      data: suggestions.slice(0, 10) // Limitar a 10 sugerencias
+    });
+  } catch (err) {
+    console.error('Error en getSearchSuggestions:', err);
     next(err);
   }
 };

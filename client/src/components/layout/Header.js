@@ -77,11 +77,19 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
+  // ✅ FUNCIÓN DE BÚSQUEDA CORREGIDA
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/catalog?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchQuery('');
+    const trimmedQuery = searchQuery.trim();
+    
+    if (trimmedQuery) {
+      // Construir la URL de búsqueda con parámetros
+      const searchParams = new URLSearchParams();
+      searchParams.set('search', trimmedQuery);
+      
+      // Navegar al catálogo con la búsqueda
+      navigate(`/catalog?${searchParams.toString()}`);
+      setSearchQuery(''); // Limpiar después de buscar
     }
   };
 
@@ -231,7 +239,7 @@ const Header = () => {
               </div>
             </Link>
 
-            {/* Barra de búsqueda - Responsive mejorado */}
+            {/* ✅ BARRA DE BÚSQUEDA CORREGIDA - Responsive mejorado */}
             <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md lg:max-w-2xl mx-4 lg:mx-8">
               <div className="relative w-full group">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl lg:rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity"></div>
@@ -240,7 +248,7 @@ const Header = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar repuestos..."
+                    placeholder="Buscar por marca, modelo, categoría, SKU..."
                     className="flex-1 pl-10 lg:pl-12 pr-4 py-2 lg:py-3 bg-white/80 backdrop-blur-sm border-2 border-transparent rounded-l-xl lg:rounded-l-2xl focus:border-purple-500 focus:outline-none transition-all duration-300 text-gray-800 placeholder-gray-500 text-sm lg:text-base"
                   />
                   <button
@@ -458,17 +466,23 @@ const Header = () => {
         {/* Menú móvil innovador - Responsive mejorado */}
         {isMenuOpen && (
           <div className="xl:hidden bg-white mt-2 mx-4 rounded-2xl shadow-2xl border border-gray-200 animate-slide-in-up">
-            {/* Búsqueda móvil - Solo si no se muestra arriba */}
+            {/* ✅ BÚSQUEDA MÓVIL CORREGIDA - Solo si no se muestra arriba */}
             <div className="md:hidden p-4 border-b border-gray-100">
               <form onSubmit={handleSearch} className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar productos..."
+                  placeholder="Buscar repuestos, marcas, modelos..."
                   className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none"
                 />
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-600 text-white p-1.5 rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <MagnifyingGlassIcon className="h-4 w-4" />
+                </button>
               </form>
             </div>
 

@@ -4,16 +4,22 @@ import {
   AdjustmentsHorizontalIcon, 
   XMarkIcon,
   ChevronDownIcon,
-  FunnelIcon
+  FunnelIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import { TagIcon } from '@heroicons/react/24/solid';
 
 const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMobileFilters }) => {
+  // ===== ESTADOS =====
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [compatibleModels, setCompatibleModels] = useState({ models: [], groupedByMake: {} });
+  
+  // Estados de expansión de secciones
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
     brands: true,
+    vehicles: true,
     features: true,
     price: true
   });
@@ -30,6 +36,17 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     filters.brands ? filters.brands.split(',') : []
   );
 
+  // Estados para filtros de vehículos compatibles
+  const [vehicleFilters, setVehicleFilters] = useState({
+    make: filters.vehicleMake || '',
+    model: filters.vehicleModel || '',
+    year: filters.vehicleYear || ''
+  });
+
+  // Estado para búsqueda de modelos
+  const [modelSearchTerm, setModelSearchTerm] = useState('');
+
+  // ===== EFECTOS =====
   useEffect(() => {
     const fetchFiltersData = async () => {
       try {
@@ -38,13 +55,18 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
         setCategories(categoriesResponse.data.data);
 
         // Cargar marcas únicas de los productos
-        const productsResponse = await productService.getProducts({ limit: 1000 });
-        const uniqueBrands = [...new Set(
-          productsResponse.data.data
-            .map(product => product.brand)
-            .filter(brand => brand && brand.trim() !== '')
-        )].sort();
-        setBrands(uniqueBrands);
+        const brandsResponse = await productService.getBrands();
+        setBrands(brandsResponse.data.data);
+
+        // Cargar modelos compatibles
+        try {
+          const modelsResponse = await productService.getCompatibleModels();
+          setCompatibleModels(modelsResponse.data.data);
+        } catch (modelsError) {
+          console.error('Error al cargar modelos compatibles:', modelsError);
+          setCompatibleModels({ models: [], groupedByMake: {} });
+        }
+
       } catch (err) {
         console.error('Error al cargar datos de filtros:', err);
       }
@@ -59,8 +81,14 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     setTempMaxPrice(filters.maxPrice || '');
     setSelectedCategories(filters.categories ? filters.categories.split(',') : []);
     setSelectedBrands(filters.brands ? filters.brands.split(',') : []);
+    setVehicleFilters({
+      make: filters.vehicleMake || '',
+      model: filters.vehicleModel || '',
+      year: filters.vehicleYear || ''
+    });
   }, [filters]);
 
+  // ===== FUNCIONES AUXILIARES =====
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -68,21 +96,49 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     }));
   };
 
+  // Obtener modelos filtrados por marca seleccionada
+  const getFilteredModels = () => {
+    if (!vehicleFilters.make || !compatibleModels.groupedByMake[vehicleFilters.make]) {
+      return [];
+    }
+    
+    const models = compatibleModels.groupedByMake[vehicleFilters.make];
+    
+    if (!modelSearchTerm) {
+      return models;
+    }
+    
+    return models.filter(item => 
+      item.model.toLowerCase().includes(modelSearchTerm.toLowerCase())
+    );
+  };
+
+  // Obtener años únicos para el modelo seleccionado
+  const getAvailableYears = () => {
+    if (!vehicleFilters.make || !vehicleFilters.model) {
+      return [];
+    }
+    
+    const filteredModels = getFilteredModels();
+    const modelData = filteredModels.filter(item => item.model === vehicleFilters.model);
+    const years = [...new Set(modelData.map(item => item.year))].sort((a, b) => b - a);
+    
+    return years;
+  };
+
+  // ===== MANEJADORES DE CAMBIOS =====
   // Manejar selección múltiple de categorías
   const handleCategoryChange = (categorySlug) => {
     let newSelectedCategories;
     
     if (selectedCategories.includes(categorySlug)) {
-      // Remover categoría si ya está seleccionada
       newSelectedCategories = selectedCategories.filter(cat => cat !== categorySlug);
     } else {
-      // Agregar categoría si no está seleccionada
       newSelectedCategories = [...selectedCategories, categorySlug];
     }
     
     setSelectedCategories(newSelectedCategories);
     
-    // Actualizar filtros
     const newFilters = { ...filters };
     if (newSelectedCategories.length > 0) {
       newFilters.categories = newSelectedCategories.join(',');
@@ -98,16 +154,13 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     let newSelectedBrands;
     
     if (selectedBrands.includes(brand)) {
-      // Remover marca si ya está seleccionada
       newSelectedBrands = selectedBrands.filter(b => b !== brand);
     } else {
-      // Agregar marca si no está seleccionada
       newSelectedBrands = [...selectedBrands, brand];
     }
     
     setSelectedBrands(newSelectedBrands);
     
-    // Actualizar filtros
     const newFilters = { ...filters };
     if (newSelectedBrands.length > 0) {
       newFilters.brands = newSelectedBrands.join(',');
@@ -118,19 +171,43 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     onFilterChange(newFilters);
   };
 
-  // Limpiar categorías seleccionadas
-  const clearCategories = () => {
-    setSelectedCategories([]);
+  // Manejar filtros de vehículos compatibles
+  const handleVehicleFilterChange = (field, value) => {
+    const newVehicleFilters = { ...vehicleFilters, [field]: value };
+    
+    // Si se cambia la marca, limpiar modelo y año
+    if (field === 'make') {
+      newVehicleFilters.model = '';
+      newVehicleFilters.year = '';
+    }
+    // Si se cambia el modelo, limpiar año
+    else if (field === 'model') {
+      newVehicleFilters.year = '';
+    }
+    
+    setVehicleFilters(newVehicleFilters);
+    
     const newFilters = { ...filters };
-    delete newFilters.categories;
-    onFilterChange(newFilters);
-  };
-
-  // Limpiar marcas seleccionadas
-  const clearBrands = () => {
-    setSelectedBrands([]);
-    const newFilters = { ...filters };
-    delete newFilters.brands;
+    
+    // Actualizar filtros
+    if (newVehicleFilters.make) {
+      newFilters.vehicleMake = newVehicleFilters.make;
+    } else {
+      delete newFilters.vehicleMake;
+    }
+    
+    if (newVehicleFilters.model) {
+      newFilters.vehicleModel = newVehicleFilters.model;
+    } else {
+      delete newFilters.vehicleModel;
+    }
+    
+    if (newVehicleFilters.year) {
+      newFilters.vehicleYear = newVehicleFilters.year;
+    } else {
+      delete newFilters.vehicleYear;
+    }
+    
     onFilterChange(newFilters);
   };
 
@@ -155,7 +232,6 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
   const handlePriceInputChange = (event) => {
     const { name, value } = event.target;
     
-    // Solo aceptamos números positivos o vacío
     if (value === '' || (Number(value) >= 0 && !isNaN(Number(value)))) {
       const newFilters = { ...filters };
       
@@ -179,6 +255,31 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     }
   };
 
+  // ===== FUNCIONES DE LIMPIEZA =====
+  const clearCategories = () => {
+    setSelectedCategories([]);
+    const newFilters = { ...filters };
+    delete newFilters.categories;
+    onFilterChange(newFilters);
+  };
+
+  const clearBrands = () => {
+    setSelectedBrands([]);
+    const newFilters = { ...filters };
+    delete newFilters.brands;
+    onFilterChange(newFilters);
+  };
+
+  const clearVehicleFilters = () => {
+    setVehicleFilters({ make: '', model: '', year: '' });
+    setModelSearchTerm('');
+    const newFilters = { ...filters };
+    delete newFilters.vehicleMake;
+    delete newFilters.vehicleModel;
+    delete newFilters.vehicleYear;
+    onFilterChange(newFilters);
+  };
+
   const clearPriceFilter = () => {
     setTempMinPrice('');
     setTempMaxPrice('');
@@ -194,12 +295,17 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     setTempMaxPrice('');
     setSelectedCategories([]);
     setSelectedBrands([]);
+    setVehicleFilters({ make: '', model: '', year: '' });
+    setModelSearchTerm('');
     onFilterChange({});
   };
 
+  // ===== VARIABLES CALCULADAS =====
   const hasActiveFilters = Object.keys(filters).length > 0;
   const hasPriceFilter = filters.minPrice || filters.maxPrice;
+  const hasVehicleFilters = vehicleFilters.make || vehicleFilters.model || vehicleFilters.year;
 
+  // ===== COMPONENTES AUXILIARES =====
   // Componente de sección de filtros reutilizable
   const FilterSection = ({ 
     title, 
@@ -222,6 +328,7 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
             </span>
           )}
         </div>
+        
         <div className="flex items-center">
           {onClear && itemCount > 0 && (
             <button
@@ -252,6 +359,276 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
     </div>
   );
 
+  // ===== COMPONENTES DE FILTRO =====
+  const CategoriesFilter = ({ isMobile = false }) => (
+    <FilterSection
+      title="Categorías"
+      sectionKey="categories"
+      hasItems={categories.length > 0}
+      itemCount={selectedCategories.length}
+      onClear={clearCategories}
+    >
+      <div className={`space-y-3 ${isMobile ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
+        {categories.map(category => (
+          <div key={category._id} className="flex items-center hover:bg-gray-50 p-1 rounded">
+            <input
+              id={`${isMobile ? 'mobile-' : ''}category-${category._id}`}
+              name="categories"
+              type="checkbox"
+              checked={selectedCategories.includes(category.slug)}
+              onChange={() => handleCategoryChange(category.slug)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label
+              htmlFor={`${isMobile ? 'mobile-' : ''}category-${category._id}`}
+              className="ml-3 text-sm text-gray-600 cursor-pointer flex-1"
+            >
+              {category.name}
+            </label>
+          </div>
+        ))}
+      </div>
+    </FilterSection>
+  );
+
+  const BrandsFilter = ({ isMobile = false }) => (
+    <FilterSection
+      title="Marcas"
+      sectionKey="brands"
+      hasItems={brands.length > 0}
+      itemCount={selectedBrands.length}
+      onClear={clearBrands}
+    >
+      <div className={`space-y-3 ${isMobile ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
+        {brands.map(brand => (
+          <div key={brand} className="flex items-center hover:bg-gray-50 p-1 rounded">
+            <input
+              id={`${isMobile ? 'mobile-' : ''}brand-${brand}`}
+              name="brands"
+              type="checkbox"
+              checked={selectedBrands.includes(brand)}
+              onChange={() => handleBrandChange(brand)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label
+              htmlFor={`${isMobile ? 'mobile-' : ''}brand-${brand}`}
+              className="ml-3 text-sm text-gray-600 cursor-pointer flex-1"
+            >
+              {brand}
+            </label>
+          </div>
+        ))}
+      </div>
+    </FilterSection>
+  );
+
+  const VehiclesFilter = ({ isMobile = false }) => (
+    <FilterSection
+      title="Vehículos Compatibles"
+      sectionKey="vehicles"
+      hasItems={Object.keys(compatibleModels.groupedByMake || {}).length > 0}
+      itemCount={hasVehicleFilters ? 1 : 0}
+      onClear={clearVehicleFilters}
+    >
+      <div className="space-y-4">
+        {/* Marca de vehículo */}
+        <div>
+          <label className="text-sm text-gray-600 block mb-2">
+            {isMobile ? 'Marca' : 'Marca del Vehículo'}
+          </label>
+          <select
+            value={vehicleFilters.make}
+            onChange={(e) => handleVehicleFilterChange('make', e.target.value)}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+          >
+            <option value="">{isMobile ? 'Todas las marcas' : 'Seleccionar marca'}</option>
+            {Object.keys(compatibleModels.groupedByMake || {}).map(make => (
+              <option key={make} value={make}>{make}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Modelo de vehículo */}
+        {vehicleFilters.make && (
+          <div>
+            <label className="text-sm text-gray-600 block mb-2">
+              {isMobile ? 'Modelo' : 'Modelo del Vehículo'}
+            </label>
+            
+            {/* Campo de búsqueda para modelos (solo desktop) */}
+            {!isMobile && (
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  placeholder="Buscar modelo..."
+                  value={modelSearchTerm}
+                  onChange={(e) => setModelSearchTerm(e.target.value)}
+                  className="block w-full pl-8 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                />
+                <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
+            )}
+            
+            <select
+              value={vehicleFilters.model}
+              onChange={(e) => handleVehicleFilterChange('model', e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+            >
+              <option value="">{isMobile ? 'Todos los modelos' : 'Seleccionar modelo'}</option>
+              {[...new Set(getFilteredModels().map(item => item.model))].map(model => (
+                <option key={model} value={model}>{model}</option>
+              ))}
+            </select>
+            
+            {!isMobile && modelSearchTerm && getFilteredModels().length === 0 && (
+              <p className="text-xs text-gray-500 mt-1">No se encontraron modelos que coincidan</p>
+            )}
+          </div>
+        )}
+
+        {/* Año de vehículo */}
+        {vehicleFilters.model && (
+          <div>
+            <label className="text-sm text-gray-600 block mb-2">
+              {isMobile ? 'Año' : 'Año del Vehículo'}
+            </label>
+            <select
+              value={vehicleFilters.year}
+              onChange={(e) => handleVehicleFilterChange('year', e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+            >
+              <option value="">{isMobile ? 'Todos los años' : 'Seleccionar año'}</option>
+              {getAvailableYears().map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Mostrar filtro activo (solo desktop) */}
+        {!isMobile && hasVehicleFilters && (
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Filtro activo:</h4>
+            <div className="text-sm text-blue-800">
+              {vehicleFilters.make && (
+                <div>Marca: <span className="font-medium">{vehicleFilters.make}</span></div>
+              )}
+              {vehicleFilters.model && (
+                <div>Modelo: <span className="font-medium">{vehicleFilters.model}</span></div>
+              )}
+              {vehicleFilters.year && (
+                <div>Año: <span className="font-medium">{vehicleFilters.year}</span></div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </FilterSection>
+  );
+
+  const FeaturesFilter = ({ isMobile = false }) => (
+    <FilterSection
+      title="Características"
+      sectionKey="features"
+    >
+      <div className="space-y-3">
+        <div className="flex items-center hover:bg-gray-50 p-1 rounded">
+          <input
+            id={`${isMobile ? 'mobile-' : ''}featured`}
+            name="featured"
+            type="checkbox"
+            checked={!!filters.featured}
+            onChange={() => handleFeatureChange('featured')}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label
+            htmlFor={`${isMobile ? 'mobile-' : ''}featured`}
+            className="ml-3 flex items-center text-sm text-gray-600 cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500 mr-1">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+            </svg>
+            Productos destacados
+          </label>
+        </div>
+        
+        <div className="flex items-center hover:bg-gray-50 p-1 rounded">
+          <input
+            id={`${isMobile ? 'mobile-' : ''}onSale`}
+            name="onSale"
+            type="checkbox"
+            checked={!!filters.onSale}
+            onChange={() => handleFeatureChange('onSale')}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label
+            htmlFor={`${isMobile ? 'mobile-' : ''}onSale`}
+            className="ml-3 flex items-center text-sm text-gray-600 cursor-pointer"
+          >
+            <TagIcon className="h-4 w-4 text-red-500 mr-1" />
+            En oferta
+          </label>
+        </div>
+      </div>
+    </FilterSection>
+  );
+
+  const PriceFilter = () => (
+    <FilterSection
+      title="Rango de precio"
+      sectionKey="price"
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm text-gray-600 block mb-1">
+            Precio mínimo (CLP)
+          </label>
+          <input
+            type="number"
+            name="minPrice"
+            value={tempMinPrice}
+            onChange={handlePriceInputChange}
+            min="0"
+            placeholder="0"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+          />
+        </div>
+        
+        <div>
+          <label className="text-sm text-gray-600 block mb-1">
+            Precio máximo (CLP)
+          </label>
+          <input
+            type="number"
+            name="maxPrice"
+            value={tempMaxPrice}
+            onChange={handlePriceInputChange}
+            min="0"
+            placeholder="Sin límite"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+          />
+        </div>
+        
+        {hasPriceFilter && (
+          <button
+            type="button"
+            onClick={clearPriceFilter}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            Limpiar precios
+          </button>
+        )}
+        
+        {hasPriceFilter && (
+          <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+            Filtro activo: {filters.minPrice && `Desde ${filters.minPrice}`} {filters.minPrice && filters.maxPrice && '-'} {filters.maxPrice && `Hasta ${filters.maxPrice}`}
+          </div>
+        )}
+      </div>
+    </FilterSection>
+  );
+
+  // ===== RENDER PRINCIPAL =====
   return (
     <>
       {/* Filtros para móvil */}
@@ -303,159 +680,11 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
               </div>
 
               <div className="px-4 space-y-6">
-                {/* Categorías móvil */}
-                <FilterSection
-                  title="Categorías"
-                  sectionKey="categories"
-                  hasItems={categories.length > 0}
-                  itemCount={selectedCategories.length}
-                  onClear={clearCategories}
-                >
-                  <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {categories.map(category => (
-                      <div key={category._id} className="flex items-center">
-                        <input
-                          id={`mobile-category-${category._id}`}
-                          name="categories"
-                          type="checkbox"
-                          checked={selectedCategories.includes(category.slug)}
-                          onChange={() => handleCategoryChange(category.slug)}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <label
-                          htmlFor={`mobile-category-${category._id}`}
-                          className="ml-3 text-sm text-gray-600 cursor-pointer"
-                        >
-                          {category.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-
-                {/* Marcas móvil */}
-                <FilterSection
-                  title="Marcas"
-                  sectionKey="brands"
-                  hasItems={brands.length > 0}
-                  itemCount={selectedBrands.length}
-                  onClear={clearBrands}
-                >
-                  <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {brands.map(brand => (
-                      <div key={brand} className="flex items-center">
-                        <input
-                          id={`mobile-brand-${brand}`}
-                          name="brands"
-                          type="checkbox"
-                          checked={selectedBrands.includes(brand)}
-                          onChange={() => handleBrandChange(brand)}
-                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <label
-                          htmlFor={`mobile-brand-${brand}`}
-                          className="ml-3 text-sm text-gray-600 cursor-pointer"
-                        >
-                          {brand}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-                
-                {/* Características móvil */}
-                <FilterSection
-                  title="Características"
-                  sectionKey="features"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <input
-                        id="mobile-featured"
-                        name="featured"
-                        type="checkbox"
-                        checked={!!filters.featured}
-                        onChange={() => handleFeatureChange('featured')}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <label
-                        htmlFor="mobile-featured"
-                        className="ml-3 flex items-center text-sm text-gray-600 cursor-pointer"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500 mr-1">
-                          <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                        </svg>
-                        Productos destacados
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <input
-                        id="mobile-onSale"
-                        name="onSale"
-                        type="checkbox"
-                        checked={!!filters.onSale}
-                        onChange={() => handleFeatureChange('onSale')}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <label
-                        htmlFor="mobile-onSale"
-                        className="ml-3 flex items-center text-sm text-gray-600 cursor-pointer"
-                      >
-                        <TagIcon className="h-4 w-4 text-red-500 mr-1" />
-                        En oferta
-                      </label>
-                    </div>
-                  </div>
-                </FilterSection>
-                
-                {/* Precio móvil */}
-                <FilterSection
-                  title="Rango de precio"
-                  sectionKey="price"
-                >
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-1">
-                        Precio mínimo (CLP)
-                      </label>
-                      <input
-                        type="number"
-                        name="minPrice"
-                        value={tempMinPrice}
-                        onChange={handlePriceInputChange}
-                        min="0"
-                        placeholder="0"
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-1">
-                        Precio máximo (CLP)
-                      </label>
-                      <input
-                        type="number"
-                        name="maxPrice"
-                        value={tempMaxPrice}
-                        onChange={handlePriceInputChange}
-                        min="0"
-                        placeholder="Sin límite"
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                      />
-                    </div>
-                    
-                    {hasPriceFilter && (
-                      <button
-                        type="button"
-                        onClick={clearPriceFilter}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                      >
-                        Limpiar precios
-                      </button>
-                    )}
-                  </div>
-                </FilterSection>
+                <CategoriesFilter isMobile={true} />
+                <BrandsFilter isMobile={true} />
+                <VehiclesFilter isMobile={true} />
+                <FeaturesFilter isMobile={true} />
+                <PriceFilter />
                 
                 {/* Botón para limpiar todos los filtros móvil */}
                 {hasActiveFilters && (
@@ -494,166 +723,14 @@ const CatalogFilter = ({ filters, onFilterChange, isMobileFiltersOpen, toggleMob
             </button>
           )}
         </div>
-        
-        {/* Categorías escritorio */}
-        <FilterSection
-          title="Categorías"
-          sectionKey="categories"
-          hasItems={categories.length > 0}
-          itemCount={selectedCategories.length}
-          onClear={clearCategories}
-        >
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {categories.map(category => (
-              <div key={category._id} className="flex items-center hover:bg-gray-50 p-1 rounded">
-                <input
-                  id={`category-${category._id}`}
-                  name="categories"
-                  type="checkbox"
-                  checked={selectedCategories.includes(category.slug)}
-                  onChange={() => handleCategoryChange(category.slug)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label
-                  htmlFor={`category-${category._id}`}
-                  className="ml-3 text-sm text-gray-600 cursor-pointer flex-1"
-                >
-                  {category.name}
-                </label>
-              </div>
-            ))}
-          </div>
-        </FilterSection>
 
-        {/* Marcas escritorio */}
-        <FilterSection
-          title="Marcas"
-          sectionKey="brands"
-          hasItems={brands.length > 0}
-          itemCount={selectedBrands.length}
-          onClear={clearBrands}
-        >
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {brands.map(brand => (
-              <div key={brand} className="flex items-center hover:bg-gray-50 p-1 rounded">
-                <input
-                  id={`brand-${brand}`}
-                  name="brands"
-                  type="checkbox"
-                  checked={selectedBrands.includes(brand)}
-                  onChange={() => handleBrandChange(brand)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label
-                  htmlFor={`brand-${brand}`}
-                  className="ml-3 text-sm text-gray-600 cursor-pointer flex-1"
-                >
-                  {brand}
-                </label>
-              </div>
-            ))}
-          </div>
-        </FilterSection>
-        
-        {/* Características escritorio */}
-        <FilterSection
-          title="Características"
-          sectionKey="features"
-        >
-          <div className="space-y-3">
-            <div className="flex items-center hover:bg-gray-50 p-1 rounded">
-              <input
-                id="featured"
-                name="featured"
-                type="checkbox"
-                checked={!!filters.featured}
-                onChange={() => handleFeatureChange('featured')}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label
-                htmlFor="featured"
-                className="ml-3 flex items-center text-sm text-gray-600 cursor-pointer"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-yellow-500 mr-1">
-                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                </svg>
-                Productos destacados
-              </label>
-            </div>
-            
-            <div className="flex items-center hover:bg-gray-50 p-1 rounded">
-              <input
-                id="onSale"
-                name="onSale"
-                type="checkbox"
-                checked={!!filters.onSale}
-                onChange={() => handleFeatureChange('onSale')}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label
-                htmlFor="onSale"
-                className="ml-3 flex items-center text-sm text-gray-600 cursor-pointer"
-              >
-                <TagIcon className="h-4 w-4 text-red-500 mr-1" />
-                En oferta
-              </label>
-            </div>
-          </div>
-        </FilterSection>
-        
-        {/* Precio escritorio */}
-        <FilterSection
-          title="Rango de precio"
-          sectionKey="price"
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-gray-600 block mb-1">
-                Precio mínimo (CLP)
-              </label>
-              <input
-                type="number"
-                name="minPrice"
-                value={tempMinPrice}
-                onChange={handlePriceInputChange}
-                min="0"
-                placeholder="0"
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm text-gray-600 block mb-1">
-                Precio máximo (CLP)
-              </label>
-              <input
-                type="number"
-                name="maxPrice"
-                value={tempMaxPrice}
-                onChange={handlePriceInputChange}
-                min="0"
-                placeholder="Sin límite"
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-              />
-            </div>
-            
-            {hasPriceFilter && (
-              <button
-                type="button"
-                onClick={clearPriceFilter}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-              >
-                Limpiar precios
-              </button>
-            )}
-            
-            {hasPriceFilter && (
-              <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                Filtro activo: {filters.minPrice && `Desde $${filters.minPrice}`} {filters.minPrice && filters.maxPrice && '-'} {filters.maxPrice && `Hasta $${filters.maxPrice}`}
-              </div>
-            )}
-          </div>
-        </FilterSection>
+        <div className="space-y-6">
+          <CategoriesFilter />
+          <BrandsFilter />
+          <VehiclesFilter />
+          <FeaturesFilter />
+          <PriceFilter />
+        </div>
       </div>
     </>
   );
