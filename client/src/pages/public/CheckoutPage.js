@@ -91,7 +91,6 @@ const CheckoutPage = () => {
   
   // ✅ NUEVO: Efecto para actualizar resumen cuando cambia pickupLocation
   useEffect(() => {
-    console.log('📍 Pickup location changed:', pickupLocation);
     setSummaryKey(prev => prev + 1); // Forzar re-render del resumen
   }, [pickupLocation]);
   
@@ -106,17 +105,13 @@ const CheckoutPage = () => {
   
   // ✅ NUEVO: Callback para manejar cambio de ubicación de retiro
   const handlePickupLocationChange = (selectedLocation) => {
-    console.log('📍 Callback - Nueva ubicación de retiro:', selectedLocation);
     setPickupLocation(selectedLocation);
     setError(''); // Limpiar errores previos
   };
   
   // ✅ SIMPLIFICADO: Validar formulario antes de enviar
   const validateForm = () => {
-    console.log('🔍 Validando formulario...');
-    console.log('   - Método de envío:', shipmentMethod);
-    console.log('   - Método de pago:', paymentMethod);
-    console.log('   - Pickup location:', pickupLocation);
+
     
     // Validar método de envío
     if (shipmentMethod === 'delivery') {
@@ -125,17 +120,17 @@ const CheckoutPage = () => {
         setError('Por favor, complete todos los campos de la dirección de envío');
         return false;
       }
-      console.log('✅ Dirección de envío válida');
+      
     } else if (shipmentMethod === 'pickup') {
       // ✅ SIMPLIFICADO: Solo verificar que pickupLocation esté establecido
       if (!pickupLocation) {
         setError('Por favor, seleccione una tienda para retiro');
         return false;
       }
-      console.log('✅ Ubicación de retiro válida:', pickupLocation.name);
+      
     }
     
-    console.log('✅ Formulario válido');
+    
     return true;
   };
   
@@ -143,10 +138,10 @@ const CheckoutPage = () => {
   const handleSubmitOrder = async (e) => {
     e.preventDefault();
     
-    console.log('🚀 Iniciando proceso de creación de orden...');
+    
     
     if (!validateForm()) {
-      console.log('❌ Validación de formulario falló');
+      
       return;
     }
     
@@ -168,22 +163,13 @@ const CheckoutPage = () => {
         totalPrice: getFinalTotal()
       };
       
-      console.log('📋 Datos base de la orden:', {
-        itemCount: orderData.items.length,
-        shipmentMethod: orderData.shipmentMethod,
-        paymentMethod: orderData.paymentMethod,
-        itemsPrice: orderData.itemsPrice,
-        taxPrice: orderData.taxPrice,
-        shippingPrice: orderData.shippingPrice,
-        totalPrice: orderData.totalPrice
-      });
       
       // Añadir datos según el método de envío
       if (shipmentMethod === 'delivery') {
         orderData.shippingAddress = shippingAddress;
-        console.log('📦 Agregado dirección de envío:', shippingAddress);
+     
       } else if (shipmentMethod === 'pickup') {
-        // ✅ SIMPLIFICADO: Usar pickupLocation directamente
+        // SIMPLIFICADO: Usar pickupLocation directamente
         if (!pickupLocation) {
           throw new Error('No se ha seleccionado una ubicación de retiro');
         }
@@ -194,55 +180,41 @@ const CheckoutPage = () => {
           notes: pickupLocation.notes || ''
         };
         
-        console.log('📍 Agregado ubicación de retiro:', orderData.pickupLocation);
+        
       }
       
-      console.log('💾 Creando orden con orderService...');
+    
       
       // Crear la orden usando el servicio importado
       const response = await orderService.createOrder(orderData);
       const order = response.data.data;
       
-      console.log('✅ Orden creada exitosamente:', {
-        orderId: order._id,
-        status: order.status,
-        totalPrice: order.totalPrice,
-        paymentMethod: order.paymentMethod
-      });
+
       
       // Manejar según el método de pago
       if (paymentMethod === 'webpay') {
-        console.log('💳 Procesando pago con Webpay...');
+        
         try {
           const transactionResponse = await api.post(`/payment/create-transaction/${order._id}`);
           const transactionData = transactionResponse.data.data;
           
-          console.log('✅ Transacción Webpay creada:', {
-            token: transactionData.token,
-            url: transactionData.url,
-            orderId: order._id
-          });
+ 
           
           localStorage.setItem('currentOrderId', order._id);
           window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
         } catch (webpayError) {
-          console.error('❌ Error al crear transacción Webpay:', webpayError);
           throw new Error('Error al procesar el pago con Webpay');
         }
       } else {
-        console.log('💰 Pago no es Webpay, redirigiendo a confirmación...');
+      
         clearCart();
         navigate(`/order-confirmation/${order._id}`);
       }
     } catch (err) {
-      console.error('❌ Error al crear la orden:', err);
-      console.error('📋 Stack trace:', err.stack);
-      console.error('📋 Response data:', err.response?.data);
-      
+
       let errorMessage = 'Hubo un error al procesar tu pedido. Por favor, intenta de nuevo.';
       if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
-        console.error('📋 Detalle del error del servidor:', err.response.data);
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -251,7 +223,7 @@ const CheckoutPage = () => {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
-      console.log('🏁 Proceso de creación de orden finalizado');
+    
     }
   };
   

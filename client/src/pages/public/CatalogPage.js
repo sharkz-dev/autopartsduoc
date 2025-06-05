@@ -89,7 +89,7 @@ const CatalogPage = () => {
           }
         });
         
-        console.log('Parámetros enviados al backend:', params);
+        
         
         const response = await productService.getProducts(params);
         
@@ -99,7 +99,6 @@ const CatalogPage = () => {
         
         setLoading(false);
       } catch (error) {
-        console.error('Error al cargar productos:', error);
         setError('Error al cargar productos. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }

@@ -41,7 +41,6 @@ const AdminCategoriesPage = () => {
       setCategories(response.data.data);
       setLoading(false);
     } catch (err) {
-      console.error('Error al cargar categorías:', err);
       setError('Error al cargar categorías. Por favor, intente de nuevo más tarde.');
       setLoading(false);
     }
@@ -54,7 +53,6 @@ const AdminCategoriesPage = () => {
       toast.success('Categoría eliminada correctamente');
       fetchCategories();
     } catch (err) {
-      console.error('Error al eliminar categoría:', err);
       toast.error(err.response?.data?.error || 'Error al eliminar categoría');
     } finally {
       setConfirmDelete(null);
@@ -144,7 +142,6 @@ const AdminCategoriesPage = () => {
           await categoryService.uploadCategoryImage(savedCategory._id, imageFormData);
           toast.success('Imagen subida correctamente');
         } catch (imageError) {
-          console.error('Error al subir imagen:', imageError);
           toast.error('La categoría se guardó pero hubo un error al subir la imagen');
         }
       }
@@ -154,7 +151,6 @@ const AdminCategoriesPage = () => {
       handleCancel();
       
     } catch (err) {
-      console.error('Error al guardar categoría:', err);
       toast.error(err.response?.data?.error || 'Error al guardar categoría');
     }
   };

@@ -56,7 +56,6 @@ const HomePage = () => {
         
         setLoading(false);
       } catch (error) {
-        console.error('Error al cargar datos de la página principal:', error);
         setError('Error al cargar los datos. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }

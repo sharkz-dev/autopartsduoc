@@ -19,7 +19,6 @@ const AdminEditProductPage = () => {
         setProduct(response.data.data);
         setLoading(false);
       } catch (err) {
-        console.error('Error al cargar producto:', err);
         setError('Error al cargar producto. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }

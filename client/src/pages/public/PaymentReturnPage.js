@@ -36,20 +36,9 @@ const PaymentReturnPage = () => {
         
         const storedOrderId = localStorage.getItem('currentOrderId');
         
-        console.log('🔄 Procesando retorno de Webpay:', {
-          orderIdParam,
-          tokenParam,
-          errorParam,
-          codeParam,
-          buyOrderParam,
-          storedOrderId,
-          retryParam,
-          fullURL: window.location.href
-        });
-        
         // ✅ MANEJO MEJORADO DE ERRORES ESPECÍFICOS
         if (errorParam) {
-          console.log(`⚠️ Error detectado en URL: ${errorParam}`);
+  
           setStatus('failure');
           
           switch (errorParam) {
@@ -91,12 +80,11 @@ const PaymentReturnPage = () => {
         
         if (orderIdParam) {
           finalOrderId = orderIdParam;
-          console.log(`✅ Usando orderId de URL: ${finalOrderId}`);
+    
         } else if (storedOrderId) {
           finalOrderId = storedOrderId;
-          console.log(`✅ Usando orderId de localStorage: ${finalOrderId}`);
+    
         } else {
-          console.error('❌ No se pudo determinar orderId');
           setError('No se pudo identificar la orden. Por favor verifica tu pedido en "Mis Órdenes".');
           setStatus('failure');
           return;
@@ -105,7 +93,7 @@ const PaymentReturnPage = () => {
         setOrderId(finalOrderId);
         
         // ✅ CONSULTAR ESTADO DE LA ORDEN
-        console.log(`📡 Consultando estado de orden: ${finalOrderId}`);
+     
         
         try {
           const response = await axios.get(`/api/payment/status/${finalOrderId}`, {
@@ -115,18 +103,18 @@ const PaymentReturnPage = () => {
           });
           
           const paymentData = response.data.data;
-          console.log('📊 Estado del pago obtenido:', paymentData);
+         
           
           setPaymentDetails(paymentData);
           setCanRetry(paymentData.canRetryPayment || false);
           
           // ✅ DETERMINAR ESTADO FINAL
           if (paymentData.isPaid && paymentData.paymentResult?.status === 'approved') {
-            console.log('✅ Pago confirmado como exitoso');
+         
             setStatus('success');
             clearCart();
           } else if (paymentData.paymentResult?.status === 'rejected') {
-            console.log('❌ Pago confirmado como rechazado');
+         
             setStatus('failure');
             setCanRetry(true); // ✅ NUEVO: Permitir reintento en caso de rechazo
             
@@ -136,10 +124,10 @@ const PaymentReturnPage = () => {
               setError('El pago fue rechazado por el banco');
             }
           } else if (paymentData.paymentResult?.status === 'pending') {
-            console.log('⏳ Pago en estado pendiente');
+         
             setStatus('pending');
           } else {
-            console.log('🔄 Estado de pago incierto');
+
             
             // Si tenemos código de error de la URL, usarlo
             if (codeParam && codeParam !== '0') {
@@ -152,7 +140,6 @@ const PaymentReturnPage = () => {
           }
           
         } catch (apiError) {
-          console.error('❌ Error al consultar estado de pago:', apiError);
           
           if (apiError.response?.status === 404) {
             setError(`La orden no fue encontrada en el sistema. OrderId: ${finalOrderId}`);
@@ -165,7 +152,6 @@ const PaymentReturnPage = () => {
         }
         
       } catch (generalError) {
-        console.error('💥 Error general en validación de pago:', generalError);
         setError('Error inesperado al procesar el pago');
         setStatus('failure');
       } finally {
@@ -183,13 +169,12 @@ const PaymentReturnPage = () => {
     setIsRetrying(true);
     
     try {
-      console.log(`🔄 Iniciando reintento de pago para orden: ${orderId}`);
-      
+
       // ✅ USANDO API SERVICE COMO EN OrderDetailsPage
       const response = await api.post(`/payment/create-transaction/${orderId}`);
       const transactionData = response.data.data;
       
-      console.log('✅ Nueva transacción creada para reintento:', transactionData);
+    
       
       // Guardar el orderId en localStorage para el retorno
       localStorage.setItem('currentOrderId', orderId);
@@ -198,7 +183,7 @@ const PaymentReturnPage = () => {
       window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
       
     } catch (retryError) {
-      console.error('❌ Error al reintentar pago:', retryError);
+   
       
       const errorMessage = retryError.response?.data?.error || 'Error al procesar el pago';
       setError(`Error al reintentar el pago: ${errorMessage}`);
@@ -429,7 +414,7 @@ const PaymentReturnPage = () => {
   useEffect(() => {
     if (status === 'processing' && orderId) {
       const timeout = setTimeout(() => {
-        console.log('🔄 Auto-refresh después de 15 segundos');
+     
         window.location.reload();
       }, 15000);
       
@@ -461,23 +446,6 @@ const PaymentReturnPage = () => {
               <span>•</span>
               <span>Transbank</span>
             </div>
-            
-            {/* Información de debugging en desarrollo */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-4 text-xs text-gray-400 text-center">
-                <details>
-                  <summary className="cursor-pointer">Debug Info (solo desarrollo)</summary>
-                  <div className="mt-2 text-left bg-gray-50 p-2 rounded text-xs">
-                    <p>URL actual: {window.location.href}</p>
-                    <p>OrderId: {orderId || 'No determinado'}</p>
-                    <p>Status: {status}</p>
-                    <p>Error: {error || 'Ninguno'}</p>
-                    <p>Can Retry: {canRetry ? 'Sí' : 'No'}</p>
-                    <p>Is Retrying: {isRetrying ? 'Sí' : 'No'}</p>
-                  </div>
-                </details>
-              </div>
-            )}
           </div>
         </div>
       </div>

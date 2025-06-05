@@ -137,7 +137,7 @@ const RegisterPage = () => {
         delete registerData.distributorInfo;
       }
       
-      console.log('📝 Datos de registro:', registerData);
+      
       
       // Register user
       await register(registerData);
@@ -151,7 +151,6 @@ const RegisterPage = () => {
         navigate('/');
       }
     } catch (error) {
-      console.error('Error en registro:', error);
       setError(error.response?.data?.error || 'Error al registrarse');
     } finally {
       setLoading(false);

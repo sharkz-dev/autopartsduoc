@@ -56,7 +56,6 @@ const AdminOrdersPage = () => {
       setTotalPages(Math.ceil(response.data.count / ordersPerPage));
       setLoading(false);
     } catch (err) {
-      console.error('Error al cargar órdenes:', err);
       setError('Error al cargar órdenes. Por favor, intente de nuevo más tarde.');
       setLoading(false);
     }
@@ -65,16 +64,14 @@ const AdminOrdersPage = () => {
   // Actualizar estado de una orden
   const updateOrderStatus = async (orderId, status) => {
     try {
-      console.log(`🔄 Iniciando actualización de estado:`);
-      console.log(`   - Orden ID: ${orderId}`);
-      console.log(`   - Nuevo estado: ${status}`);
+
       
       setUpdatingStatus(orderId);
       const loadingToast = toast.loading('Actualizando estado...');
       
       const response = await orderService.updateOrderStatus(orderId, { status });
       
-      console.log(`✅ Respuesta de la API:`, response.data);
+    
       
       if (response.data.success) {
         if (selectedOrder && selectedOrder._id === orderId) {
@@ -82,7 +79,7 @@ const AdminOrdersPage = () => {
             ...selectedOrder,
             status: status
           });
-          console.log(`✅ Orden seleccionada actualizada en modal`);
+       
         }
         
         setOrders(prevOrders => 
@@ -90,18 +87,15 @@ const AdminOrdersPage = () => {
             order._id === orderId ? { ...order, status } : order
           )
         );
-        console.log(`✅ Lista de órdenes actualizada`);
+     
         
         toast.dismiss(loadingToast);
         toast.success(`Estado actualizado a: ${getStatusTranslation(status)}`);
       } else {
-        console.error(`❌ Error en respuesta:`, response.data);
         toast.dismiss(loadingToast);
         toast.error('Error al actualizar estado: ' + (response.data.error || 'Error desconocido'));
       }
     } catch (err) {
-      console.error('💥 Error al actualizar estado:', err);
-      console.error('   - Error completo:', err.response || err);
       
       toast.dismiss();
       const errorMessage = err.response?.data?.error || err.message || 'Error al actualizar estado';
@@ -326,7 +320,7 @@ const AdminOrdersPage = () => {
                         <div className="relative status-menu-container">
                           <button
                             onClick={() => {
-                              console.log(`🔘 Toggle menú para orden: ${order._id}`);
+                           
                               setShowStatusMenu(showStatusMenu === order._id ? null : order._id);
                             }}
                             disabled={updatingStatus === order._id}
@@ -346,7 +340,7 @@ const AdminOrdersPage = () => {
                               <div className="py-1">
                                 <button
                                   onClick={() => {
-                                    console.log(`🔄 Cambiar a: pending`);
+                                 
                                     updateOrderStatus(order._id, 'pending');
                                   }}
                                   disabled={order.status === 'pending' || updatingStatus === order._id}
@@ -356,7 +350,7 @@ const AdminOrdersPage = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log(`🔄 Cambiar a: processing`);
+                                  
                                     updateOrderStatus(order._id, 'processing');
                                   }}
                                   disabled={order.status === 'processing' || updatingStatus === order._id}
@@ -366,7 +360,7 @@ const AdminOrdersPage = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log(`🔄 Cambiar a: shipped`);
+                                
                                     updateOrderStatus(order._id, 'shipped');
                                   }}
                                   disabled={order.status === 'shipped' || updatingStatus === order._id}
@@ -376,7 +370,7 @@ const AdminOrdersPage = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log(`🔄 Cambiar a: ready_for_pickup`);
+                                
                                     updateOrderStatus(order._id, 'ready_for_pickup');
                                   }}
                                   disabled={order.status === 'ready_for_pickup' || updatingStatus === order._id}
@@ -386,7 +380,7 @@ const AdminOrdersPage = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log(`🔄 Cambiar a: delivered`);
+                                
                                     updateOrderStatus(order._id, 'delivered');
                                   }}
                                   disabled={order.status === 'delivered' || updatingStatus === order._id}
@@ -396,7 +390,7 @@ const AdminOrdersPage = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log(`🔄 Cambiar a: cancelled`);
+                                
                                     updateOrderStatus(order._id, 'cancelled');
                                   }}
                                   disabled={order.status === 'cancelled' || updatingStatus === order._id}

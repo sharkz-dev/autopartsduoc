@@ -15,7 +15,7 @@ import {
 
 const OrderConfirmationPage = () => {
   const { orderId } = useParams();
-  const { isAuthenticated, user } = useAuth(); // ✅ AGREGADO: user para debugging
+  const { isAuthenticated, user } = useAuth(); // user para debugging
   const navigate = useNavigate();
   
   const [order, setOrder] = useState(null);
@@ -32,31 +32,20 @@ const OrderConfirmationPage = () => {
     }).format(value);
   };
   
-  // ✅ DEBUGGING: Verificar autenticación
-  useEffect(() => {
-    console.log('🔍 OrderConfirmationPage - Estado de autenticación:');
-    console.log('   - isAuthenticated:', isAuthenticated);
-    console.log('   - user:', user ? { id: user.id, name: user.name } : 'No user');
-    console.log('   - orderId:', orderId);
-    console.log('   - localStorage token:', localStorage.getItem('token') ? 'Present' : 'Missing');
-  }, [isAuthenticated, user, orderId]);
-  
+
   // Obtener orden
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        console.log('🔍 fetchOrder iniciado');
-        console.log('   - isAuthenticated:', isAuthenticated);
-        console.log('   - orderId:', orderId);
-        
+
         if (!isAuthenticated) {
-          console.log('❌ Usuario no autenticado, redirigiendo a login');
+        
           navigate(`/login?redirect=/order-confirmation/${orderId}`);
           return;
         }
 
         if (!orderId) {
-          console.log('❌ OrderId no proporcionado');
+   
           setError('ID de orden no válido');
           setLoading(false);
           return;
@@ -65,25 +54,19 @@ const OrderConfirmationPage = () => {
         setLoading(true);
         setError('');
         
-        console.log(`📡 Enviando request a: /api/orders/${orderId}`);
+
         
         // ✅ CORREGIDO: Usar el servicio api configurado que incluye los headers automáticamente
         const response = await api.get(`/orders/${orderId}`);
         
-        console.log('✅ Respuesta exitosa de la orden:', response.data);
+
         setOrder(response.data.data);
         setLoading(false);
         
       } catch (err) {
-        console.error('❌ Error al obtener la orden:', err);
-        console.error('   - Status:', err.response?.status);
-        console.error('   - Message:', err.response?.data?.error || err.message);
-        console.error('   - Headers sent:', {
-          Authorization: err.config?.headers?.Authorization ? 'Present' : 'Missing'
-        });
         
         if (err.response?.status === 401) {
-          console.log('❌ Error 401 - Token inválido o expirado, redirigiendo a login');
+
           // Limpiar storage y redirigir a login
           localStorage.removeItem('token');
           navigate(`/login?redirect=/order-confirmation/${orderId}&message=session_expired`);
@@ -108,20 +91,20 @@ const OrderConfirmationPage = () => {
   // ✅ NUEVA FUNCIÓN: Procesar pago pendiente
   const handlePayNow = async () => {
     if (!order || order.paymentMethod !== 'webpay') {
-      console.error('❌ No se puede procesar pago para esta orden');
+      
       return;
     }
 
     setProcessingPayment(true);
     
     try {
-      console.log('💳 Iniciando pago para orden:', order._id);
+
       
       // Crear nueva transacción de pago
       const response = await api.post(`/payment/create-transaction/${order._id}`);
       const transactionData = response.data.data;
       
-      console.log('✅ Transacción creada:', transactionData);
+ 
       
       // Guardar ID de orden en localStorage para recuperarla después del pago
       localStorage.setItem('currentOrderId', order._id);
@@ -130,7 +113,7 @@ const OrderConfirmationPage = () => {
       window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
       
     } catch (error) {
-      console.error('❌ Error al procesar pago:', error);
+    
       
       const errorMessage = error.response?.data?.error || 'Error al procesar el pago';
       setError(errorMessage);

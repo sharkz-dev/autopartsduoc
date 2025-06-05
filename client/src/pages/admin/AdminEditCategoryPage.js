@@ -19,7 +19,6 @@ const AdminEditCategoryPage = () => {
         setCategory(response.data.data);
         setLoading(false);
       } catch (err) {
-        console.error('Error al cargar categoría:', err);
         setError('Error al cargar categoría. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }

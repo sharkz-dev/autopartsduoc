@@ -112,10 +112,10 @@ const PaymentMethodSelector = ({ selectedMethod, setSelectedMethod, shipmentMeth
             <div className="mt-3 ml-7 p-3 bg-gray-50 rounded-md text-sm">
               <h4 className="font-semibold text-gray-700 mb-2">Datos para transferencia:</h4>
               <p className="mb-1"><span className="font-medium">Banco:</span> Banco Estado</p>
-              <p className="mb-1"><span className="font-medium">Titular:</span> AutoRepuestos SpA</p>
+              <p className="mb-1"><span className="font-medium">Titular:</span> AutoParts SpA</p>
               <p className="mb-1"><span className="font-medium">RUT:</span> 76.XXX.XXX-X</p>
               <p className="mb-1"><span className="font-medium">Cuenta Corriente:</span> 123456789</p>
-              <p className="mb-1"><span className="font-medium">Email:</span> pagos@autorepuestos.com</p>
+              <p className="mb-1"><span className="font-medium">Email:</span> pagos@AutoParts.com</p>
               <p className="text-red-600 mt-2 text-xs">
                 * El pedido se procesará una vez confirmado el pago
               </p>

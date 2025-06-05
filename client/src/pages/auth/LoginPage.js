@@ -37,7 +37,6 @@ const LoginPage = () => {
       // Redirigir a la página original o a la página principal
       navigate(from, { replace: true });
     } catch (error) {
-      console.error('Error en inicio de sesión:', error);
       setError(error.response?.data?.error || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
@@ -121,7 +120,7 @@ const LoginPage = () => {
               <button 
                 type="button"
                 className="font-medium text-blue-600 hover:text-blue-500"
-                onClick={() => console.log('Funcionalidad de recuperación de contraseña pendiente')}
+               
               >
                 ¿Olvidaste tu contraseña?
               </button>

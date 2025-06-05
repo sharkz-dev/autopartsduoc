@@ -46,11 +46,10 @@ const AdminSystemConfigPage = () => {
         setTaxRate(configMap.tax_rate || 19);
         setShippingThreshold(configMap.free_shipping_threshold || 100000);
         setShippingCost(configMap.default_shipping_cost || 5000);
-        setSiteName(configMap.site_name || 'AutoRepuestos');
-        setContactEmail(configMap.contact_email || 'info@autorepuestos.com');
+        setSiteName(configMap.site_name || 'AutoParts');
+        setContactEmail(configMap.contact_email || 'info@AutoParts.com');
       }
     } catch (err) {
-      console.error('Error al cargar configuraciones:', err);
       setError('Error al cargar configuraciones');
       toast.error('Error al cargar configuraciones');
     } finally {
@@ -76,7 +75,6 @@ const AdminSystemConfigPage = () => {
         await fetchConfigurations(); // Refrescar datos
       }
     } catch (err) {
-      console.error('Error al actualizar IVA:', err);
       toast.error(err.response?.data?.error || 'Error al actualizar IVA');
     } finally {
       setUpdating(prev => ({ ...prev, tax_rate: false }));
@@ -94,7 +92,6 @@ const AdminSystemConfigPage = () => {
         await fetchConfigurations();
       }
     } catch (err) {
-      console.error(`Error al actualizar ${key}:`, err);
       toast.error(err.response?.data?.error || `Error al actualizar configuración`);
     } finally {
       setUpdating(prev => ({ ...prev, [key]: false }));
@@ -123,7 +120,6 @@ const AdminSystemConfigPage = () => {
         await fetchConfigurations();
       }
     } catch (err) {
-      console.error('Error al resetear configuraciones:', err);
       toast.error(err.response?.data?.error || 'Error al resetear configuraciones');
     } finally {
       setLoading(false);
@@ -351,7 +347,7 @@ const AdminSystemConfigPage = () => {
                 value={siteName}
                 onChange={(e) => setSiteName(e.target.value)}
                 className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                placeholder="AutoRepuestos"
+                placeholder="AutoParts"
               />
               <p className="mt-1 text-xs text-gray-500">
                 Actual: {configs.general?.[4]?.value || 'AutoParts'}

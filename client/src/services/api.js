@@ -106,7 +106,6 @@ export const authService = {
     }).then(response => {
       return response;
     }).catch(error => {
-      console.error('Error al subir logo:', error.response?.data);
       throw error;
     });
   },

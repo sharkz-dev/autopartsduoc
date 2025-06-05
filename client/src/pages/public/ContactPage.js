@@ -73,7 +73,6 @@ const ContactPage = () => {
       // Simular envío de formulario (aquí integrarías con tu API)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Datos del formulario enviados:', formData);
       
       // En una implementación real, harías algo como:
       // await contactService.sendMessage(formData);
@@ -93,7 +92,6 @@ const ContactPage = () => {
       });
       
     } catch (error) {
-      console.error('Error al enviar mensaje:', error);
       toast.error('Error al enviar el mensaje. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -171,13 +169,13 @@ const ContactPage = () => {
                   <div className="ml-4">
                     <h3 className="text-lg font-semibold text-gray-900">Email</h3>
                     <p className="text-gray-600 mt-1">
-                      <a href="mailto:info@autorepuestos.com" className="hover:text-blue-600">
-                        info@autorepuestos.com
+                      <a href="mailto:info@AutoParts.com" className="hover:text-blue-600">
+                        info@AutoParts.com
                       </a>
                     </p>
                     <p className="text-gray-600">
-                      <a href="mailto:ventas@autorepuestos.com" className="hover:text-blue-600">
-                        ventas@autorepuestos.com
+                      <a href="mailto:ventas@AutoParts.com" className="hover:text-blue-600">
+                        ventas@AutoParts.com
                       </a>
                     </p>
                   </div>

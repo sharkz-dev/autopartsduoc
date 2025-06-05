@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { userService } from '../../services/api';
-import { useAuth } from '../../context/AuthContext'; // ✅ IMPORTAR useAuth
+import { useAuth } from '../../context/AuthContext';
 import { 
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -16,7 +16,7 @@ import {
 import toast from 'react-hot-toast';
 
 const AdminUsersPage = () => {
-  const { user } = useAuth(); // ✅ OBTENER USUARIO ACTUAL DEL CONTEXTO
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,18 +57,14 @@ const AdminUsersPage = () => {
       setTotalPages(Math.ceil(response.data.count / usersPerPage));
       setLoading(false);
     } catch (err) {
-      console.error('Error al cargar usuarios:', err);
       setError('Error al cargar usuarios. Por favor, intente de nuevo más tarde.');
       setLoading(false);
     }
   };
   
-  // ✅ FUNCIÓN CORREGIDA: Aprobar distribuidor
+  // Función para aprobar distribuidor
   const handleApproveDistributor = async (userId) => {
     try {
-      console.log(`🟢 Aprobando distribuidor: ${userId}`);
-      
-      // ✅ CORRECCIÓN: Verificar que tenemos el usuario actual
       if (!user || !user._id) {
         toast.error('Error: No se pudo obtener información del administrador');
         return;
@@ -77,34 +73,25 @@ const AdminUsersPage = () => {
       const updateData = {
         'distributorInfo.isApproved': true,
         'distributorInfo.approvedAt': new Date().toISOString(),
-        'distributorInfo.approvedBy': user._id // ✅ USAR user._id DEL CONTEXTO AUTH
+        'distributorInfo.approvedBy': user._id
       };
       
-      console.log('📝 Datos de actualización:', updateData);
-      console.log('👤 Admin que aprueba:', user.name, user._id);
-      
       const response = await userService.updateUser(userId, updateData);
-      console.log('✅ Respuesta del servidor:', response.data);
       
       toast.success('Distribuidor aprobado correctamente');
       
       // Actualizar la lista de usuarios
       await fetchUsers();
     } catch (err) {
-      console.error('❌ Error al aprobar distribuidor:', err);
-      console.error('Detalles del error:', err.response?.data);
       toast.error(err.response?.data?.error || 'Error al aprobar distribuidor');
     } finally {
       setConfirmAction(null);
     }
   };
   
-  // ✅ FUNCIÓN CORREGIDA: Rechazar distribuidor
+  // Función para rechazar distribuidor
   const handleRejectDistributor = async (userId) => {
     try {
-      console.log(`🔴 Rechazando distribuidor: ${userId}`);
-      
-      // ✅ CORRECCIÓN: Verificar que tenemos el usuario actual
       if (!user || !user._id) {
         toast.error('Error: No se pudo obtener información del administrador');
         return;
@@ -113,11 +100,8 @@ const AdminUsersPage = () => {
       const updateData = {
         'distributorInfo.isApproved': false,
         'distributorInfo.approvedAt': null,
-        'distributorInfo.approvedBy': null // Limpiar el campo al rechazar
+        'distributorInfo.approvedBy': null
       };
-      
-      console.log('📝 Datos de actualización:', updateData);
-      console.log('👤 Admin que rechaza:', user.name, user._id);
       
       await userService.updateUser(userId, updateData);
       toast.success('Aprobación de distribuidor revocada');
@@ -125,7 +109,6 @@ const AdminUsersPage = () => {
       // Actualizar la lista de usuarios
       await fetchUsers();
     } catch (err) {
-      console.error('❌ Error al rechazar distribuidor:', err);
       toast.error(err.response?.data?.error || 'Error al rechazar distribuidor');
     } finally {
       setConfirmAction(null);
@@ -139,7 +122,6 @@ const AdminUsersPage = () => {
       toast.success('Usuario eliminado correctamente');
       fetchUsers();
     } catch (err) {
-      console.error('Error al eliminar usuario:', err);
       toast.error(err.response?.data?.error || 'Error al eliminar usuario');
     } finally {
       setConfirmDelete(null);
@@ -183,7 +165,6 @@ const AdminUsersPage = () => {
       setIsEditModalOpen(false);
       fetchUsers();
     } catch (err) {
-      console.error('Error al actualizar usuario:', err);
       toast.error(err.response?.data?.error || 'Error al actualizar usuario');
     }
   };
@@ -206,7 +187,7 @@ const AdminUsersPage = () => {
     setCurrentPage(1);
   };
   
-  // ✅ FUNCIÓN CORREGIDA: Filtrar usuarios con verificación mejorada
+  // Función para filtrar usuarios
   const filteredUsers = users.filter(user => {
     const nameMatch = user.name.toLowerCase().includes(filter.toLowerCase());
     const emailMatch = user.email.toLowerCase().includes(filter.toLowerCase());
@@ -215,7 +196,6 @@ const AdminUsersPage = () => {
     // Filtro de estado (para distribuidores)
     let statusMatch = true;
     if (statusFilter && user.role === 'distributor') {
-      // ✅ CORRECCIÓN: Verificar correctamente el estado de aprobación
       const isApproved = user.distributorInfo?.isApproved === true;
       
       if (statusFilter === 'approved') {
@@ -269,17 +249,11 @@ const AdminUsersPage = () => {
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Obtener estado del distribuidor
+  // Función para obtener estado del distribuidor
   const getDistributorStatus = (user) => {
     if (user.role !== 'distributor') return null;
     
-    // ✅ CORRECCIÓN: Verificar correctamente el estado
     const isApproved = user.distributorInfo?.isApproved === true;
-    
-    console.log(`🔍 Estado del distribuidor ${user.name}:`, {
-      distributorInfo: user.distributorInfo,
-      isApproved: isApproved
-    });
     
     return {
       approved: isApproved,
@@ -490,7 +464,7 @@ const AdminUsersPage = () => {
                             <EyeIcon className="h-5 w-5" />
                           </button>
                           
-                          {/* ✅ BOTONES CORREGIDOS: Verificar estado correctamente */}
+                          {/* Botones para distribuidor */}
                           {user.role === 'distributor' && (
                             <>
                               {!distributorStatus?.approved ? (
@@ -760,7 +734,7 @@ const AdminUsersPage = () => {
         </div>
       )}
 
-      {/* ✅ MODAL CORREGIDO: Confirmación para aprobar/rechazar distribuidor */}
+      {/* Modal para confirmación de aprobar/rechazar distribuidor */}
       {confirmAction && (
         <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -789,7 +763,7 @@ const AdminUsersPage = () => {
                       }
                     </p>
                     
-                    {/* ✅ INFORMACIÓN ADICIONAL: Mostrar datos del distribuidor */}
+                    {/* Información adicional */}
                     {confirmAction.user.distributorInfo && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-md">
                         <p className="text-xs text-gray-600">
@@ -812,7 +786,6 @@ const AdminUsersPage = () => {
                       : 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500'
                   }`}
                   onClick={() => {
-                    console.log(`🎯 Ejecutando acción: ${confirmAction.type} para usuario: ${confirmAction.user._id}`);
                     if (confirmAction.type === 'approve') {
                       handleApproveDistributor(confirmAction.user._id);
                     } else {

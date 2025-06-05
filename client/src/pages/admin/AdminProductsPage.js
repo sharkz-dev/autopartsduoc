@@ -49,7 +49,6 @@ const AdminProductsPage = () => {
         
         setLoading(false);
       } catch (err) {
-        console.error('Error al cargar productos:', err);
         setError('Error al cargar productos. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }
@@ -69,7 +68,6 @@ const AdminProductsPage = () => {
       // Limpiar estado de confirmación
       setConfirmDelete(null);
     } catch (err) {
-      console.error('Error al eliminar producto:', err);
       toast.error(err.response?.data?.error || 'Error al eliminar producto');
     }
   };

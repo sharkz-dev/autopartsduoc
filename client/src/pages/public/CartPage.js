@@ -32,7 +32,6 @@ const CartPage = () => {
   
   // Debug para ver el contenido del carrito
   useEffect(() => {
-    console.log("Contenido del carrito:", cartItems);
   }, [cartItems]);
   
   // Formatear moneda

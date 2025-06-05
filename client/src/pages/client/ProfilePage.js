@@ -145,7 +145,6 @@ const ProfilePage = () => {
       toast.success('Perfil actualizado correctamente');
     } catch (error) {
       toast.error('Error al actualizar el perfil');
-      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -181,7 +180,6 @@ const ProfilePage = () => {
       toast.success('Contraseña actualizada correctamente');
     } catch (error) {
       toast.error('Error al cambiar la contraseña');
-      console.error('Error:', error);
     } finally {
       setLoading(false);
     }
@@ -213,7 +211,6 @@ const ProfilePage = () => {
       toast.success('Logo actualizado correctamente');
     } catch (error) {
       toast.error('Error al subir el logo');
-      console.error('Error:', error);
     } finally {
       setUploadingLogo(false);
     }

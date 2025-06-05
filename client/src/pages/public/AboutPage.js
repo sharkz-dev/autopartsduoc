@@ -325,7 +325,7 @@ const AboutPage = () => {
                       <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
                         <img 
                           src="https://images.unsplash.com/photo-1558618047-b1a6f9b3bb1b?w=600&h=600&fit=crop"
-                          alt="Instalaciones AutoRepuestos"
+                          alt="Instalaciones AutoParts"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -465,10 +465,10 @@ const AboutPage = () => {
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center hover:bg-white/20 transition-all duration-300 cursor-pointer">
-                <a href="mailto:info@autorepuestos.com" className="block">
+                <a href="mailto:info@AutoParts.com" className="block">
                   <EnvelopeIcon className="h-12 w-12 mx-auto mb-4" />
                   <h3 className="text-xl font-bold mb-2">Escríbenos</h3>
-                  <p className="text-blue-100">info@autorepuestos.com</p>
+                  <p className="text-blue-100">info@AutoParts.com</p>
                 </a>
               </div>
               
@@ -503,7 +503,7 @@ const AboutPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b">
-              <h3 className="text-2xl font-bold text-gray-900">Video Corporativo - AutoRepuestos</h3>
+              <h3 className="text-2xl font-bold text-gray-900">Video Corporativo - AutoParts</h3>
               <button 
                 onClick={() => setShowVideoModal(false)}
                 className="text-gray-500 hover:text-gray-700 transition-colors"

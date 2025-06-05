@@ -44,10 +44,9 @@ const OrderDetailsPage = () => {
     
     try {
       const response = await orderService.getOrder(id);
-      console.log('Detalles de orden cargados:', response.data);
+     
       setOrder(response.data.data);
     } catch (err) {
-      console.error('Error al cargar detalles de orden:', err);
       if (err.response?.status === 404) {
         setError('Pedido no encontrado');
       } else if (err.response?.status === 401) {
@@ -64,20 +63,19 @@ const OrderDetailsPage = () => {
   // ✅ NUEVA FUNCIÓN: Procesar pago pendiente
   const handlePayNow = async () => {
     if (!order || order.paymentMethod !== 'webpay') {
-      console.error('❌ No se puede procesar pago para esta orden');
       return;
     }
 
     setProcessingPayment(true);
     
     try {
-      console.log('💳 Iniciando pago para orden:', order._id);
+ 
       
       // Crear nueva transacción de pago
       const response = await api.post(`/payment/create-transaction/${order._id}`);
       const transactionData = response.data.data;
       
-      console.log('✅ Transacción creada:', transactionData);
+     
       
       // Guardar ID de orden en localStorage para recuperarla después del pago
       localStorage.setItem('currentOrderId', order._id);
@@ -86,7 +84,7 @@ const OrderDetailsPage = () => {
       window.location.href = `${transactionData.url}?token_ws=${transactionData.token}`;
       
     } catch (error) {
-      console.error('❌ Error al procesar pago:', error);
+      
       
       const errorMessage = error.response?.data?.error || 'Error al procesar el pago';
       setError(errorMessage);

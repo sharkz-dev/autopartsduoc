@@ -39,10 +39,9 @@ const OrdersPage = () => {
     
     try {
       const response = await orderService.getMyOrders();
-      console.log('Órdenes cargadas:', response.data);
+      
       setOrders(response.data.data || []);
     } catch (err) {
-      console.error('Error al cargar órdenes:', err);
       setError('Error al cargar tus pedidos. Por favor, intenta de nuevo.');
       toast.error('Error al cargar tus pedidos');
     } finally {

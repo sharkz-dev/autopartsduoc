@@ -41,7 +41,6 @@ const AdminDashboardPage = () => {
         setStats(response.data.data);
         setLoading(false);
       } catch (err) {
-        console.error('Error al cargar estadísticas:', err);
         setError('Error al cargar estadísticas. Por favor, intenta nuevamente.');
         setLoading(false);
       }
