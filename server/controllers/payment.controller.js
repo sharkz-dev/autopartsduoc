@@ -13,11 +13,11 @@ exports.createPaymentTransaction = async (req, res, next) => {
       })
       .populate({
         path: 'items.product',
-        select: 'name description images category'
-      })
-      .populate({
-        path: 'items.product.category',
-        select: 'name'
+        select: 'name description images category sku', // ✅ Incluir sku
+        populate: {
+          path: 'category',
+          select: 'name'
+        }
       });
 
     if (!order) {
@@ -125,7 +125,7 @@ exports.createPaymentTransaction = async (req, res, next) => {
   }
 };
 
-// Manejar retorno desde Webpay
+// ✅ CORREGIDO: Manejar retorno desde Webpay con populate mejorado
 exports.handleWebpayReturn = async (req, res, next) => {
   try {
     let token_ws = null;
@@ -213,11 +213,26 @@ exports.handleWebpayReturn = async (req, res, next) => {
 
         await order.save();
 
-        // Enviar email de confirmación
+        // ✅ CORREGIDO: Enviar email con orden completamente poblada
         try {
+          // Obtener la orden con todos los datos poblados correctamente
+          const fullOrder = await Order.findById(order._id)
+            .populate({
+              path: 'user',
+              select: 'name email'
+            })
+            .populate({
+              path: 'items.product',
+              select: 'name images sku category',
+              populate: {
+                path: 'category',
+                select: 'name'
+              }
+            });
+
           const user = await User.findById(order.user);
-          if (user) {
-            await emailService.sendOrderConfirmationEmail(order, user);
+          if (user && fullOrder) {
+            await emailService.sendOrderConfirmationEmail(fullOrder, user);
           }
         } catch (emailError) {
           console.error('Error al enviar email:', emailError);

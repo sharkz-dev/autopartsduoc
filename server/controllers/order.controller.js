@@ -140,7 +140,7 @@ exports.createOrder = async (req, res, next) => {
     // Crear orden con los valores calculados en el backend
     const order = await Order.create(finalOrderData);
 
-    // Cargar la orden completa con datos relacionados
+    // ✅ CORREGIDO: Cargar la orden completa con datos poblados correctamente
     const populatedOrder = await Order.findById(order._id)
       .populate({
         path: 'user',
@@ -148,7 +148,11 @@ exports.createOrder = async (req, res, next) => {
       })
       .populate({
         path: 'items.product',
-        select: 'name images'
+        select: 'name images sku category', // ✅ Incluir 'category' aquí
+        populate: {
+          path: 'category',
+          select: 'name' // ✅ Popular la categoría también
+        }
       });
 
     // Si el método de pago es contra reembolso o transferencia, enviar notificaciones
@@ -207,11 +211,11 @@ exports.getOrder = async (req, res, next) => {
       })
       .populate({
         path: 'items.product',
-        select: 'name images sku price wholesalePrice category'
-      })
-      .populate({
-        path: 'items.product.category',
-        select: 'name'
+        select: 'name images sku price wholesalePrice category',
+        populate: {
+          path: 'category',
+          select: 'name'
+        }
       });
 
     if (!order) {
@@ -296,7 +300,7 @@ exports.getOrders = async (req, res, next) => {
   }
 };
 
-// Actualizar estado de la orden
+// ✅ CORREGIDO: Actualizar estado de la orden con populate mejorado
 exports.updateOrderStatus = async (req, res, next) => {
   try {
     let order = await Order.findById(req.params.id);
@@ -335,11 +339,26 @@ exports.updateOrderStatus = async (req, res, next) => {
 
     await order.save();
 
-    // Enviar notificación al cliente sobre cambio de estado
+    // ✅ CORREGIDO: Enviar notificación al cliente con orden completa
     try {
+      // Obtener la orden completa con todos los datos poblados
+      const fullOrder = await Order.findById(order._id)
+        .populate({
+          path: 'user',
+          select: 'name email'
+        })
+        .populate({
+          path: 'items.product',
+          select: 'name images sku category',
+          populate: {
+            path: 'category',
+            select: 'name'
+          }
+        });
+
       const user = await User.findById(order.user);
-      if (user) {
-        await emailService.sendOrderStatusUpdateEmail(order, user);
+      if (user && fullOrder) {
+        await emailService.sendOrderStatusUpdateEmail(fullOrder, user);
       }
     } catch (emailError) {
       console.error('Error al enviar email de actualización de estado:', emailError);
@@ -353,7 +372,11 @@ exports.updateOrderStatus = async (req, res, next) => {
       })
       .populate({
         path: 'items.product',
-        select: 'name images'
+        select: 'name images sku category',
+        populate: {
+          path: 'category',
+          select: 'name'
+        }
       });
     
     res.status(200).json({

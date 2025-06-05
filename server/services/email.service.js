@@ -60,7 +60,7 @@ const getEmailTemplate = (title, content, footerNote = '') => {
         
         <div style="text-align: center; padding-top: 15px; border-top: 1px solid #e5e7eb;">
           <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-            © 2024 AutoParts. Todos los derechos reservados.<br>
+            © 2025 AutoParts. Todos los derechos reservados.<br>
             Este email fue enviado porque tienes una cuenta activa en nuestra plataforma.
           </p>
         </div>
@@ -199,58 +199,69 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
     const isB2B = order.orderType === 'B2B';
     const orderTypeLabel = isB2B ? 'Orden Mayorista (B2B)' : 'Orden Retail (B2C)';
     
-    // Formatear productos
-    const productsList = order.items.map(item => `
-      <tr>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb;">
-          <div style="font-weight: 500; color: #1f2937;">${item.product.name}</div>
-          <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
-            SKU: ${item.product.sku || 'N/A'} | 
-            Categoría: ${item.product.category?.name || 'Sin categoría'}
-          </div>
-        </td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">
-          <span style="background-color: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-weight: 500;">
-            ${item.quantity}
-          </span>
-        </td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">
-          $${item.price.toLocaleString('es-CL')}
-        </td>
-        <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; color: #1e40af;">
-          $${(item.price * item.quantity).toLocaleString('es-CL')}
-        </td>
-      </tr>
-    `).join('');
+    // ✅ CORREGIDO: Formatear productos con validación mejorada
+    const productsList = order.items.map(item => {
+      // Validar que el producto existe y tiene los datos necesarios
+      const productName = item.product?.name || 'Producto no disponible';
+      const productSku = item.product?.sku || 'N/A';
+      const categoryName = item.product?.category?.name || 'Sin categoría';
+      const quantity = item.quantity || 0;
+      const price = item.price || 0;
+      const subtotal = price * quantity;
 
-    // Formatear información de envío
+      return `
+        <tr>
+          <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb;">
+            <div style="font-weight: 500; color: #1f2937;">${productName}</div>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+              SKU: ${productSku} | Categoría: ${categoryName}
+            </div>
+          </td>
+          <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+            <span style="background-color: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-weight: 500;">
+              ${quantity}
+            </span>
+          </td>
+          <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">
+            $${price.toLocaleString('es-CL')}
+          </td>
+          <td style="padding: 12px 8px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; color: #1e40af;">
+            $${subtotal.toLocaleString('es-CL')}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // ✅ CORREGIDO: Formatear información de envío con validación
     let shippingInfo = '';
     if (order.shipmentMethod === 'delivery') {
+      const address = order.shippingAddress || {};
       shippingInfo = `
         <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #1e40af; margin: 0 0 15px 0; font-size: 16px;">
             🚚 Dirección de Envío
           </h3>
           <p style="margin: 0; color: #374151; line-height: 1.6;">
-            <strong>${order.shippingAddress.street}</strong><br>
-            ${order.shippingAddress.city}, ${order.shippingAddress.state}<br>
-            ${order.shippingAddress.postalCode}, ${order.shippingAddress.country}
+            <strong>${address.street || 'Dirección no especificada'}</strong><br>
+            ${address.city || 'Ciudad no especificada'}, ${address.state || 'Región no especificada'}<br>
+            ${address.postalCode || 'CP no especificado'}, ${address.country || 'País no especificado'}
           </p>
         </div>
       `;
     } else {
+      const pickup = order.pickupLocation || {};
       shippingInfo = `
         <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #065f46; margin: 0 0 15px 0; font-size: 16px;">
             🏪 Retiro en Tienda
           </h3>
           <p style="margin: 0; color: #374151; line-height: 1.6;">
-            <strong>${order.pickupLocation?.name || 'Tienda Principal'}</strong><br>
-            ${order.pickupLocation?.address || 'Dirección por confirmar'}
+            <strong>${pickup.name || 'Tienda Principal'}</strong><br>
+            ${pickup.address || 'Dirección por confirmar'}
           </p>
-          ${order.pickupLocation?.scheduledDate ? `
+          ${pickup.scheduledDate ? `
             <p style="margin: 10px 0 0 0; color: #374151;">
-              <strong>Fecha programada:</strong> ${new Date(order.pickupLocation.scheduledDate).toLocaleDateString('es-CL')}
+              <strong>Fecha programada:</strong> ${new Date(pickup.scheduledDate).toLocaleDateString('es-CL')}
             </p>
           ` : ''}
         </div>
@@ -357,21 +368,21 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
         <div style="space-y: 10px;">
           <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="color: #6b7280;">Subtotal productos:</span>
-            <span style="color: #1f2937; font-weight: 500;">$${order.itemsPrice.toLocaleString('es-CL')}</span>
+            <span style="color: #1f2937; font-weight: 500;">$${(order.itemsPrice || 0).toLocaleString('es-CL')}</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="color: #6b7280;">IVA (${order.taxRate || 19}%):</span>
-            <span style="color: #1f2937; font-weight: 500;">$${order.taxPrice.toLocaleString('es-CL')}</span>
+            <span style="color: #1f2937; font-weight: 500;">$${(order.taxPrice || 0).toLocaleString('es-CL')}</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <span style="color: #6b7280;">Envío:</span>
             <span style="color: #1f2937; font-weight: 500;">
-              ${order.shippingPrice === 0 ? 'Gratuito' : `$${order.shippingPrice.toLocaleString('es-CL')}`}
+              ${order.shippingPrice === 0 ? 'Gratuito' : `$${(order.shippingPrice || 0).toLocaleString('es-CL')}`}
             </span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 15px 0 0 0; border-top: 2px solid #1e40af;">
             <span style="color: #1f2937; font-weight: 600; font-size: 18px;">Total:</span>
-            <span style="color: #1e40af; font-weight: 700; font-size: 20px;">$${order.totalPrice.toLocaleString('es-CL')}</span>
+            <span style="color: #1e40af; font-weight: 700; font-size: 20px;">$${(order.totalPrice || 0).toLocaleString('es-CL')}</span>
           </div>
         </div>
       </div>
@@ -404,13 +415,12 @@ exports.sendOrderConfirmationEmail = async (order, user) => {
     const options = {
       to: user.email,
       subject: `🎉 Orden Confirmada #${order._id} - AutoParts`,
-      text: `Tu orden #${order._id} ha sido confirmada. Total: $${order.totalPrice.toFixed(2)}`,
+      text: `Tu orden #${order._id} ha sido confirmada. Total: $${(order.totalPrice || 0).toFixed(2)}`,
       html: getEmailTemplate('¡Orden confirmada exitosamente!', content, footerNote)
     };
 
     return await exports.sendEmail(options);
   } catch (error) {
-    console.error('Error al enviar email de confirmación de orden:', error);
   }
 };
 

@@ -75,25 +75,25 @@ const AboutPage = () => {
   // Equipo de trabajo
   const team = [
     {
-      name: 'Carlos Rodríguez',
+      name: 'Javier Jara',
       position: 'CEO & Fundador',
       experience: '25 años',
       specialty: 'Estrategia y Desarrollo',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face'
+      image: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-7e7c-61fd-8915-0228153ad5d9/raw?se=2025-06-05T06%3A20%3A27Z&sp=r&sv=2024-08-04&sr=b&scid=71324247-c732-59ae-86ca-dd3ec0a88c57&skoid=04233560-0ad7-493e-8bf0-1347c317d021&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-04T17%3A26%3A43Z&ske=2025-06-05T17%3A26%3A43Z&sks=b&skv=2024-08-04&sig=5zIda/E3SeS54%2B5mzE2xRHQ4WxDFL/Q1KACEnaX2XXM%3D'
     },
     {
-      name: 'María González',
+      name: 'Narayani Garcia',
       position: 'Directora Técnica',
       experience: '20 años',
       specialty: 'Ingeniería Automotriz',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=300&h=300&fit=crop&crop=face'
+      image: 'https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-8130-61f7-bdc6-d16136927f07/raw?se=2025-06-05T06%3A20%3A27Z&sp=r&sv=2024-08-04&sr=b&scid=5da5878d-8abc-568d-88b1-707b5d7d5a09&skoid=04233560-0ad7-493e-8bf0-1347c317d021&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-04T17%3A28%3A00Z&ske=2025-06-05T17%3A28%3A00Z&sks=b&skv=2024-08-04&sig=qAreIm87vNTeKUvwvo7ruy7fCcGw4ztnJQHmvjrpyyo%3D'
     },
     {
-      name: 'Roberto Silva',
+      name: 'Pablo Hernández',
       position: 'Gerente de Operaciones',
       experience: '18 años',
       specialty: 'Logística y Distribución',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face'
+      image: 'https://sdmntprsouthcentralus.oaiusercontent.com/files/00000000-7de0-61f7-9d2a-425fd6b01a8c/raw?se=2025-06-05T06%3A20%3A27Z&sp=r&sv=2024-08-04&sr=b&scid=4571b275-366c-5da8-ba5f-f1441e43ab9a&skoid=04233560-0ad7-493e-8bf0-1347c317d021&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2025-06-05T04%3A29%3A34Z&ske=2025-06-06T04%3A29%3A34Z&sks=b&skv=2024-08-04&sig=qEzCxpfK1SJDULm3/IIA8jlqJ%2BkvgBDd1lKGYCKiGTU%3D'
     },
     {
       name: 'Ana Martínez',
@@ -324,7 +324,7 @@ const AboutPage = () => {
                     <div className="relative">
                       <div className="aspect-square rounded-3xl overflow-hidden shadow-2xl">
                         <img 
-                          src="https://images.unsplash.com/photo-1558618047-b1a6f9b3bb1b?w=600&h=600&fit=crop"
+                          src="https://www.c3carecarcenter.com/wp-content/uploads/2025/05/Imagenes-de-Familia-de-3-El-Auto-Perfecto-para-2025-1038x576.webp"
                           alt="Instalaciones AutoParts"
                           className="w-full h-full object-cover"
                         />
