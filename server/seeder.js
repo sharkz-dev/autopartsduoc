@@ -5,6 +5,7 @@ const User = require('./models/User');
 const Category = require('./models/Category');
 const Product = require('./models/Product');
 const Order = require('./models/Order');
+const SystemConfig = require('./models/SystemConfig');
 
 // Cargar variables de entorno
 dotenv.config();
@@ -15,481 +16,485 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true
 });
 
-// ✅ USUARIOS ACTUALIZADOS CON DISTRIBUIDORES
+// =====================================================
+// 📋 USUARIOS DEMOSTRATIVOS (1 de cada tipo)
+// =====================================================
 const users = [
+  // 🔧 ADMINISTRADOR
   {
-    "_id": "60d0fe4f5311236168a109ca",
-    "name": "Admin Usuario",
-    "email": "admin@example.com",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
+    "_id": "663f1a2b8c9d123456789001",
+    "name": "Admin AutoParts",
+    "email": "admin@autoparts.com",
+    "password": "contraseña123", // password123
     "role": "admin",
     "address": {
-      "street": "Av. Administrador 100",
+      "street": "Av. Libertador Bernardo O'Higgins 1234",
       "city": "Santiago",
-      "state": "RM",
-      "postalCode": "1000000",
-      "country": "Chile"
-    },
-    "phone": "+56912345678",
-    "createdAt": "2023-01-01T00:00:00.000Z"
-  },
-  {
-    "_id": "60d0fe4f5311236168a109cc",
-    "name": "Cliente Ejemplo",
-    "email": "cliente@example.com",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
-    "role": "client",
-    "address": {
-      "street": "Calle Cliente 456",
-      "city": "Santiago",
-      "state": "RM",
-      "postalCode": "1000000",
-      "country": "Chile"
-    },
-    "phone": "+56912345679",
-    "createdAt": "2023-01-03T00:00:00.000Z"
-  },
-  {
-    "_id": "60d0fe4f5311236168a109cd",
-    "name": "María González",
-    "email": "maria@example.com",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
-    "role": "client",
-    "address": {
-      "street": "Av. Las Condes 789",
-      "city": "Santiago",
-      "state": "RM",
-      "postalCode": "7550000",
-      "country": "Chile"
-    },
-    "phone": "+56987654321",
-    "createdAt": "2023-01-04T00:00:00.000Z"
-  },
-  {
-    "_id": "60d0fe4f5311236168a109ce",
-    "name": "Carlos Rodríguez",
-    "email": "carlos@example.com",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
-    "role": "client",
-    "address": {
-      "street": "Calle Providencia 321",
-      "city": "Santiago",
-      "state": "RM",
-      "postalCode": "7500000",
-      "country": "Chile"
-    },
-    "phone": "+56956789012",
-    "createdAt": "2023-01-05T00:00:00.000Z"
-  },
-  // ✅ NUEVOS USUARIOS DISTRIBUIDORES
-  {
-    "_id": "60d0fe4f5311236168a109cf",
-    "name": "AutoRepuestos Distribuidora SpA",
-    "email": "distribuidor@autorepuestos.com",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
-    "role": "distributor",
-    "address": {
-      "street": "Av. Industrial 1500",
-      "city": "Santiago",
-      "state": "RM",
+      "state": "Región Metropolitana",
       "postalCode": "8320000",
       "country": "Chile"
     },
-    "phone": "+56922334455",
-    "distributorInfo": {
-      "companyName": "AutoRepuestos Distribuidora SpA",
-      "companyRUT": "76543210-9",
-      "businessLicense": "RES-2023-001",
-      "creditLimit": 5000000,
-      "discountPercentage": 15,
-      "isApproved": true,
-      "approvedAt": "2023-01-10T00:00:00.000Z",
-      "approvedBy": "60d0fe4f5311236168a109ca"
-    },
-    "createdAt": "2023-01-06T00:00:00.000Z"
+    "phone": "+56 9 8765 4321",
+    "createdAt": "2025-04-15T10:30:00.000Z"
   },
+  // 👤 CLIENTE REGULAR
   {
-    "_id": "60d0fe4f5311236168a109d0",
-    "name": "Repuestos del Sur Ltda",
-    "email": "contacto@repuestesdelsur.cl",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
-    "role": "distributor",
+    "_id": "663f1a2b8c9d123456789002",
+    "name": "Carlos Mendoza",
+    "email": "pa.hernandezu@duocuc.cl",
+    "password": "contraseña123", // password123
+    "role": "client",
     "address": {
-      "street": "Calle Comercial 789",
-      "city": "Temuco",
-      "state": "Araucanía",
-      "postalCode": "4780000",
+      "street": "Calle Las Flores 567",
+      "city": "Santiago",
+      "state": "Región Metropolitana",
+      "postalCode": "7500000",
       "country": "Chile"
     },
-    "phone": "+56945667788",
-    "distributorInfo": {
-      "companyName": "Repuestos del Sur Ltda",
-      "companyRUT": "87654321-0",
-      "businessLicense": "RES-2023-002",
-      "creditLimit": 3000000,
-      "discountPercentage": 12,
-      "isApproved": true,
-      "approvedAt": "2023-01-12T00:00:00.000Z",
-      "approvedBy": "60d0fe4f5311236168a109ca"
-    },
-    "createdAt": "2023-01-08T00:00:00.000Z"
+    "phone": "+56 9 1234 5678",
+    "createdAt": "2025-04-18T14:15:00.000Z"
   },
+  // 🏢 DISTRIBUIDOR APROBADO
   {
-    "_id": "60d0fe4f5311236168a109d1",
-    "name": "Distribuidora Norte AutoParts",
-    "email": "ventas@norteautoparts.cl",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
+    "_id": "663f1a2b8c9d123456789003",
+    "name": "Repuestos Central SpA",
+    "email": "pa.hernandezu@duoocuc.cl",
+    "password": "contraseña123", // password123
     "role": "distributor",
     "address": {
-      "street": "Av. Atacama 2100",
+      "street": "Av. Industrial 2500",
+      "city": "Santiago",
+      "state": "Región Metropolitana",
+      "postalCode": "8320000",
+      "country": "Chile"
+    },
+    "phone": "+56 2 2890 4567",
+    "distributorInfo": {
+      "companyName": "Repuestos Central SpA",
+      "companyRUT": "76.543.210-9",
+      "businessLicense": "RES-2025-001",
+      "creditLimit": 5000000,
+      "discountPercentage": 18,
+      "isApproved": true,
+      "approvedBy": "663f1a2b8c9d123456789001",
+      "approvedAt": "2025-04-20T09:00:00.000Z"
+    },
+    "createdAt": "2025-04-19T16:45:00.000Z"
+  },
+  // 🏢 DISTRIBUIDOR PENDIENTE
+  {
+    "_id": "663f1a2b8c9d123456789004",
+    "name": "AutoServicios del Norte Ltda",
+    "email": "gerencia@autoserviciosnorte.cl",
+    "password": "contraseña123", // password123
+    "role": "distributor",
+    "address": {
+      "street": "Calle Atacama 1890",
       "city": "Antofagasta",
-      "state": "Antofagasta",
+      "state": "Región de Antofagasta",
       "postalCode": "1240000",
       "country": "Chile"
     },
-    "phone": "+56955778899",
+    "phone": "+56 55 234 5678",
     "distributorInfo": {
-      "companyName": "Distribuidora Norte AutoParts",
-      "companyRUT": "98765432-1",
-      "businessLicense": "RES-2023-003",
-      "creditLimit": 8000000,
-      "discountPercentage": 20,
-      "isApproved": true,
-      "approvedAt": "2023-01-15T00:00:00.000Z",
-      "approvedBy": "60d0fe4f5311236168a109ca"
-    },
-    "createdAt": "2023-01-10T00:00:00.000Z"
-  },
-  {
-    "_id": "60d0fe4f5311236168a109d2",
-    "name": "Nuevo Distribuidor Pendiente",
-    "email": "pendiente@distribuidora.cl",
-    "password": "$2a$10$zQSPJhCxh3fZmY7qG4PBnelVh.BOQVRdK9oKpyXxA.z4IQpVR6PTS", // password123
-    "role": "distributor",
-    "address": {
-      "street": "Calle Nueva Empresa 123",
-      "city": "Valparaíso",
-      "state": "Valparaíso",
-      "postalCode": "2340000",
-      "country": "Chile"
-    },
-    "phone": "+56966889900",
-    "distributorInfo": {
-      "companyName": "Nueva Distribuidora Automotriz",
-      "companyRUT": "12345678-9",
-      "businessLicense": "RES-2024-001",
+      "companyName": "AutoServicios del Norte Ltda",
+      "companyRUT": "87.654.321-0",
+      "businessLicense": "RES-2025-002",
       "creditLimit": 0,
       "discountPercentage": 0,
-      "isApproved": false // ✅ DISTRIBUIDOR PENDIENTE DE APROBACIÓN
+      "isApproved": false // 🔄 PENDIENTE DE APROBACIÓN
     },
-    "createdAt": "2024-01-20T00:00:00.000Z"
+    "createdAt": "2025-05-10T11:20:00.000Z"
   }
 ];
 
-// Categorías
+// =====================================================
+// 📂 CATEGORÍAS REPRESENTATIVAS
+// =====================================================
 const categories = [
   {
-    "_id": "61098c591540b03a9423c8a7",
+    "_id": "663f1a2b8c9d123456780001",
     "name": "Motor",
-    "description": "Partes y componentes del motor del vehículo",
+    "description": "Componentes internos y externos del motor",
     "slug": "motor",
-    "createdAt": "2023-01-01T00:00:00.000Z"
+    "createdAt": "2025-04-10T08:00:00.000Z"
   },
   {
-    "_id": "61098c591540b03a9423c8a8",
-    "name": "Frenos",
-    "description": "Sistema de frenos y todos sus componentes",
-    "slug": "frenos",
-    "createdAt": "2023-01-01T00:00:00.000Z"
+    "_id": "663f1a2b8c9d123456780002",
+    "name": "Sistema de Frenos",
+    "description": "Pastillas, discos, líquidos y componentes de frenado",
+    "slug": "sistema_de_frenos",
+    "createdAt": "2025-04-10T08:15:00.000Z"
   },
   {
-    "_id": "61098c591540b03a9423c8a9",
-    "name": "Suspensión",
-    "description": "Componentes del sistema de suspensión",
-    "slug": "suspension",
-    "createdAt": "2023-01-01T00:00:00.000Z"
+    "_id": "663f1a2b8c9d123456780003",
+    "name": "Suspensión y Dirección",
+    "description": "Amortiguadores, muelles y sistema de dirección",
+    "slug": "suspension_y_direccion",
+    "createdAt": "2025-04-10T08:30:00.000Z"
   },
   {
-    "_id": "61098c591540b03a9423c8aa",
-    "name": "Eléctrico",
-    "description": "Componentes eléctricos y electrónicos del vehículo",
-    "slug": "electrico",
-    "createdAt": "2023-01-01T00:00:00.000Z"
+    "_id": "663f1a2b8c9d123456780004",
+    "name": "Sistema Eléctrico",
+    "description": "Baterías, alternadores, cableado y componentes eléctricos",
+    "slug": "sistema_electrico",
+    "createdAt": "2025-04-10T08:45:00.000Z"
   },
   {
-    "_id": "61098c591540b03a9423c8ab",
+    "_id": "663f1a2b8c9d123456780005",
     "name": "Transmisión",
-    "description": "Sistema de transmisión y embrague",
+    "description": "Embragues, cajas de cambio y transmisión",
     "slug": "transmision",
-    "createdAt": "2023-01-01T00:00:00.000Z"
+    "createdAt": "2025-04-10T09:00:00.000Z"
   },
   {
-    "_id": "61098c591540b03a9423c8ac",
-    "name": "Carrocería",
-    "description": "Partes externas de carrocería y accesorios",
-    "slug": "carroceria",
-    "createdAt": "2023-01-01T00:00:00.000Z"
-  },
-  {
-    "_id": "61098c591540b03a9423c8ad",
-    "name": "Interior",
-    "description": "Componentes y accesorios del interior del vehículo",
-    "slug": "interior",
-    "createdAt": "2023-01-01T00:00:00.000Z"
-  },
-  {
-    "_id": "61098c591540b03a9423c8ae",
-    "name": "Llantas y Neumáticos",
-    "description": "Llantas, neumáticos y accesorios relacionados",
-    "slug": "llantas-neumaticos",
-    "createdAt": "2023-01-01T00:00:00.000Z"
+    "_id": "663f1a2b8c9d123456780006",
+    "name": "Neumáticos y Llantas",
+    "description": "Neumáticos, llantas y accesorios de ruedas",
+    "slug": "neumaticos_y_llantas",
+    "createdAt": "2025-04-10T09:15:00.000Z"
   }
 ];
 
-// Productos actualizados (sin referencias a distribuidor)
+// =====================================================
+// 🛒 PRODUCTOS DEMOSTRATIVOS (Todas las funcionalidades)
+// =====================================================
 const products = [
+  // 🔥 PRODUCTO EN SUPER OFERTA (Destacado + Descuento)
   {
-    "_id": "61099192e06a763f761cb8e1",
-    "name": "Filtro de Aceite Premium",
-    "description": "Filtro de aceite de alta calidad para motores de 4 cilindros. Compatible con múltiples marcas y modelos. Ofrece excelente filtración y durabilidad extendida.",
-    "price": 9990,
-    "wholesalePrice": 7990,
-    "stockQuantity": 100,
-    "category": "61098c591540b03a9423c8a7",
-    "brand": "FilterPro",
-    "sku": "FP-1234",
-    "partNumber": "FP-OIL-1234",
-    "compatibleModels": [
-      { "make": "Toyota", "model": "Corolla", "year": 2018 },
-      { "make": "Honda", "model": "Civic", "year": 2019 },
-      { "make": "Nissan", "model": "Sentra", "year": 2020 }
-    ],
-    "featured": true,
-    "avgRating": 4.5,
-    "createdAt": "2023-01-05T00:00:00.000Z",
-    "onSale": true,
-    "discountPercentage": 20,
-    "salePrice": 7992,
-    "slug": "filtro_de_aceite_premium"
-  },
-  {
-    "_id": "61099192e06a763f761cb8e2",
-    "name": "Pastillas de Freno Delanteras",
-    "description": "Pastillas de freno de cerámica de alto rendimiento. Duración extendida, bajo nivel de ruido y excelente poder de frenado en todas las condiciones.",
-    "price": 24990,
-    "wholesalePrice": 19990,
-    "stockQuantity": 50,
-    "category": "61098c591540b03a9423c8a8",
-    "brand": "BrakeMaster",
-    "sku": "BM-2468",
-    "partNumber": "BM-FRONT-2468",
-    "compatibleModels": [
-      { "make": "Chevrolet", "model": "Cruze", "year": 2017 },
-      { "make": "Hyundai", "model": "Elantra", "year": 2018 },
-      { "make": "Kia", "model": "Cerato", "year": 2019 }
-    ],
-    "featured": true,
-    "avgRating": 4.8,
-    "createdAt": "2023-01-06T00:00:00.000Z",
-    "onSale": true,
-    "discountPercentage": 15,
-    "salePrice": 21242,
-    "slug": "pastillas_de_freno_delanteras"
-  },
-  {
-    "_id": "61099192e06a763f761cb8e3",
-    "name": "Amortiguador Trasero",
-    "description": "Amortiguador de alta resistencia para uso en todo tipo de terrenos. Proporciona mayor estabilidad, control y comodidad de manejo.",
-    "price": 49990,
-    "wholesalePrice": 39990,
-    "stockQuantity": 30,
-    "category": "61098c591540b03a9423c8a9",
-    "brand": "SuspensionTech",
-    "sku": "ST-3690",
-    "partNumber": "ST-REAR-3690",
-    "compatibleModels": [
-      { "make": "Nissan", "model": "Sentra", "year": 2019 },
-      { "make": "Kia", "model": "Rio", "year": 2020 },
-      { "make": "Hyundai", "model": "Accent", "year": 2018 }
-    ],
-    "featured": false,
-    "avgRating": 4.2,
-    "createdAt": "2023-01-07T00:00:00.000Z",
-    "onSale": false,
-    "discountPercentage": 0,
-    "salePrice": null,
-    "slug": "amortiguador_trasero"
-  },
-  {
-    "_id": "61099192e06a763f761cb8e4",
-    "name": "Alternador 12V",
-    "description": "Alternador de alto rendimiento para sistemas eléctricos de 12V. Mayor duración, eficiencia mejorada y funcionamiento silencioso.",
-    "price": 79990,
-    "wholesalePrice": 64990,
-    "stockQuantity": 20,
-    "category": "61098c591540b03a9423c8aa",
-    "brand": "ElectroPower",
-    "sku": "EP-4812",
-    "partNumber": "EP-ALT-4812",
-    "compatibleModels": [
-      { "make": "Ford", "model": "Focus", "year": 2018 },
-      { "make": "Mazda", "model": "3", "year": 2019 },
-      { "make": "Volkswagen", "model": "Polo", "year": 2020 }
-    ],
-    "featured": true,
-    "avgRating": 4.6,
-    "createdAt": "2023-01-08T00:00:00.000Z",
-    "onSale": true,
-    "discountPercentage": 25,
-    "salePrice": 59993,
-    "slug": "alternador_12v"
-  },
-  {
-    "_id": "61099192e06a763f761cb8e5",
-    "name": "Kit de Embrague Completo",
-    "description": "Kit completo de embrague incluyendo disco, plato y rodamiento. Mayor durabilidad, rendimiento suave y instalación sencilla.",
-    "price": 129990,
-    "wholesalePrice": 99990,
-    "stockQuantity": 15,
-    "category": "61098c591540b03a9423c8ab",
-    "brand": "TransmissionPro",
-    "sku": "TP-5730",
-    "partNumber": "TP-CLUTCH-5730",
-    "compatibleModels": [
-      { "make": "Mitsubishi", "model": "Lancer", "year": 2017 },
-      { "make": "Subaru", "model": "Impreza", "year": 2018 },
-      { "make": "Suzuki", "model": "Swift", "year": 2019 }
-    ],
-    "featured": false,
-    "avgRating": 4.7,
-    "createdAt": "2023-01-09T00:00:00.000Z",
-    "onSale": true,
-    "discountPercentage": 30,
-    "salePrice": 90993,
-    "slug": "kit_de_embrague_completo"
-  },
-  {
-    "_id": "61099192e06a763f761cb8e6",
-    "name": "Espejo Retrovisor Izquierdo",
-    "description": "Espejo retrovisor lateral izquierdo con ajuste eléctrico y calefacción. Diseño OEM para reemplazo directo sin modificaciones.",
-    "price": 59990,
-    "wholesalePrice": 47990,
+    "_id": "663f1a2b8c9d123456770001",
+    "name": "Kit de Pastillas de Freno Premium Brembo",
+    "description": "Kit completo de pastillas de freno delanteras de la marca Brembo. Incluye pastillas cerámicas de alto rendimiento, clips de montaje y grasa para guías. Compatible con vehículos europeos de alta gama.",
+    "price": 89990,
+    "wholesalePrice": 67990,
     "stockQuantity": 25,
-    "category": "61098c591540b03a9423c8ac",
-    "brand": "BodyParts",
-    "sku": "BP-6854",
-    "partNumber": "BP-MIRROR-L-6854",
+    "category": "663f1a2b8c9d123456780002",
+    "brand": "Brembo",
+    "sku": "BRE-KIT-001",
+    "partNumber": "P85020",
     "compatibleModels": [
-      { "make": "Volkswagen", "model": "Golf", "year": 2019 },
-      { "make": "Audi", "model": "A3", "year": 2020 },
-      { "make": "Seat", "model": "Leon", "year": 2018 }
+      { "make": "BMW", "model": "Serie 3", "year": 2020 },
+      { "make": "Mercedes-Benz", "model": "Clase C", "year": 2019 },
+      { "make": "Audi", "model": "A4", "year": 2021 }
     ],
-    "featured": true,
-    "avgRating": 4.4,
-    "createdAt": "2023-01-10T00:00:00.000Z",
+    "featured": true, // ⭐ PRODUCTO DESTACADO
+    "onSale": true, // 🔥 EN OFERTA
+    "discountPercentage": 25, // 25% descuento
+    "salePrice": 67493,
+    "saleEndDate": "2025-06-15T23:59:59.000Z",
+    "avgRating": 4.8,
+    "ratings": [
+      {
+        "user": "663f1a2b8c9d123456789002",
+        "rating": 5,
+        "comment": "Excelente calidad, se nota la diferencia en el frenado",
+        "userName": "Carlos M.",
+        "date": "2025-05-15T14:30:00.000Z"
+      }
+    ],
+    "createdAt": "2025-04-12T10:00:00.000Z",
+    "slug": "kit_pastillas_freno_premium_brembo"
+  },
+  
+  // 🆕 PRODUCTO NUEVO SIN DESCUENTO (Alto stock)
+  {
+    "_id": "663f1a2b8c9d123456770002",
+    "name": "Filtro de Aceite Mahle Original",
+    "description": "Filtro de aceite original Mahle para motores de 4 cilindros. Filtración superior que protege el motor y prolonga la vida útil del aceite. Incluye junta de goma nueva.",
+    "price": 12990,
+    "wholesalePrice": 9990,
+    "stockQuantity": 150,
+    "category": "663f1a2b8c9d123456780001",
+    "brand": "Mahle",
+    "sku": "MAH-FIL-002",
+    "partNumber": "OC 90",
+    "compatibleModels": [
+      { "make": "Toyota", "model": "Corolla", "year": 2022 },
+      { "make": "Honda", "model": "Civic", "year": 2021 },
+      { "make": "Nissan", "model": "Sentra", "year": 2023 }
+    ],
+    "featured": false,
     "onSale": false,
     "discountPercentage": 0,
-    "salePrice": null,
-    "slug": "espejo_retrovisor_izquierdo"
+    "avgRating": 4.5,
+    "createdAt": "2025-05-01T09:30:00.000Z",
+    "slug": "filtro_aceite_mahle_original"
   },
+  
+  // ⚡ PRODUCTO EN DESCUENTO MODERADO (Stock medio)
   {
-    "_id": "61099192e06a763f761cb8e7",
-    "name": "Batería 12V 45Ah",
-    "description": "Batería de arranque de 12V y 45Ah de capacidad. Tecnología de plomo-ácido libre de mantenimiento con excelente rendimiento en frío.",
-    "price": 45990,
-    "wholesalePrice": 36990,
-    "stockQuantity": 40,
-    "category": "61098c591540b03a9423c8aa",
-    "brand": "PowerMax",
-    "sku": "PM-BAT45",
-    "partNumber": "PM-12V-45AH",
+    "_id": "663f1a2b8c9d123456770003",
+    "name": "Amortiguador Trasero Monroe",
+    "description": "Amortiguador trasero Monroe Gas-Matic para máximo confort y control. Tecnología de válvula de precisión que proporciona una conducción suave en todo tipo de terrenos.",
+    "price": 65990,
+    "wholesalePrice": 52990,
+    "stockQuantity": 45,
+    "category": "663f1a2b8c9d123456780003",
+    "brand": "Monroe",
+    "sku": "MON-AMO-003",
+    "partNumber": "G7240",
     "compatibleModels": [
-      { "make": "Toyota", "model": "Yaris", "year": 2018 },
-      { "make": "Honda", "model": "Fit", "year": 2019 },
-      { "make": "Nissan", "model": "March", "year": 2020 }
+      { "make": "Chevrolet", "model": "Cruze", "year": 2020 },
+      { "make": "Ford", "model": "Focus", "year": 2019 }
     ],
     "featured": true,
+    "onSale": true,
+    "discountPercentage": 15, // 15% descuento
+    "salePrice": 56092,
     "avgRating": 4.3,
-    "createdAt": "2023-01-11T00:00:00.000Z",
+    "createdAt": "2025-04-25T11:15:00.000Z",
+    "slug": "amortiguador_trasero_monroe"
+  },
+  
+  // ⚠️ PRODUCTO CON STOCK BAJO
+  {
+    "_id": "663f1a2b8c9d123456770004",
+    "name": "Alternador Bosch 12V 90A",
+    "description": "Alternador Bosch de 12V y 90A de potencia. Reconstruido con componentes originales, incluye garantía de 1 año. Ideal para vehículos de alta demanda eléctrica.",
+    "price": 125990,
+    "wholesalePrice": 99990,
+    "stockQuantity": 3, // ⚠️ STOCK BAJO
+    "category": "663f1a2b8c9d123456780004",
+    "brand": "Bosch",
+    "sku": "BOS-ALT-004",
+    "partNumber": "0 986 045 340",
+    "compatibleModels": [
+      { "make": "Volkswagen", "model": "Golf", "year": 2018 },
+      { "make": "Seat", "model": "Leon", "year": 2019 }
+    ],
+    "featured": false,
     "onSale": false,
     "discountPercentage": 0,
-    "salePrice": null,
-    "slug": "bateria_12v_45ah"
+    "avgRating": 4.6,
+    "createdAt": "2025-04-20T13:45:00.000Z",
+    "slug": "alternador_bosch_12v_90a"
   },
+  
+  // 🚫 PRODUCTO AGOTADO
   {
-    "_id": "61099192e06a763f761cb8e8",
-    "name": "Radiador de Aluminio",
-    "description": "Radiador de aluminio de alta eficiencia para sistema de refrigeración. Excelente transferencia de calor y resistencia a la corrosión.",
+    "_id": "663f1a2b8c9d123456770005",
+    "name": "Kit de Embrague LuK RepSet",
+    "description": "Kit completo de embrague LuK RepSet incluye disco, plato de presión y rodamiento de embrague. Para transmisiones manuales de vehículos medianos.",
+    "price": 185990,
+    "wholesalePrice": 148990,
+    "stockQuantity": 0, // 🚫 AGOTADO
+    "category": "663f1a2b8c9d123456780005",
+    "brand": "LuK",
+    "sku": "LUK-EMB-005",
+    "partNumber": "623 3042 00",
+    "compatibleModels": [
+      { "make": "Hyundai", "model": "Elantra", "year": 2020 },
+      { "make": "Kia", "model": "Cerato", "year": 2021 }
+    ],
+    "featured": false,
+    "onSale": false,
+    "discountPercentage": 0,
+    "avgRating": 4.7,
+    "createdAt": "2025-04-18T16:20:00.000Z",
+    "slug": "kit_embrague_luk_repset"
+  },
+  
+  // 🔋 PRODUCTO DE CATEGORÍA ELÉCTRICA (Con valoraciones)
+  {
+    "_id": "663f1a2b8c9d123456770006",
+    "name": "Batería Varta Blue Dynamic 60Ah",
+    "description": "Batería de arranque Varta Blue Dynamic de 60Ah. Tecnología libre de mantenimiento con excelente rendimiento en frío. 3 años de garantía.",
     "price": 89990,
     "wholesalePrice": 71990,
-    "stockQuantity": 18,
-    "category": "61098c591540b03a9423c8a7",
-    "brand": "CoolTech",
-    "sku": "CT-RAD890",
-    "partNumber": "CT-ALU-RAD-890",
+    "stockQuantity": 35,
+    "category": "663f1a2b8c9d123456780004",
+    "brand": "Varta",
+    "sku": "VAR-BAT-006",
+    "partNumber": "C22",
     "compatibleModels": [
-      { "make": "Ford", "model": "Fiesta", "year": 2017 },
-      { "make": "Chevrolet", "model": "Spark", "year": 2018 },
-      { "make": "Renault", "model": "Logan", "year": 2019 }
-    ],
-    "featured": false,
-    "avgRating": 4.1,
-    "createdAt": "2023-01-12T00:00:00.000Z",
-    "onSale": true,
-    "discountPercentage": 12,
-    "salePrice": 79192,
-    "slug": "radiador_de_aluminio"
-  },
-  {
-    "_id": "61099192e06a763f761cb8e9",
-    "name": "Juego de Bujías",
-    "description": "Juego completo de 4 bujías de iridio de larga duración. Mejor encendido, mayor eficiencia de combustible y reducción de emisiones.",
-    "price": 19990,
-    "wholesalePrice": 15990,
-    "stockQuantity": 75,
-    "category": "61098c591540b03a9423c8a7",
-    "brand": "SparkPro",
-    "sku": "SP-IRID4",
-    "partNumber": "SP-IR-SET-4",
-    "compatibleModels": [
-      { "make": "Toyota", "model": "Corolla", "year": 2018 },
-      { "make": "Mazda", "model": "2", "year": 2019 },
-      { "make": "Mitsubishi", "model": "Mirage", "year": 2020 }
+      { "make": "Peugeot", "model": "208", "year": 2022 },
+      { "make": "Citroën", "model": "C3", "year": 2021 }
     ],
     "featured": true,
-    "avgRating": 4.6,
-    "createdAt": "2023-01-13T00:00:00.000Z",
-    "onSale": true,
-    "discountPercentage": 18,
-    "salePrice": 16392,
-    "slug": "juego_de_bujias"
-  },
-  {
-    "_id": "61099192e06a763f761cb8ea",
-    "name": "Llanta de Aleación 16\"",
-    "description": "Llanta de aleación de aluminio de 16 pulgadas. Diseño deportivo, peso reducido y excelente resistencia. Incluye centro de llanta.",
-    "price": 69990,
-    "wholesalePrice": 55990,
-    "stockQuantity": 32,
-    "category": "61098c591540b03a9423c8ae",
-    "brand": "WheelMax",
-    "sku": "WM-AL16",
-    "partNumber": "WM-ALLOY-16-001",
-    "compatibleModels": [
-      { "make": "Honda", "model": "Civic", "year": 2018 },
-      { "make": "Toyota", "model": "Corolla", "year": 2019 },
-      { "make": "Hyundai", "model": "Elantra", "year": 2020 }
-    ],
-    "featured": true,
-    "avgRating": 4.5,
-    "createdAt": "2023-01-14T00:00:00.000Z",
     "onSale": false,
     "discountPercentage": 0,
-    "salePrice": null,
-    "slug": "llanta_de_aleacion_16"
+    "avgRating": 4.4,
+    "ratings": [
+      {
+        "user": "663f1a2b8c9d123456789002",
+        "rating": 4,
+        "comment": "Buena batería, arranca bien en invierno",
+        "userName": "Carlos M.",
+        "date": "2025-05-12T10:15:00.000Z"
+      }
+    ],
+    "createdAt": "2025-04-28T09:00:00.000Z",
+    "slug": "bateria_varta_blue_dynamic_60ah"
+  },
+  
+  // Productos de relleno (más simples)
+  {
+    "_id": "663f1a2b8c9d123456770007",
+    "name": "Neumático Michelin Primacy 4",
+    "description": "Neumático Michelin Primacy 4 medida 205/55R16. Excelente agarre en mojado y seco.",
+    "price": 75990,
+    "wholesalePrice": 60990,
+    "stockQuantity": 60,
+    "category": "663f1a2b8c9d123456780006",
+    "brand": "Michelin",
+    "sku": "MIC-NEU-007",
+    "partNumber": "223647",
+    "featured": false,
+    "onSale": false,
+    "discountPercentage": 0,
+    "avgRating": 4.2,
+    "createdAt": "2025-05-03T14:00:00.000Z",
+    "slug": "neumatico_michelin_primacy_4"
+  },
+  
+  {
+    "_id": "663f1a2b8c9d123456770008",
+    "name": "Radiador Valeo",
+    "description": "Radiador de aluminio Valeo para sistema de refrigeración. Excelente transferencia de calor.",
+    "price": 95990,
+    "wholesalePrice": 76990,
+    "stockQuantity": 20,
+    "category": "663f1a2b8c9d123456780001",
+    "brand": "Valeo",
+    "sku": "VAL-RAD-008",
+    "partNumber": "732972",
+    "featured": false,
+    "onSale": true,
+    "discountPercentage": 10,
+    "salePrice": 86391,
+    "avgRating": 4.1,
+    "createdAt": "2025-04-30T12:30:00.000Z",
+    "slug": "radiador_valeo"
+  },
+  
+  {
+    "_id": "663f1a2b8c9d123456770009",
+    "name": "Bujías NGK Iridium",
+    "description": "Juego de 4 bujías NGK con electrodo de iridio. Mayor duración y mejor encendido.",
+    "price": 35990,
+    "wholesalePrice": 28990,
+    "stockQuantity": 80,
+    "category": "663f1a2b8c9d123456780001",
+    "brand": "NGK",
+    "sku": "NGK-BUJ-009",
+    "partNumber": "ILZFR6D11",
+    "featured": false,
+    "onSale": false,
+    "discountPercentage": 0,
+    "avgRating": 4.6,
+    "createdAt": "2025-05-05T15:45:00.000Z",
+    "slug": "bujias_ngk_iridium"
+  },
+  
+  {
+    "_id": "663f1a2b8c9d123456770010",
+    "name": "Llanta de Aleación 17\"",
+    "description": "Llanta de aleación deportiva de 17 pulgadas. Diseño moderno y peso reducido.",
+    "price": 120990,
+    "wholesalePrice": 96990,
+    "stockQuantity": 24,
+    "category": "663f1a2b8c9d123456780006",
+    "brand": "OZ Racing",
+    "sku": "OZR-LLA-010",
+    "partNumber": "W0425320154",
+    "featured": true,
+    "onSale": false,
+    "discountPercentage": 0,
+    "avgRating": 4.5,
+    "createdAt": "2025-05-08T11:00:00.000Z",
+    "slug": "llanta_aleacion_17"
   }
 ];
 
+// =====================================================
+// 📋 ÓRDENES DEMOSTRATIVAS (Diferentes estados)
+// =====================================================
+const orders = [
+  // 🛒 ORDEN COMPLETADA B2C (Cliente regular)
+  {
+    "_id": "663f1a2b8c9d123456760001",
+    "user": "663f1a2b8c9d123456789002",
+    "items": [
+      {
+        "product": "663f1a2b8c9d123456770002",
+        "quantity": 2,
+        "price": 12990
+      },
+      {
+        "product": "663f1a2b8c9d123456770009",
+        "quantity": 1,
+        "price": 35990
+      }
+    ],
+    "shipmentMethod": "delivery",
+    "shippingAddress": {
+      "street": "Calle Las Flores 567",
+      "city": "Santiago",
+      "state": "Región Metropolitana",
+      "postalCode": "7500000",
+      "country": "Chile"
+    },
+    "paymentMethod": "webpay",
+    "itemsPrice": 61970,
+    "taxPrice": 11774,
+    "shippingPrice": 5000,
+    "totalPrice": 78744,
+    "orderType": "B2C",
+    "taxRate": 19,
+    "isPaid": true,
+    "paidAt": "2025-05-14T10:30:00.000Z",
+    "isDelivered": true,
+    "deliveredAt": "2025-05-16T14:20:00.000Z",
+    "status": "delivered",
+    "paymentResult": {
+      "id": "token_ws_123456",
+      "buyOrder": "ORDER_001_1715693400",
+      "authorizationCode": "123456",
+      "status": "approved",
+      "paymentMethod": "webpay"
+    },
+    "createdAt": "2025-05-14T09:15:00.000Z"
+  },
+  
+  // 🏢 ORDEN B2B PENDIENTE (Distribuidor)
+  {
+    "_id": "663f1a2b8c9d123456760002",
+    "user": "663f1a2b8c9d123456789003",
+    "items": [
+      {
+        "product": "663f1a2b8c9d123456770001",
+        "quantity": 5,
+        "price": 67990 // Precio mayorista
+      },
+      {
+        "product": "663f1a2b8c9d123456770006",
+        "quantity": 3,
+        "price": 71990 // Precio mayorista
+      }
+    ],
+    "shipmentMethod": "pickup",
+    "pickupLocation": {
+      "name": "AutoParts Bodega Central",
+      "address": "Av. Industrial 1500, Santiago",
+      "scheduledDate": "2025-05-22T10:00:00.000Z"
+    },
+    "paymentMethod": "bankTransfer",
+    "itemsPrice": 555920,
+    "taxPrice": 105625,
+    "shippingPrice": 0,
+    "totalPrice": 661545,
+    "orderType": "B2B",
+    "taxRate": 19,
+    "isPaid": false,
+    "isDelivered": false,
+    "status": "processing",
+    "createdAt": "2025-05-18T16:45:00.000Z"
+  }
+];
+
+// =====================================================
+// ⚙️ CONFIGURACIONES DEL SISTEMA
+// =====================================================
 const systemConfigs = [
   {
     key: 'tax_rate',
@@ -497,15 +502,19 @@ const systemConfigs = [
     description: 'Porcentaje de IVA aplicado a las ventas',
     type: 'number',
     category: 'tax',
-    validationRules: { min: 0, max: 100 }
+    validationRules: { min: 0, max: 100 },
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
   {
     key: 'free_shipping_threshold',
-    value: 100000,
+    value: 80000,
     description: 'Monto mínimo para envío gratuito (CLP)',
     type: 'number',
     category: 'shipping',
-    validationRules: { min: 0 }
+    validationRules: { min: 0 },
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
   {
     key: 'default_shipping_cost',
@@ -513,38 +522,27 @@ const systemConfigs = [
     description: 'Costo de envío por defecto (CLP)',
     type: 'number',
     category: 'shipping',
-    validationRules: { min: 0 }
+    validationRules: { min: 0 },
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
   {
     key: 'site_name',
     value: 'AutoParts',
     description: 'Nombre del sitio web',
     type: 'string',
-    category: 'general'
+    category: 'general',
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
   {
     key: 'contact_email',
     value: 'info@autoparts.com',
     description: 'Email de contacto principal',
     type: 'string',
-    category: 'general'
-  },
-  {
-    key: 'max_file_size',
-    value: 5242880,
-    description: 'Tamaño máximo de archivo en bytes (5MB)',
-    type: 'number',
     category: 'general',
-    validationRules: { min: 1048576, max: 10485760 }, // 1MB - 10MB
-    isEditable: false
-  },
-  {
-    key: 'currency',
-    value: 'CLP',
-    description: 'Moneda por defecto del sistema',
-    type: 'string',
-    category: 'general',
-    isEditable: false
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
   {
     key: 'enable_b2b',
@@ -552,9 +550,10 @@ const systemConfigs = [
     description: 'Habilitar funcionalidades B2B (mayorista)',
     type: 'boolean',
     category: 'general',
-    isEditable: true
+    isEditable: true,
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
-  // NUEVAS CONFIGURACIONES PARA WEBPAY
   {
     key: 'webpay_environment',
     value: 'integration',
@@ -562,67 +561,110 @@ const systemConfigs = [
     type: 'string',
     category: 'payment',
     validationRules: { enum: ['integration', 'production'] },
-    isEditable: true
+    isEditable: true,
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   },
   {
-    key: 'default_payment_method',
-    value: 'webpay',
-    description: 'Método de pago por defecto',
-    type: 'string',
-    category: 'payment',
-    validationRules: { enum: ['webpay', 'bankTransfer', 'cash'] },
-    isEditable: true
-  },
-  {
-    key: 'payment_timeout',
-    value: 900,
-    description: 'Tiempo límite para completar pago (segundos)',
+    key: 'low_stock_threshold',
+    value: 5,
+    description: 'Umbral de stock bajo para alertas',
     type: 'number',
-    category: 'payment',
-    validationRules: { min: 300, max: 1800 }, // 5 a 30 minutos
-    isEditable: true
+    category: 'inventory',
+    validationRules: { min: 1, max: 50 },
+    isEditable: true,
+    lastModifiedBy: "663f1a2b8c9d123456789001",
+    createdAt: "2025-04-15T10:30:00.000Z"
   }
 ];
 
-// Función actualizada para importar datos
+// =====================================================
+// 📊 FUNCIONES DE IMPORTACIÓN Y ELIMINACIÓN
+// =====================================================
+
+// Función para importar datos
 const importData = async () => {
   try {
-    console.log('🔄 Importando usuarios...');
+    console.log('🚀 Iniciando importación de datos AutoParts...');
+    console.log('📅 Datos de ejemplo con fechas abril-mayo 2025\n');
+
+    // Importar usuarios
+    console.log('👥 Importando usuarios...');
     await User.create(users);
-    console.log('✅ Usuarios importados correctamente');
+    console.log(`✅ ${users.length} usuarios importados:`);
+    console.log('   🔧 1 Administrador');
+    console.log('   👤 1 Cliente regular');
+    console.log('   🏢 1 Distribuidor aprobado');
+    console.log('   ⏳ 1 Distribuidor pendiente\n');
 
-    console.log('🔄 Importando categorías...');
+    // Importar categorías
+    console.log('📂 Importando categorías...');
     await Category.create(categories);
-    console.log('✅ Categorías importadas correctamente');
+    console.log(`✅ ${categories.length} categorías importadas\n`);
 
-    console.log('🔄 Importando productos...');
+    // Importar productos
+    console.log('🛒 Importando productos...');
     await Product.create(products);
-    console.log('✅ Productos importados correctamente');
+    console.log(`✅ ${products.length} productos importados:`);
+    console.log('   🔥 1 Producto en super oferta (25% desc)');
+    console.log('   ⚡ 1 Producto en descuento moderado (15% desc)');
+    console.log('   🆕 Productos nuevos sin descuento');
+    console.log('   ⚠️ 1 Producto con stock bajo');
+    console.log('   🚫 1 Producto agotado');
+    console.log('   ⭐ Productos destacados');
+    console.log('   💬 Productos con valoraciones\n');
 
-    // NUEVO: Importar configuraciones del sistema
-    console.log('🔄 Importando configuraciones del sistema...');
-    const SystemConfig = require('./models/SystemConfig');
-    
+    // Importar órdenes
+    console.log('📋 Importando órdenes...');
+    await Order.create(orders);
+    console.log(`✅ ${orders.length} órdenes importadas:`);
+    console.log('   ✅ 1 Orden B2C completada (delivery)');
+    console.log('   🏢 1 Orden B2B en proceso (pickup)\n');
+
+    // Importar configuraciones del sistema
+    console.log('⚙️ Importando configuraciones del sistema...');
     for (const config of systemConfigs) {
       try {
         await SystemConfig.create(config);
-        console.log(`✅ Configuración creada: ${config.key}`);
+        console.log(`   ✅ ${config.key}: ${config.value}`);
       } catch (err) {
         if (err.code === 11000) {
-          console.log(`⚠️ Configuración ya existe: ${config.key}`);
+          console.log(`   ⚠️ Ya existe: ${config.key}`);
         } else {
-          console.error(`❌ Error al crear configuración ${config.key}:`, err.message);
+          console.error(`   ❌ Error: ${config.key} - ${err.message}`);
         }
       }
     }
-    console.log('✅ Configuraciones del sistema importadas correctamente');
 
-    console.log('🎉 Todos los datos han sido importados exitosamente');
-    console.log(`📊 Resumen:`);
-    console.log(`   - ${users.length} usuarios`);
-    console.log(`   - ${categories.length} categorías`);
-    console.log(`   - ${products.length} productos`);
-    console.log(`   - ${systemConfigs.length} configuraciones del sistema`);
+    console.log('\n🎉 ¡Importación completada exitosamente!');
+    console.log('\n📊 RESUMEN DE FUNCIONALIDADES INCLUIDAS:');
+    console.log('═══════════════════════════════════════════');
+    console.log('🔐 AUTENTICACIÓN:');
+    console.log('   • Admin, Cliente, Distribuidor aprobado/pendiente');
+    console.log('\n🛒 PRODUCTOS:');
+    console.log('   • Productos en oferta con descuentos');
+    console.log('   • Productos destacados');
+    console.log('   • Stock bajo y agotados');
+    console.log('   • Precios B2B y B2C');
+    console.log('   • Valoraciones y comentarios');
+    console.log('\n📦 ÓRDENES:');
+    console.log('   • Orden B2C completada con Webpay');
+    console.log('   • Orden B2B mayorista en proceso');
+    console.log('   • Diferentes métodos de pago y envío');
+    console.log('\n🏢 FUNCIONALIDADES B2B:');
+    console.log('   • Distribuidor aprobado con descuentos');
+    console.log('   • Distribuidor pendiente de aprobación');
+    console.log('   • Precios mayoristas diferenciados');
+    console.log('\n⚙️ CONFIGURACIONES:');
+    console.log('   • IVA, envío gratuito, costos');
+    console.log('   • Configuración Webpay');
+    console.log('   • Alertas de stock bajo');
+    console.log('\n🎯 DATOS DE ACCESO:');
+    console.log('   📧 Admin: admin@autoparts.com');
+    console.log('   📧 Cliente: carlos.mendoza@gmail.com');
+    console.log('   📧 Distribuidor: contacto@repuestoscentral.cl');
+    console.log('   🔑 Password (todos): password123');
+    console.log('\n✨ ¡Listo para probar todas las funcionalidades!');
     
     process.exit();
   } catch (err) {
@@ -631,9 +673,11 @@ const importData = async () => {
   }
 };
 
-// Función actualizada para eliminar datos
+// Función para eliminar datos
 const deleteData = async () => {
   try {
+    console.log('🗑️ Iniciando eliminación de datos...');
+
     console.log('🔄 Eliminando usuarios...');
     await User.deleteMany();
     console.log('✅ Usuarios eliminados');
@@ -650,13 +694,13 @@ const deleteData = async () => {
     await Order.deleteMany();
     console.log('✅ Órdenes eliminadas');
 
-    // NUEVO: Eliminar configuraciones del sistema
     console.log('🔄 Eliminando configuraciones del sistema...');
-    const SystemConfig = require('./models/SystemConfig');
     await SystemConfig.deleteMany();
-    console.log('✅ Configuraciones del sistema eliminadas');
+    console.log('✅ Configuraciones eliminadas');
 
-    console.log('🗑️ Todos los datos han sido eliminados correctamente');
+    console.log('\n🗑️ Todos los datos han sido eliminados correctamente');
+    console.log('💡 Ejecuta "npm run data:import" para restaurar datos de ejemplo');
+    
     process.exit();
   } catch (err) {
     console.error('❌ Error al eliminar datos:', err);
@@ -664,21 +708,132 @@ const deleteData = async () => {
   }
 };
 
-// Verificar argumentos para importar o eliminar
-if (process.argv[2] === '-i') {
-  console.log('🚀 Iniciando importación de datos...');
+// Función para mostrar estadísticas de la base de datos
+const showStats = async () => {
+  try {
+    console.log('📊 ESTADÍSTICAS DE LA BASE DE DATOS AutoParts');
+    console.log('═══════════════════════════════════════════════');
+
+    const userCount = await User.countDocuments();
+    const clientCount = await User.countDocuments({ role: 'client' });
+    const distributorCount = await User.countDocuments({ role: 'distributor' });
+    const adminCount = await User.countDocuments({ role: 'admin' });
+
+    const categoryCount = await Category.countDocuments();
+    const productCount = await Product.countDocuments();
+    const featuredProductCount = await Product.countDocuments({ featured: true });
+    const onSaleProductCount = await Product.countDocuments({ onSale: true });
+    const lowStockProductCount = await Product.countDocuments({ stockQuantity: { $lte: 5 } });
+    const outOfStockProductCount = await Product.countDocuments({ stockQuantity: 0 });
+
+    const orderCount = await Order.countDocuments();
+    const b2cOrderCount = await Order.countDocuments({ orderType: 'B2C' });
+    const b2bOrderCount = await Order.countDocuments({ orderType: 'B2B' });
+    const completedOrderCount = await Order.countDocuments({ status: 'delivered' });
+
+    const configCount = await SystemConfig.countDocuments();
+
+    console.log('\n👥 USUARIOS:');
+    console.log(`   Total: ${userCount}`);
+    console.log(`   🔧 Administradores: ${adminCount}`);
+    console.log(`   👤 Clientes: ${clientCount}`);
+    console.log(`   🏢 Distribuidores: ${distributorCount}`);
+
+    console.log('\n📂 CATEGORÍAS:');
+    console.log(`   Total: ${categoryCount}`);
+
+    console.log('\n🛒 PRODUCTOS:');
+    console.log(`   Total: ${productCount}`);
+    console.log(`   ⭐ Destacados: ${featuredProductCount}`);
+    console.log(`   🔥 En oferta: ${onSaleProductCount}`);
+    console.log(`   ⚠️ Stock bajo: ${lowStockProductCount}`);
+    console.log(`   🚫 Agotados: ${outOfStockProductCount}`);
+
+    console.log('\n📋 ÓRDENES:');
+    console.log(`   Total: ${orderCount}`);
+    console.log(`   🛒 B2C (Retail): ${b2cOrderCount}`);
+    console.log(`   🏢 B2B (Mayorista): ${b2bOrderCount}`);
+    console.log(`   ✅ Completadas: ${completedOrderCount}`);
+
+    console.log('\n⚙️ CONFIGURACIONES:');
+    console.log(`   Total: ${configCount}`);
+
+    // Mostrar algunos productos destacados
+    const featuredProducts = await Product.find({ featured: true }).select('name price onSale discountPercentage stockQuantity').limit(3);
+    if (featuredProducts.length > 0) {
+      console.log('\n🌟 PRODUCTOS DESTACADOS:');
+      featuredProducts.forEach(product => {
+        const status = product.stockQuantity === 0 ? '🚫 Agotado' : 
+                      product.stockQuantity <= 5 ? '⚠️ Stock bajo' : '✅ Disponible';
+        const offer = product.onSale ? ` (${product.discountPercentage}% DESC)` : '';
+        console.log(`   • ${product.name} - ${product.price.toLocaleString('es-CL')}${offer} - ${status}`);
+      });
+    }
+
+    // Mostrar distribuidores
+    const distributors = await User.find({ role: 'distributor' }).select('name distributorInfo.isApproved distributorInfo.companyName');
+    if (distributors.length > 0) {
+      console.log('\n🏢 DISTRIBUIDORES:');
+      distributors.forEach(dist => {
+        const status = dist.distributorInfo?.isApproved ? '✅ Aprobado' : '⏳ Pendiente';
+        console.log(`   • ${dist.distributorInfo?.companyName || dist.name} - ${status}`);
+      });
+    }
+
+    console.log('\n🎯 ACCESOS RÁPIDOS:');
+    console.log('   📧 admin@autoparts.com (Admin)');
+    console.log('   📧 carlos.mendoza@gmail.com (Cliente)');
+    console.log('   📧 contacto@repuestoscentral.cl (Distribuidor)');
+    console.log('   🔑 Password: password123 (para todos)');
+
+    process.exit();
+  } catch (err) {
+    console.error('❌ Error al obtener estadísticas:', err);
+    process.exit(1);
+  }
+};
+
+// =====================================================
+// 🎯 EJECUCIÓN SEGÚN ARGUMENTOS
+// =====================================================
+
+// Verificar argumentos de línea de comandos
+if (process.argv[2] === '-i' || process.argv[2] === '--import') {
+  console.log('🚀 Iniciando importación de datos AutoParts...');
   importData();
-} else if (process.argv[2] === '-d') {
+} else if (process.argv[2] === '-d' || process.argv[2] === '--delete') {
   console.log('🗑️ Iniciando eliminación de datos...');
   deleteData();
+} else if (process.argv[2] === '-s' || process.argv[2] === '--stats') {
+  console.log('📊 Consultando estadísticas...');
+  showStats();
 } else {
-  console.log('❓ Uso: node seeder.js [opción]');
-  console.log('   Opciones:');
-  console.log('   -i    Importar datos de ejemplo');
-  console.log('   -d    Eliminar todos los datos');
+  console.log('🎯 SEEDER AutoParts - Gestor de Datos de Demostración');
+  console.log('═══════════════════════════════════════════════════');
   console.log('');
-  console.log('   Ejemplos:');
-  console.log('   npm run data:import   (importar)');
-  console.log('   npm run data:destroy  (eliminar)');
+  console.log('📋 USO: node seeder.js [opción]');
+  console.log('');
+  console.log('🔧 OPCIONES DISPONIBLES:');
+  console.log('   -i, --import    Importar datos de demostración');
+  console.log('   -d, --delete    Eliminar todos los datos');
+  console.log('   -s, --stats     Mostrar estadísticas actuales');
+  console.log('');
+  console.log('💡 EJEMPLOS:');
+  console.log('   npm run data:import    (importar datos)');
+  console.log('   npm run data:destroy   (eliminar datos)');
+  console.log('   npm run data:stats     (ver estadísticas)');
+  console.log('');
+  console.log('🎯 FUNCIONALIDADES INCLUIDAS:');
+  console.log('   ✅ Sistema de autenticación completo');
+  console.log('   ✅ Productos con ofertas y descuentos');
+  console.log('   ✅ Funcionalidades B2B para distribuidores');
+  console.log('   ✅ Gestión de inventario y stock');
+  console.log('   ✅ Sistema de órdenes y pagos');
+  console.log('   ✅ Configuraciones del sistema');
+  console.log('   ✅ Valoraciones y reseñas');
+  console.log('');
+  console.log('📅 Datos de ejemplo: Abril-Mayo 2025');
+  console.log('🎪 ¡Perfecto para demostraciones!');
+  
   process.exit(1);
 }
