@@ -11,7 +11,7 @@ import {
   XMarkIcon,
   ArrowRightOnRectangleIcon,
   ChartBarIcon,
-  CogIcon  // NUEVO: Icono de configuración
+  CogIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = () => {
@@ -25,7 +25,7 @@ const AdminSidebar = () => {
     { name: 'Categorías', href: '/admin/categories', icon: TagIcon },
     { name: 'Pedidos', href: '/admin/orders', icon: ShoppingBagIcon },
     { name: 'Usuarios', href: '/admin/users', icon: UserGroupIcon },
-    { name: 'Configuración', href: '/admin/system-config', icon: CogIcon }, // NUEVO
+    { name: 'Configuración', href: '/admin/system-config', icon: CogIcon },
   ];
 
   const isActive = (path) => {

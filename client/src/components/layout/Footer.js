@@ -28,9 +28,6 @@ const Footer = () => {
       </div>
       
       <div className="relative">
-       
-              
-
         {/* Contenido principal del footer */}
         <div className="container mx-auto px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -55,52 +52,52 @@ const Footer = () => {
                 </p>
               </div>
               
-{/* Redes sociales mejoradas */}
-<div className="space-y-4">
-  <h4 className="font-semibold text-white">Síguenos</h4>
-  <div className="flex space-x-4">
-    {[
-      { 
-        href: "https://facebook.com", 
-        icon: <FaFacebookF />, 
-        name: "Facebook",
-        color: "hover:bg-blue-600"
-      },
-      { 
-        href: "https://instagram.com", 
-        icon: <FaInstagram />, 
-        name: "Instagram",
-        color: "hover:bg-pink-600"
-      },
-      { 
-        href: "https://twitter.com", 
-        icon: <FaTwitter />, 
-        name: "Twitter",
-        color: "hover:bg-sky-500"
-      },
-      { 
-        href: "https://youtube.com", 
-        icon: <FaYoutube />, 
-        name: "YouTube",
-        color: "hover:bg-red-600"
-      },
-      { 
-        href: "https://tiktok.com", 
-        icon: <FaTiktok />, 
-        name: "TikTok",
-        color: "hover:bg-black"
-      }
-    ].map((social) => (
-      <a
-        key={social.name}
-        href={social.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 hover:shadow-lg ${social.color} border border-white/20`}
-        title={social.name}
-      >
-        {social.icon}
-      </a>
+              {/* Redes sociales mejoradas */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-white">Síguenos</h4>
+                <div className="flex space-x-4">
+                  {[
+                    { 
+                      href: "https://facebook.com", 
+                      icon: <FaFacebookF />, 
+                      name: "Facebook",
+                      color: "hover:bg-blue-600"
+                    },
+                    { 
+                      href: "https://instagram.com", 
+                      icon: <FaInstagram />, 
+                      name: "Instagram",
+                      color: "hover:bg-pink-600"
+                    },
+                    { 
+                      href: "https://twitter.com", 
+                      icon: <FaTwitter />, 
+                      name: "Twitter",
+                      color: "hover:bg-sky-500"
+                    },
+                    { 
+                      href: "https://youtube.com", 
+                      icon: <FaYoutube />, 
+                      name: "YouTube",
+                      color: "hover:bg-red-600"
+                    },
+                    { 
+                      href: "https://tiktok.com", 
+                      icon: <FaTiktok />, 
+                      name: "TikTok",
+                      color: "hover:bg-black"
+                    }
+                  ].map((social) => (
+                    <a
+                      key={social.name}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 hover:shadow-lg ${social.color} border border-white/20`}
+                      title={social.name}
+                    >
+                      {social.icon}
+                    </a>
                   ))}
                 </div>
               </div>
@@ -114,12 +111,12 @@ const Footer = () => {
               </h3>
               <ul className="space-y-3">
                 {[
-                  { to: "/", label: "🏠 Inicio" },
-                  { to: "/catalog", label: "🛒 Catálogo" },
-                  { to: "/catalog?featured=true", label: "⭐ Destacados" },
-                  { to: "/catalog?onSale=true", label: "🔥 Ofertas" },
-                  { to: "/about", label: "ℹ️ Nosotros" },
-                  { to: "/contact", label: "📞 Contacto" }
+                  { to: "/", label: "Inicio" },
+                  { to: "/catalog", label: "Catálogo" },
+                  { to: "/catalog?featured=true", label: "Destacados" },
+                  { to: "/catalog?onSale=true", label: "Ofertas" },
+                  { to: "/about", label: "Nosotros" },
+                  { to: "/contact", label: "Contacto" }
                 ].map((link) => (
                   <li key={link.to}>
                     <Link
@@ -143,12 +140,12 @@ const Footer = () => {
               </h3>
               <ul className="space-y-3">
                 {[
-                  { to: "/catalog?category=motor", label: "🔧 Motor" },
-                  { to: "/catalog?category=frenos", label: "🛑 Frenos" },
-                  { to: "/catalog?category=suspension", label: "🚗 Suspensión" },
-                  { to: "/catalog?category=transmision", label: "⚙️ Transmisión" },
-                  { to: "/catalog?category=electrico", label: "⚡ Eléctrico" },
-                  { to: "/catalog?category=carroceria", label: "🚘 Carrocería" }
+                  { to: "/catalog?category=motor", label: "Motor" },
+                  { to: "/catalog?category=frenos", label: "Frenos" },
+                  { to: "/catalog?category=suspension", label: "Suspensión" },
+                  { to: "/catalog?category=transmision", label: "Transmisión" },
+                  { to: "/catalog?category=electrico", label: "Eléctrico" },
+                  { to: "/catalog?category=carroceria", label: "Carrocería" }
                 ].map((link) => (
                   <li key={link.to}>
                     <Link
@@ -201,16 +198,15 @@ const Footer = () => {
               
               {/* Servicios destacados */}
               <div className="space-y-3">
-                <h4 className="font-semibold text-white text-sm">🚀 Nuestros Servicios</h4>
+                <h4 className="font-semibold text-white text-sm">Nuestros Servicios</h4>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    { icon: "🚚", text: "Envío 24-48hrs" },
-                    { icon: "🛡️", text: "Garantía Total" },
-                    { icon: "💳", text: "Pago Seguro" },
-                    { icon: "📞", text: "Soporte 24/7" }
+                    { text: "Envío 24-48hrs" },
+                    { text: "Garantía Total" },
+                    { text: "Pago Seguro" },
+                    { text: "Soporte 24/7" }
                   ].map((service, index) => (
                     <div key={index} className="flex items-center space-x-2 text-blue-100">
-                      <span>{service.icon}</span>
                       <span>{service.text}</span>
                     </div>
                   ))}

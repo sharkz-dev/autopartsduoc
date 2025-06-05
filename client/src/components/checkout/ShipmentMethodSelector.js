@@ -3,12 +3,10 @@ import { TruckIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 const ShipmentMethodSelector = ({ selectedMethod, setSelectedMethod, pickupLocations, onPickupLocationChange }) => {
   
-  // ✅ NUEVO: Manejar cambio de ubicación de retiro
+  // Manejar cambio de ubicación de retiro
   const handlePickupLocationChange = (e) => {
     const locationId = parseInt(e.target.value);
     const selectedLocation = pickupLocations.find(loc => loc.id === locationId);
-    
-    console.log('📍 Ubicación de retiro seleccionada:', selectedLocation);
     
     // Llamar al callback del componente padre si existe
     if (onPickupLocationChange) {
@@ -80,7 +78,7 @@ const ShipmentMethodSelector = ({ selectedMethod, setSelectedMethod, pickupLocat
         </div>
       </div>
       
-      {/* ✅ CORREGIDO: Detalles adicionales según el método seleccionado */}
+      {/* Detalles adicionales según el método seleccionado */}
       {selectedMethod === 'pickup' && (
         <div className="mt-4 border rounded-lg p-4 bg-gray-50">
           <h3 className="text-md font-medium text-gray-900 mb-3">Selecciona una tienda para retiro</h3>

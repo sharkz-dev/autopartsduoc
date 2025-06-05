@@ -16,7 +16,7 @@ const ProductCard = ({ product }) => {
   const { canAccessWholesalePrices, isApprovedDistributor } = useAuth();
   const { addToCart, cartType } = useCart();
 
-  // ✅ LÓGICA ACTUALIZADA: Determinar precio a mostrar según el usuario
+  // Lógica actualizada: Determinar precio a mostrar según el usuario
   const getPriceInfo = () => {
     const hasWholesaleAccess = canAccessWholesalePrices();
     const showWholesalePrice = hasWholesaleAccess && product.wholesalePrice;
@@ -108,10 +108,10 @@ const ProductCard = ({ product }) => {
             </div>
           )}
           
-          {/* ✅ NUEVO: Badge de precio mayorista */}
+          {/* Badge de precio mayorista */}
           {priceInfo.showWholesalePrice && (
             <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-              💼 Mayorista
+              Mayorista
             </div>
           )}
         </div>
@@ -187,11 +187,8 @@ const ProductCard = ({ product }) => {
           </span>
         </div>
 
-        {/* ✅ SECCIÓN DE PRECIOS ACTUALIZADA */}
+        {/* Sección de precios actualizada */}
         <div className="space-y-2">
-          {/* Etiqueta del tipo de precio */}
-
-
           {/* Precios */}
           <div className="space-y-1">
             {priceInfo.isOnSale ? (
@@ -262,7 +259,7 @@ const ProductCard = ({ product }) => {
           )}
         </div>
 
-        {/* ✅ INFORMACIÓN ADICIONAL PARA DISTRIBUIDORES */}
+        {/* Información adicional para distribuidores */}
         {priceInfo.showWholesalePrice && (
           <div className="pt-2 border-t border-gray-100">
             <div className="flex items-center justify-between text-xs text-gray-500">

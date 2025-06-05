@@ -1,4 +1,3 @@
-// client/src/components/admin/BrandSelector.js
 import React, { useState, useEffect, useRef } from 'react';
 import { productService } from '../../services/api';
 import { 
@@ -22,7 +21,6 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
 
   // Cargar marcas al montar el componente
   useEffect(() => {
-    console.log('🔄 BrandSelector montado, cargando marcas...');
     loadBrands();
   }, []);
 
@@ -48,25 +46,20 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
   // Cargar marcas desde la API
   const loadBrands = async () => {
     try {
-      console.log('📡 Llamando a productService.getBrands()...');
       setLoading(true);
       setError('');
       
       const response = await productService.getBrands();
-      console.log('✅ Respuesta de marcas:', response);
-      
       const brandsData = response.data.data || [];
-      console.log('🏷️ Marcas obtenidas:', brandsData);
       
       setBrands(brandsData);
       setFilteredBrands(brandsData);
       
       if (brandsData.length === 0) {
-        console.log('⚠️ No se encontraron marcas');
         setError('No se encontraron marcas en la base de datos');
       }
     } catch (error) {
-      console.error('❌ Error al cargar marcas:', error);
+      console.error('Error al cargar marcas:', error);
       setBrands([]);
       setFilteredBrands([]);
       setError(`Error al cargar marcas: ${error.message}`);
@@ -90,7 +83,6 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
 
   // Seleccionar una marca
   const selectBrand = (brand) => {
-    console.log('✅ Marca seleccionada:', brand);
     onChange(brand);
     setIsOpen(false);
     setSearchTerm('');
@@ -100,7 +92,6 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
   const addNewBrand = () => {
     const newBrand = searchTerm.trim();
     if (newBrand) {
-      console.log('➕ Agregando nueva marca:', newBrand);
       // Agregar a la lista local
       const updatedBrands = [...brands, newBrand].sort();
       setBrands(updatedBrands);
@@ -113,22 +104,11 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
 
   // Limpiar selección
   const clearSelection = () => {
-    console.log('🗑️ Limpiando selección de marca');
     onChange('');
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Debug info - TEMPORAL */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-2 p-2 bg-gray-100 text-xs rounded">
-          <strong>🔍 Debug:</strong> 
-          Marcas: {brands.length} | 
-          Cargando: {loading ? 'Sí' : 'No'} | 
-          Error: {error || 'No'}
-        </div>
-      )}
-
       {/* Campo de entrada principal */}
       <div className="relative">
         <input
@@ -142,7 +122,6 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
             setSearchTerm(e.target.value);
           }}
           onFocus={() => {
-            console.log('🎯 Input enfocado, abriendo dropdown');
             setIsOpen(true);
           }}
           placeholder={loading ? "Cargando marcas..." : "Buscar o seleccionar marca..."}
@@ -174,7 +153,6 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
           <button
             type="button"
             onClick={() => {
-              console.log('🔄 Toggle dropdown, estado actual:', isOpen);
               setIsOpen(!isOpen);
             }}
             className="p-2 text-gray-400 hover:text-gray-600"
@@ -191,7 +169,7 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
       {/* Error message */}
       {error && (
         <div className="mt-1 text-xs text-red-600 bg-red-50 p-2 rounded">
-          ❌ {error}
+          {error}
           <button
             type="button"
             onClick={loadBrands}
@@ -214,13 +192,13 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
             </div>
           ) : error ? (
             <div className="px-3 py-4 text-sm text-red-600 text-center">
-              <div className="mb-2">❌ {error}</div>
+              <div className="mb-2">{error}</div>
               <button
                 type="button"
                 onClick={loadBrands}
                 className="text-indigo-600 hover:text-indigo-800 underline"
               >
-                🔄 Reintentar
+                Reintentar
               </button>
             </div>
           ) : (
@@ -264,7 +242,7 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
               {/* Mensaje cuando no hay marcas y no hay búsqueda */}
               {brands.length === 0 && !loading && !error && (
                 <div className="px-3 py-4 text-sm text-gray-500 text-center">
-                  <p>📦 No hay marcas registradas</p>
+                  <p>No hay marcas registradas</p>
                   <p className="text-xs mt-1">La primera marca se agregará automáticamente</p>
                 </div>
               )}
@@ -276,9 +254,9 @@ const BrandSelector = ({ value, onChange, required = false, className = "" }) =>
       {/* Ayuda visual */}
       <div className="mt-1 text-xs text-gray-500">
         {value ? (
-          <span className="text-green-600">✅ Marca seleccionada: <strong>{value}</strong></span>
+          <span className="text-green-600">Marca seleccionada: <strong>{value}</strong></span>
         ) : (
-          <span>💡 Escribe para buscar o agregar una nueva marca</span>
+          <span>Escribe para buscar o agregar una nueva marca</span>
         )}
       </div>
     </div>

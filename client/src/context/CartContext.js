@@ -126,7 +126,6 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       const userCartType = getCartType();
-      console.log(`🛒 Actualizando tipo de carrito automáticamente: ${userCartType} para usuario ${user.role}`);
       
       dispatch({
         type: CART_ACTIONS.SET_CART_TYPE,
@@ -200,42 +199,24 @@ export const CartProvider = ({ children }) => {
     }
   }, [state.cartItems]);
 
-  // ✅ FUNCIÓN CORREGIDA: Calcular precio final considerando descuentos y tipo de usuario
+  // Función para calcular precio final considerando descuentos y tipo de usuario
   const calculateFinalPrice = (item) => {
     const hasWholesaleAccess = canAccessWholesalePrices();
-    
-    console.log('💰 Calculando precio final para:', item.name);
-    console.log('   - Precio base:', item.price);
-    console.log('   - Precio mayorista:', item.wholesalePrice);
-    console.log('   - En oferta:', item.onSale);
-    console.log('   - Descuento:', item.discountPercentage);
-    console.log('   - Tipo de carrito:', state.cartType);
-    console.log('   - Acceso mayorista:', hasWholesaleAccess);
     
     // Determinar precio base según el tipo de usuario
     let basePrice = item.price; // Precio minorista por defecto
     
     if (state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice) {
       basePrice = item.wholesalePrice; // Usar precio mayorista
-      console.log('   - Usando precio mayorista como base:', basePrice);
-    } else {
-      console.log('   - Usando precio minorista como base:', basePrice);
     }
     
-    // ✅ CORREGIDO: Aplicar descuento si el producto está en oferta
+    // Aplicar descuento si el producto está en oferta
     if (item.onSale && item.discountPercentage > 0) {
-      console.log('   - Aplicando descuento del', item.discountPercentage + '%');
-      
-      // ✅ CRUCIAL: Aplicar descuento al precio base correcto (mayorista o minorista)
+      // Aplicar descuento al precio base correcto (mayorista o minorista)
       const discountedPrice = Math.round(basePrice * (1 - item.discountPercentage / 100));
-      
-      console.log('   - Precio con descuento:', discountedPrice);
-      console.log('   - Ahorro:', basePrice - discountedPrice);
-      
       return discountedPrice;
     }
     
-    console.log('   - Precio final (sin descuento):', basePrice);
     return basePrice;
   };
 
@@ -288,30 +269,26 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // ✅ CÁLCULOS CORREGIDOS: Usar precio final con descuentos
+  // Cálculos usando precio final con descuentos
   const getSubtotal = () => {
     const subtotal = state.cartItems.reduce((total, item) => {
       const finalPrice = calculateFinalPrice(item);
       const itemTotal = finalPrice * item.quantity;
-      console.log(`💰 Item: ${item.name} - Precio: ${finalPrice} x ${item.quantity} = ${itemTotal}`);
       return total + itemTotal;
     }, 0);
     
-    console.log('💰 Subtotal total:', subtotal);
     return subtotal;
   };
 
   const getTaxAmount = () => {
     const subtotal = getSubtotal();
     const taxAmount = Math.round(subtotal * (state.taxRate / 100));
-    console.log(`💰 IVA ${state.taxRate}%: ${subtotal} * ${state.taxRate/100} = ${taxAmount}`);
     return taxAmount;
   };
 
   const getShippingAmount = () => {
     const subtotal = getSubtotal();
     const shippingAmount = subtotal >= 100000 ? 0 : 5000;
-    console.log(`💰 Envío: Subtotal ${subtotal} >= 100000 ? 0 : 5000 = ${shippingAmount}`);
     return shippingAmount;
   };
 
@@ -321,13 +298,6 @@ export const CartProvider = ({ children }) => {
     const shipping = getShippingAmount();
     const total = subtotal + tax + shipping;
     
-    console.log('💰 Cálculo final:', {
-      subtotal,
-      tax,
-      shipping,
-      total
-    });
-    
     return total;
   };
 
@@ -335,7 +305,7 @@ export const CartProvider = ({ children }) => {
     return state.cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Información de precios completa
+  // Función de información de precios completa
   const getPriceInfo = (item) => {
     const hasWholesaleAccess = canAccessWholesalePrices();
     const isUsingWholesalePrice = state.cartType === 'B2B' && hasWholesaleAccess && item.wholesalePrice;
@@ -359,18 +329,6 @@ export const CartProvider = ({ children }) => {
       // Ahorro por precio mayorista vs minorista
       savings = item.price - item.wholesalePrice;
     }
-    
-    console.log('📊 Info de precios para', item.name + ':', {
-      basePrice,
-      finalPrice,
-      originalPrice: item.price,
-      wholesalePrice: item.wholesalePrice,
-      isUsingWholesalePrice,
-      isOnSale,
-      discountPercentage: item.discountPercentage,
-      savings,
-      hasWholesaleAccess
-    });
     
     return {
       basePrice,
@@ -434,7 +392,7 @@ export const CartProvider = ({ children }) => {
     getCartSummary,
     getCartCount,
     getPriceInfo,
-    calculateFinalPrice, // ✅ NUEVA: Exponer función de cálculo
+    calculateFinalPrice, // Exponer función de cálculo
     
     // Propiedades informativas
     isCartTypeAutomatic: true,

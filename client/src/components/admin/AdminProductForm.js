@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { categoryService, productService } from '../../services/api';
-import BrandSelector from './BrandSelector'; // Importar el nuevo componente
+import BrandSelector from './BrandSelector';
 import { 
   XMarkIcon, 
   ArrowUpTrayIcon,
@@ -367,44 +367,35 @@ const AdminProductForm = ({ product, onSubmit, isEditing = false }) => {
             ></textarea>
           </div>
           
-{/* Marca - CAMPO ACTUALIZADO CON DEBUG */}
-<div className="sm:col-span-3">
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Marca *
-  </label>
-  
-  {/* Debug info - TEMPORAL para desarrollo */}
-  {process.env.NODE_ENV === 'development' && (
-    <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-      <strong>🔍 Debug AdminProductForm:</strong><br/>
-      Marca actual: "{formData.brand}"<br/>
-      BrandSelector importado: {BrandSelector ? '✅ Sí' : '❌ No'}
-    </div>
-  )}
-  
-  <BrandSelector
-    value={formData.brand}
-    onChange={handleBrandChange}
-    required={true}
-    className="focus:ring-indigo-500 focus:border-indigo-500"
-  />
-  
-  {/* Fallback: Input normal si BrandSelector falla */}
-  {!BrandSelector && (
-    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
-      <p className="text-red-700 text-sm mb-2">⚠️ BrandSelector no disponible, usando input normal:</p>
-      <input
-        type="text"
-        name="brand"
-        value={formData.brand}
-        onChange={handleChange}
-        required
-        placeholder="Ingresa la marca manualmente"
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-      />
-    </div>
-  )}
-</div>
+          {/* Marca - Campo actualizado */}
+          <div className="sm:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Marca *
+            </label>
+            
+            <BrandSelector
+              value={formData.brand}
+              onChange={handleBrandChange}
+              required={true}
+              className="focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            
+            {/* Fallback: Input normal si BrandSelector falla */}
+            {!BrandSelector && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded">
+                <p className="text-red-700 text-sm mb-2">BrandSelector no disponible, usando input normal:</p>
+                <input
+                  type="text"
+                  name="brand"
+                  value={formData.brand}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ingresa la marca manualmente"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            )}
+          </div>
           
           {/* SKU */}
           <div className="sm:col-span-3">

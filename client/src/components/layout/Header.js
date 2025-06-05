@@ -94,13 +94,13 @@ const Header = () => {
 
   const isActive = (path) => location.pathname === path;
   
-  // ✅ FUNCIÓN CORREGIDA: Validación segura antes de acceder a propiedades
+  // Función corregida: Validación segura antes de acceder a propiedades
   const getUserName = () => {
     if (!user || !user.name) return 'Usuario';
     return user.name.split(' ')[0] || 'Usuario';
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Validación segura del rol
+  // Función corregida: Validación segura del rol
   const getUserRoleIcon = () => {
     if (!user || !user.role) return <UserIcon className="h-4 w-4" />;
     
@@ -115,7 +115,7 @@ const Header = () => {
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Validación segura del badge de rol
+  // Función corregida: Validación segura del badge de rol
   const getRoleBadgeColor = () => {
     if (!user || !user.role) return 'bg-gray-100 text-gray-700';
     
@@ -132,7 +132,7 @@ const Header = () => {
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA: Validación segura del estado del distribuidor
+  // Función corregida: Validación segura del estado del distribuidor
   const getDistributorStatus = () => {
     if (!user || !isDistributor()) return '';
     
@@ -145,7 +145,7 @@ const Header = () => {
     return (
       <header className="bg-gradient-to-r from-red-500 to-red-600 text-white py-2">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-sm">🔄 Reestableciendo sesión...</p>
+          <p className="text-sm">Reestableciendo sesión...</p>
         </div>
       </header>
     );
@@ -174,7 +174,7 @@ const Header = () => {
                   <span>ventas@autoparts.com</span>
                 </div>
                 <div className="hidden xl:block text-xs opacity-80">
-                  ✨ Envío gratis en compras sobre $100.000
+                  Envío gratis en compras sobre $100.000
                 </div>
               </div>
               
@@ -375,12 +375,12 @@ const Header = () => {
                             <span className={`inline-block px-2 py-1 rounded-lg text-xs ${
                               isApprovedDistributor() ? 'bg-green-500/20 text-green-100' : 'bg-yellow-500/20 text-yellow-100'
                             }`}>
-                              {isApprovedDistributor() ? '✓ Aprobado' : '⏳ Pendiente'}
+                              {isApprovedDistributor() ? 'Aprobado' : 'Pendiente'}
                             </span>
                           )}
                           {canAccessWholesalePrices() && (
                             <span className="inline-block px-2 py-1 bg-blue-500/20 text-blue-100 rounded-lg text-xs">
-                              💰 Mayorista
+                              Mayorista
                             </span>
                           )}
                         </div>
@@ -527,7 +527,7 @@ const Header = () => {
               </div>
               {isCartTypeAutomatic && (
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  🤖 Modo automático según tu tipo de cuenta
+                  Modo automático según tu tipo de cuenta
                 </p>
               )}
             </div>
@@ -560,7 +560,7 @@ const Header = () => {
                             <span className={`inline-block mt-1 px-2 py-0.5 rounded-lg text-xs font-medium ${
                               isApprovedDistributor() ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                             }`}>
-                              {isApprovedDistributor() ? '✓ Aprobado' : '⏳ Pendiente'}
+                              {isApprovedDistributor() ? 'Aprobado' : 'Pendiente'}
                             </span>
                           )}
                         </div>

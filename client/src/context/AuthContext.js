@@ -11,30 +11,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // CORREGIDO: Verificar si hay token en el localStorage al iniciar
+  // Verificar si hay token en el localStorage al iniciar
   useEffect(() => {
     const checkLoggedIn = async () => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          console.log('🔍 Verificando token existente...');
-          
-          // IMPORTANTE: Configurar el token en el servicio antes de hacer la llamada
+          // Configurar el token en el servicio antes de hacer la llamada
           authService.setAuthToken(token);
           
           // Obtener información del usuario actual
           const response = await authService.getCurrentUser();
-          console.log('✅ Usuario obtenido al inicializar:', response.data.data);
           
           // Actualizar tanto el estado como localStorage
           const userData = response.data.data;
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
-        } else {
-          console.log('❌ No hay token almacenado');
         }
       } catch (error) {
-        console.error('❌ Error al verificar la autenticación:', error);
+        console.error('Error al verificar la autenticación:', error);
         logout(); // Limpiar token si hay un error
       } finally {
         setLoading(false);
@@ -44,12 +39,11 @@ export const AuthProvider = ({ children }) => {
     checkLoggedIn();
   }, []);
 
-  // CORREGIDO: Función de inicio de sesión
+  // Función de inicio de sesión
   const login = async (credentials) => {
     setLoading(true);
     setError(null);
     try {
-      console.log('🔐 Iniciando sesión...');
       const response = await authService.login(credentials);
       const { token, user } = response.data;
       
@@ -60,15 +54,12 @@ export const AuthProvider = ({ children }) => {
       // Guardar datos de usuario
       localStorage.setItem('user', JSON.stringify(user));
       
-      console.log('✅ Login exitoso:', user);
-      console.log('🔑 Token guardado:', token);
-      
       setUser(user);
       toast.success('Inicio de sesión exitoso');
       return user;
     } catch (error) {
       const message = error.response?.data?.error || 'Error al iniciar sesión';
-      console.error('❌ Error en login:', message);
+      console.error('Error en login:', message);
       setError(message);
       toast.error(message);
       throw error;
@@ -77,12 +68,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // CORREGIDO: Función de registro
+  // Función de registro
   const register = async (userData) => {
     setLoading(true);
     setError(null);
     try {
-      console.log('📝 Registrando usuario...');
       const response = await authService.register(userData);
       const { token, user } = response.data;
       
@@ -93,14 +83,12 @@ export const AuthProvider = ({ children }) => {
       // Guardar datos de usuario
       localStorage.setItem('user', JSON.stringify(user));
       
-      console.log('✅ Registro exitoso:', user);
-      
       setUser(user);
       toast.success('Registro exitoso');
       return user;
     } catch (error) {
       const message = error.response?.data?.error || 'Error al registrarse';
-      console.error('❌ Error en registro:', message);
+      console.error('Error en registro:', message);
       setError(message);
       toast.error(message);
       throw error;
@@ -109,10 +97,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // CORREGIDO: Función de cierre de sesión
+  // Función de cierre de sesión
   const logout = () => {
-    console.log('👋 Cerrando sesión...');
-    
     // Limpiar localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -128,18 +114,15 @@ export const AuthProvider = ({ children }) => {
     toast.success('Sesión cerrada correctamente');
   };
 
-  // CORREGIDO: Función para actualizar datos del perfil
+  // Función para actualizar datos del perfil
   const updateProfile = async (userData) => {
     setLoading(true);
     setError(null);
     try {
-      console.log('🔄 Actualizando perfil...', userData);
       const response = await authService.updateProfile(userData);
       const updatedUser = response.data.data;
       
-      console.log('✅ Perfil actualizado desde servidor:', updatedUser);
-      
-      // CRÍTICO: Mantener datos existentes y actualizar solo los nuevos
+      // Mantener datos existentes y actualizar solo los nuevos
       const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}');
       const mergedUser = { ...currentUser, ...updatedUser };
       
@@ -147,13 +130,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(mergedUser));
       setUser(mergedUser);
       
-      console.log('✅ Usuario final después de merge:', mergedUser);
-      
       toast.success('Perfil actualizado correctamente');
       return mergedUser;
     } catch (error) {
       const message = error.response?.data?.error || 'Error al actualizar el perfil';
-      console.error('❌ Error al actualizar perfil:', message);
+      console.error('Error al actualizar perfil:', message);
       setError(message);
       toast.error(message);
       throw error;
@@ -162,30 +143,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // MEJORADO: Refrescar datos del usuario desde el servidor
+  // Refrescar datos del usuario desde el servidor
   const refreshUser = async () => {
     try {
-      console.log('🔄 Refrescando datos del usuario...');
-      
       const response = await authService.getCurrentUser();
       const updatedUser = response.data.data;
-      
-      console.log('✅ Datos actualizados del servidor:', updatedUser);
       
       // Actualizar usuario en localStorage y estado
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
       
-      console.log('✅ Estado del usuario actualizado completamente');
-      
       return updatedUser;
     } catch (error) {
-      console.error('❌ Error al refrescar datos del usuario:', error);
+      console.error('Error al refrescar datos del usuario:', error);
       const message = error.response?.data?.error || 'Error al obtener datos actualizados';
       
       // Si es error 401, hacer logout
       if (error.response?.status === 401) {
-        console.log('🚪 Token expirado, cerrando sesión...');
         logout();
         return;
       }
@@ -195,15 +169,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // MEJORADO: Actualizar solo el campo del logo (para actualización inmediata)
+  // Actualizar solo el campo del logo (para actualización inmediata)
   const updateUserLogo = (companyLogo) => {
-    console.log('🖼️ Actualizando logo inmediatamente:', companyLogo);
-    
     const updatedUser = { ...user, companyLogo };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    
-    console.log('✅ Logo actualizado en estado local');
   };
 
   // Función para actualizar contraseña
@@ -211,13 +181,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      console.log('🔐 Actualizando contraseña...');
       await authService.updatePassword(passwords);
-      console.log('✅ Contraseña actualizada');
       toast.success('Contraseña actualizada correctamente');
     } catch (error) {
       const message = error.response?.data?.error || 'Error al actualizar la contraseña';
-      console.error('❌ Error al actualizar contraseña:', message);
+      console.error('Error al actualizar contraseña:', message);
       setError(message);
       toast.error(message);
       throw error;
@@ -231,40 +199,40 @@ export const AuthProvider = ({ children }) => {
     return user && user.role === role;
   };
 
-  // ✅ NUEVO: Función para obtener el tipo de carrito automático según el rol
+  // Función para obtener el tipo de carrito automático según el rol
   const getCartType = () => {
     if (!user) return 'B2C';
     return user.role === 'distributor' ? 'B2B' : 'B2C';
   };
 
-  // ✅ NUEVO: Función para verificar si puede acceder a precios mayoristas
+  // Función para verificar si puede acceder a precios mayoristas
   const canAccessWholesalePrices = () => {
     return user && user.role === 'distributor' && user.distributorInfo?.isApproved === true;
   };
 
-  // ✅ NUEVO: Función para verificar si es distribuidor
+  // Función para verificar si es distribuidor
   const isDistributor = () => {
     return user && user.role === 'distributor';
   };
 
-  // ✅ NUEVO: Función para verificar si es distribuidor aprobado
+  // Función para verificar si es distribuidor aprobado
   const isApprovedDistributor = () => {
     return user && user.role === 'distributor' && user.distributorInfo?.isApproved === true;
   };
 
-  // NUEVO: Función para obtener datos del usuario de forma síncrona
+  // Función para obtener datos del usuario de forma síncrona
   const getUserData = () => {
     return user || JSON.parse(localStorage.getItem('user') || 'null');
   };
 
-  // NUEVO: Función para verificar si está autenticado
+  // Función para verificar si está autenticado
   const isAuthenticated = () => {
     const token = localStorage.getItem('token');
     const userData = getUserData();
     return !!(token && userData);
   };
 
-  // ✅ NUEVO: Función para obtener el nombre del rol formateado
+  // Función para obtener el nombre del rol formateado
   const getRoleDisplayName = () => {
     if (!user) return '';
     
@@ -276,23 +244,6 @@ export const AuthProvider = ({ children }) => {
     
     return roleNames[user.role] || user.role;
   };
-
-  // Log para debugging - mostrar cambios en el usuario
-  useEffect(() => {
-    if (user) {
-      console.log('👤 Usuario en contexto actualizado:', {
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        cartType: getCartType(),
-        canAccessWholesale: canAccessWholesalePrices(),
-        isDistributor: isDistributor(),
-        isApprovedDistributor: isApprovedDistributor(),
-        companyName: user.distributorInfo?.companyName,
-        isApproved: user.distributorInfo?.isApproved
-      });
-    }
-  }, [user]);
 
   // Valor que se provee al contexto
   const value = {
@@ -309,7 +260,7 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     getUserData,
     isAuthenticated: isAuthenticated(),
-    // ✅ NUEVAS FUNCIONES ESPECÍFICAS PARA DISTRIBUIDORES
+    // Funciones específicas para distribuidores
     getCartType,
     canAccessWholesalePrices,
     isDistributor,
