@@ -16,7 +16,8 @@ import {
   MapPinIcon,
   ChevronRightIcon,
   PlayIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const AboutPage = () => {
@@ -24,6 +25,16 @@ const AboutPage = () => {
   const [statsAnimated, setStatsAnimated] = useState(false);
   const [visibleCards, setVisibleCards] = useState(new Set());
   const [showVideoModal, setShowVideoModal] = useState(false);
+  
+
+  const YOUTUBE_VIDEO_ID = 'dQw4w9WgXcQ'; 
+
+  // Función para extraer ID de YouTube de una URL completa
+  const extractYouTubeId = (url) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
   
   // Función para scroll suave a sección
   const scrollToSection = (sectionId) => {
@@ -35,6 +46,28 @@ const AboutPage = () => {
       });
     }
   };
+
+  // Cerrar modal con tecla Escape
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && showVideoModal) {
+        setShowVideoModal(false);
+      }
+    };
+
+    if (showVideoModal) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevenir scroll del body cuando el modal está abierto
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [showVideoModal]);
 
   // Estadísticas animadas
   const stats = [
@@ -253,7 +286,7 @@ const AboutPage = () => {
       </section>
 
       {/* Navegación por pestañas */}
-      <section id="content-tabs" className="py-16">`
+      <section id="content-tabs" className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             {/* Pestañas */}
@@ -498,40 +531,93 @@ const AboutPage = () => {
         </div>
       </section>
 
-      {/* Modal de Video */}
       {showVideoModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h3 className="text-2xl font-bold text-gray-900">Video Corporativo - AutoParts</h3>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            // Cerrar modal al hacer clic en el fondo
+            if (e.target === e.currentTarget) {
+              setShowVideoModal(false);
+            }
+          }}
+        >
+          <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            {/* Header del modal */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-bold text-gray-900">Video Corporativo AutoParts</h3>
+                <p className="text-gray-600">Descubre nuestra historia y compromiso con la excelencia</p>
+              </div>
               <button 
                 onClick={() => setShowVideoModal(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="flex items-center justify-center w-10 h-10 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all duration-200"
+                title="Cerrar video (Esc)"
               >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
-            <div className="aspect-video bg-gray-100 flex items-center justify-center">
-              {/* Aquí iría el video real - por ahora mostramos un placeholder */}
-              <div className="text-center space-y-4">
-                <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
-                  <PlayIcon className="h-10 w-10 text-white" />
+            
+            {/* Contenedor del video */}
+            <div className="relative">
+              <div className="aspect-video bg-black">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&rel=0&showinfo=0&modestbranding=1`}
+                  title="Video Corporativo AutoParts"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+              </div>
+              
+              {/* Overlay con información adicional */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-lg">AutoParts - Más que repuestos</h4>
+                    <p className="text-sm opacity-90">25 años de experiencia al servicio de Chile</p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    {/* Botón para abrir en YouTube */}
+                    <a
+                      href={`https://www.youtube.com/watch?v=${YOUTUBE_VIDEO_ID}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      <span>Ver en YouTube</span>
+                    </a>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h4 className="text-xl font-bold text-gray-700">Video Corporativo</h4>
-                  <p className="text-gray-500">Descubre nuestra historia y compromiso con la excelencia</p>
-                  <p className="text-sm text-gray-400">
-                    En una implementación real, aquí iría el video embebido de YouTube, Vimeo, etc.
-                  </p>
+              </div>
+            </div>
+            
+            {/* Footer del modal con información adicional */}
+            <div className="p-6 bg-gray-50 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold text-blue-600">25+</div>
+                  <div className="text-sm text-gray-600">Años de experiencia</div>
                 </div>
-                <button 
-                  onClick={() => setShowVideoModal(false)}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Cerrar
-                </button>
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold text-purple-600">50K+</div>
+                  <div className="text-sm text-gray-600">Repuestos en stock</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold text-green-600">15K+</div>
+                  <div className="text-sm text-gray-600">Clientes satisfechos</div>
+                </div>
+              </div>
+              
+              <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                <p className="text-sm text-gray-500">
+                  Presiona <kbd className="px-2 py-1 bg-gray-200 rounded text-xs">Esc</kbd> para cerrar o haz clic fuera del video
+                </p>
               </div>
             </div>
           </div>
@@ -558,6 +644,11 @@ const AboutPage = () => {
           
           .animate-fade-in {
             animation: fade-in 0.6s ease-out forwards;
+          }
+
+          /* Estilos para el teclado */
+          kbd {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
           }
         `}
       </style>

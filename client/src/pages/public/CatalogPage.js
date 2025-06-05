@@ -16,29 +16,53 @@ import {
 const CatalogPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
   
   // Estados para productos y UI
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalProducts, setTotalProducts] = useState(0);
-  const [currentPage, setCurrentPage] = useState(parseInt(queryParams.get('page')) || 1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' o 'list'
   
   // Estado para filtros
-  const [filters, setFilters] = useState({
-    category: queryParams.get('category') || '',
-    brand: queryParams.get('brand') || '',
-    minPrice: queryParams.get('minPrice') || '',
-    maxPrice: queryParams.get('maxPrice') || '',
-    search: queryParams.get('search') || '',
-    sort: queryParams.get('sort') || '-createdAt',
-    featured: queryParams.get('featured') || '',
-    onSale: queryParams.get('onSale') || ''
-  });
+  const [filters, setFilters] = useState({});
+
+  // ✅ FUNCIÓN PARA PARSEAR URL Y EXTRAER FILTROS
+  const parseFiltersFromURL = (search) => {
+    const queryParams = new URLSearchParams(search);
+    
+    return {
+      category: queryParams.get('category') || '',
+      brand: queryParams.get('brand') || '',
+      minPrice: queryParams.get('minPrice') || '',
+      maxPrice: queryParams.get('maxPrice') || '',
+      search: queryParams.get('search') || '',
+      sort: queryParams.get('sort') || '-createdAt',
+      featured: queryParams.get('featured') || '',
+      onSale: queryParams.get('onSale') || '',
+      categories: queryParams.get('categories') || '',
+      brands: queryParams.get('brands') || '',
+      vehicleMake: queryParams.get('vehicleMake') || '',
+      vehicleModel: queryParams.get('vehicleModel') || '',
+      vehicleYear: queryParams.get('vehicleYear') || '',
+      page: parseInt(queryParams.get('page')) || 1
+    };
+  };
+
+  // ✅ EFECTO PARA REACCIONAR A CAMBIOS EN LA URL
+  useEffect(() => {
+    const newFilters = parseFiltersFromURL(location.search);
+    const newPage = newFilters.page;
+    
+    // Actualizar estado de filtros y página
+    setFilters(newFilters);
+    setCurrentPage(newPage);
+    
+    console.log('🔄 URL cambió, nuevos filtros:', newFilters);
+  }, [location.search]); // ✅ Escuchar cambios en location.search
 
   // Opciones de ordenamiento mejoradas
   const sortOptions = [
@@ -70,11 +94,12 @@ const CatalogPage = () => {
     }, { replace: true });
   };
 
-  // Cargar productos cuando cambien los filtros o la página
+  // ✅ CARGAR PRODUCTOS CUANDO CAMBIEN LOS FILTROS
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         const params = {
           limit: 12,
@@ -84,12 +109,12 @@ const CatalogPage = () => {
         
         // Limpiar parámetros vacíos
         Object.keys(params).forEach(key => {
-          if (!params[key] || params[key] === '') {
+          if (!params[key] || params[key] === '' || params[key] === '-createdAt') {
             delete params[key];
           }
         });
         
-        
+        console.log('📡 Cargando productos con params:', params);
         
         const response = await productService.getProducts(params);
         
@@ -97,45 +122,63 @@ const CatalogPage = () => {
         setTotalProducts(response.data.total);
         setTotalPages(Math.ceil(response.data.total / 12));
         
+        console.log('✅ Productos cargados:', response.data.data.length);
+        
         setLoading(false);
       } catch (error) {
+        console.error('❌ Error al cargar productos:', error);
         setError('Error al cargar productos. Por favor, intente de nuevo más tarde.');
         setLoading(false);
       }
     };
 
-    fetchProducts();
-    updateURLWithFilters(filters, currentPage);
-  }, [filters, currentPage]);
+    // Solo cargar si tenemos filtros (evitar carga inicial sin filtros)
+    if (Object.keys(filters).length > 0) {
+      fetchProducts();
+    }
+  }, [filters, currentPage]); // ✅ Reaccionar a cambios en filters y currentPage
 
   // Manejar cambios en los filtros
   const handleFilterChange = (newFilters) => {
+    console.log('🔧 Cambiando filtros:', newFilters);
     setCurrentPage(1);
     setFilters(newFilters);
+    updateURLWithFilters(newFilters, 1);
   };
 
   // Manejar cambio de ordenamiento
   const handleSortChange = (e) => {
-    handleFilterChange({ ...filters, sort: e.target.value });
+    const newFilters = { ...filters, sort: e.target.value };
+    handleFilterChange(newFilters);
   };
 
-  // Manejar cambio de búsqueda
+  // ✅ MANEJAR BÚSQUEDA DESDE EL FORMULARIO LOCAL
   const handleSearchChange = (e) => {
     const value = e.target.value;
     if (e.key === 'Enter' || value === '') {
-      handleFilterChange({ ...filters, search: value });
+      const newFilters = { ...filters, search: value };
+      handleFilterChange(newFilters);
     }
+  };
+
+  // ✅ MANEJAR BÚSQUEDA DESDE EL FORMULARIO LOCAL AL HACER BLUR
+  const handleSearchBlur = (e) => {
+    const value = e.target.value;
+    const newFilters = { ...filters, search: value };
+    handleFilterChange(newFilters);
   };
 
   // Manejar cambio de página
   const handlePageChange = (page) => {
+    console.log('📄 Cambiando a página:', page);
     setCurrentPage(page);
+    updateURLWithFilters(filters, page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Limpiar todos los filtros
   const clearAllFilters = () => {
-    handleFilterChange({
+    const clearedFilters = {
       category: '',
       brand: '',
       minPrice: '',
@@ -143,8 +186,14 @@ const CatalogPage = () => {
       search: '',
       sort: '-createdAt',
       featured: '',
-      onSale: ''
-    });
+      onSale: '',
+      categories: '',
+      brands: '',
+      vehicleMake: '',
+      vehicleModel: '',
+      vehicleYear: ''
+    };
+    handleFilterChange(clearedFilters);
   };
 
   // Renderizar paginación mejorada
@@ -263,7 +312,7 @@ const CatalogPage = () => {
                   placeholder="Buscar productos, marcas, modelos..."
                   defaultValue={filters.search}
                   onKeyPress={handleSearchChange}
-                  onBlur={(e) => handleFilterChange({ ...filters, search: e.target.value })}
+                  onBlur={handleSearchBlur}
                   className="w-full pl-12 pr-12 py-4 rounded-2xl border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-300 text-lg"
                 />
                 {filters.search && (
@@ -279,7 +328,7 @@ const CatalogPage = () => {
               {/* Ordenamiento */}
               <div className="flex items-center gap-4">
                 <select
-                  value={filters.sort}
+                  value={filters.sort || '-createdAt'}
                   onChange={handleSortChange}
                   className="bg-white border border-gray-300 rounded-xl py-3 px-4 text-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 min-w-[200px]"
                 >
@@ -372,6 +421,21 @@ const CatalogPage = () => {
                   case 'onSale':
                     label = 'En oferta';
                     displayValue = '🔥';
+                    break;
+                  case 'categories':
+                    label = 'Categorías';
+                    break;
+                  case 'brands':
+                    label = 'Marcas';
+                    break;
+                  case 'vehicleMake':
+                    label = 'Marca vehículo';
+                    break;
+                  case 'vehicleModel':
+                    label = 'Modelo vehículo';
+                    break;
+                  case 'vehicleYear':
+                    label = 'Año vehículo';
                     break;
                   default:
                     return null;
