@@ -500,11 +500,11 @@ const OrderConfirmationPage = () => {
                   <div className="mt-4 p-3 bg-blue-50 rounded-md text-sm">
                     <h4 className="font-semibold text-blue-800 mb-2">Datos para transferencia:</h4>
                     <p className="mb-1"><span className="font-medium">Banco:</span> Banco Estado</p>
-                    <p className="mb-1"><span className="font-medium">Titular:</span> AutoRepuestos SpA</p>
+                    <p className="mb-1"><span className="font-medium">Titular:</span> AutoParts SpA</p>
                     <p className="mb-1"><span className="font-medium">RUT:</span> 76.XXX.XXX-X</p>
                     <p className="mb-1"><span className="font-medium">Cuenta Corriente:</span> 123456789</p>
                     <p className="mb-1">
-                      <span className="font-medium">Email:</span> pagos@autorepuestos.com
+                      <span className="font-medium">Email:</span> pagos@AutoParts.com
                     </p>
                     <p className="mt-2 text-xs text-blue-800">
                       Incluye el número de orden #{orderId.slice(-8)} en el comentario de la transferencia
