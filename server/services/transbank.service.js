@@ -63,12 +63,19 @@ const getTransbankConfig = () => {
 };
 
 // Configurar cliente de Webpay
-const config = getTransbankConfig();
-const tx = new mockTransbank.WebpayPlus.Transaction({
-  commerceCode: config.commerceCode,
-  apiKey: config.apiKey,
-  environment: config.environment
-});
+let tx = null;
+
+function initializeTransaction() {
+  if (!tx) {
+    const config = getTransbankConfig();
+    tx = new mockTransbank.WebpayPlus.Transaction({
+      commerceCode: config.commerceCode,
+      apiKey: config.apiKey,
+      environment: config.environment
+    });
+  }
+  return tx;
+}
 
 // Genera un buyOrder válido para Transbank
 const generateBuyOrder = (orderId) => {
@@ -106,6 +113,7 @@ exports.createPaymentTransaction = async (orderData) => {
       throw new Error('Datos de orden incompletos para crear transacción');
     }
 
+    const transaction = initializeTransaction();
     const buyOrder = generateBuyOrder(orderData._id);
     const sessionId = generateSessionId(orderData.user._id || orderData.user);
     const amount = Math.round(orderData.totalPrice);
@@ -136,7 +144,11 @@ exports.createPaymentTransaction = async (orderData) => {
     });
 
     // Crear transacción en Transbank
-    const response = await tx.create(buyOrder, sessionId, amount, returnUrl);
+    const response = await transaction.create(buyOrder, sessionId, amount, returnUrl);
+
+    if (!response || !response.token) {
+      throw new Error('Respuesta inválida de Transbank: token no recibido');
+    }
 
     return {
       token: response.token,
@@ -163,7 +175,12 @@ exports.confirmPaymentTransaction = async (token) => {
       throw new Error('Token de transacción requerido');
     }
 
-    const response = await tx.commit(token);
+    const transaction = initializeTransaction();
+    const response = await transaction.commit(token);
+
+    if (!response) {
+      throw new Error('Respuesta inválida de Transbank: sin datos de confirmación');
+    }
 
     const isApproved = response.response_code === 0;
     const status = isApproved ? 'approved' : 'rejected';
@@ -204,7 +221,7 @@ exports.extractOrderIdFromBuyOrder = (buyOrder) => {
     }
     
     // Método 2: Parsing del formato {orderId}_{timestamp}
-    if (buyOrder.includes('_')) {
+    if (buyOrder && buyOrder.includes('_')) {
       const parts = buyOrder.split('_');
       if (parts.length >= 2) {
         const extractedOrderId = parts.slice(0, -1).join('_');

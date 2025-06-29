@@ -57,14 +57,16 @@ class SystemConfigService {
         { new: true }
       );
 
-      if (config) {
-        // Actualizar cache
-        configCache.set(key, value);
-        
-        // Si es configuración de IVA, limpiar cache completo para forzar actualización
-        if (key === 'tax_rate') {
-          this.clearCache();
-        }
+      if (!config) {
+        throw new Error(`Configuración con clave '${key}' no encontrada`);
+      }
+
+      // Actualizar cache
+      configCache.set(key, value);
+      
+      // Si es configuración de IVA, limpiar cache completo para forzar actualización
+      if (key === 'tax_rate') {
+        this.clearCache();
       }
 
       return config;
@@ -247,6 +249,15 @@ class SystemConfigService {
       lastUpdate: cacheTimestamp ? new Date(cacheTimestamp) : null,
       keys: Array.from(configCache.keys())
     };
+  }
+
+  // Exponer propiedades para tests
+  static get cacheTimestamp() {
+    return cacheTimestamp;
+  }
+
+  static set cacheTimestamp(value) {
+    cacheTimestamp = value;
   }
 }
 

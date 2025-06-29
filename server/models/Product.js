@@ -8,8 +8,8 @@ const ProductSchema = new mongoose.Schema({
   },
   slug: {
     type: String,
-    unique: true,
-    required: true
+    unique: true
+    // Removido required: true para que se genere automáticamente
   },
   description: {
     type: String,
@@ -144,8 +144,8 @@ ProductSchema.statics.generateUniqueSlug = async function(name, excludeId = null
 
 // Middleware pre-save actualizado
 ProductSchema.pre('save', async function(next) {
-  // Solo generar slug si es un documento nuevo o si el nombre cambió
-  if (this.isNew || this.isModified('name')) {
+  // Generar slug si no existe o si el nombre cambió
+  if (this.isNew || this.isModified('name') || !this.slug) {
     this.slug = await this.constructor.generateUniqueSlug(this.name, this._id);
   }
   

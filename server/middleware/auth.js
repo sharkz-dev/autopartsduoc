@@ -73,6 +73,7 @@ exports.authorize = (...roles) => {
       });
     }
     
+    // Verificar si el usuario tiene uno de los roles permitidos
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
