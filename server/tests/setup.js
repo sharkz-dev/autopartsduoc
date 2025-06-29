@@ -23,11 +23,13 @@ beforeAll(async () => {
 // Limpiar datos después de cada prueba
 afterEach(async () => {
   try {
-    const collections = mongoose.connection.collections;
-    
-    for (const key in collections) {
-      const collection = collections[key];
-      await collection.deleteMany({});
+    if (mongoose.connection.readyState === 1) {
+      const collections = mongoose.connection.collections;
+      
+      for (const key in collections) {
+        const collection = collections[key];
+        await collection.deleteMany({});
+      }
     }
   } catch (error) {
     console.error('❌ Error limpiando colecciones:', error);
@@ -37,9 +39,14 @@ afterEach(async () => {
 // Limpiar después de todas las pruebas
 afterAll(async () => {
   try {
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
-    await mongoServer.stop();
+    if (mongoose.connection.readyState === 1) {
+      await mongoose.connection.dropDatabase();
+      await mongoose.connection.close();
+    }
+    
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
     
     console.log('✅ Limpieza de pruebas completada');
   } catch (error) {
@@ -49,3 +56,6 @@ afterAll(async () => {
 
 // Configuración de timeout global
 jest.setTimeout(30000);
+
+// Suprimir warnings de deprecación para las pruebas
+process.env.NODE_NO_WARNINGS = '1';

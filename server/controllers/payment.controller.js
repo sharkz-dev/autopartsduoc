@@ -13,7 +13,7 @@ exports.createPaymentTransaction = async (req, res, next) => {
       })
       .populate({
         path: 'items.product',
-        select: 'name description images category sku', // ✅ Incluir sku
+        select: 'name description images category sku',
         populate: {
           path: 'category',
           select: 'name'
@@ -125,7 +125,7 @@ exports.createPaymentTransaction = async (req, res, next) => {
   }
 };
 
-// ✅ CORREGIDO: Manejar retorno desde Webpay con populate mejorado
+// Manejar retorno desde Webpay
 exports.handleWebpayReturn = async (req, res, next) => {
   try {
     let token_ws = null;
@@ -165,21 +165,6 @@ exports.handleWebpayReturn = async (req, res, next) => {
         }
       }
       
-      // Método 4: Buscar cualquier orden con status pending y mismo usuario
-      if (!orderId) {
-        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-        const pendingOrder = await Order.findOne({
-          paymentMethod: 'webpay',
-          status: 'pending',
-          isPaid: false,
-          createdAt: { $gte: twoHoursAgo }
-        }).sort({ createdAt: -1 }).select('_id');
-        
-        if (pendingOrder) {
-          orderId = pendingOrder._id.toString();
-        }
-      }
-      
       if (!orderId) {
         return res.redirect(`${process.env.FRONTEND_URL}/payment/failure?error=order_not_found&buyOrder=${encodeURIComponent(transactionResult.buyOrder)}&token=${encodeURIComponent(token_ws)}`);
       }
@@ -213,9 +198,8 @@ exports.handleWebpayReturn = async (req, res, next) => {
 
         await order.save();
 
-        // ✅ CORREGIDO: Enviar email con orden completamente poblada
+        // Enviar email de confirmación
         try {
-          // Obtener la orden con todos los datos poblados correctamente
           const fullOrder = await Order.findById(order._id)
             .populate({
               path: 'user',
@@ -410,62 +394,6 @@ exports.getPaymentConfig = async (req, res, next) => {
     });
   } catch (err) {
     console.error('Error en getPaymentConfig:', err);
-    next(err);
-  }
-};
-
-// Cancelar transacción pendiente y permitir reintento
-exports.cancelPendingTransaction = async (req, res, next) => {
-  try {
-    const order = await Order.findById(req.params.orderId);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: 'Orden no encontrada'
-      });
-    }
-
-    if (order.user.toString() !== req.user.id) {
-      return res.status(401).json({
-        success: false,
-        error: 'No autorizado para realizar esta acción'
-      });
-    }
-
-    if (order.isPaid) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se puede cancelar una orden ya pagada'
-      });
-    }
-
-    if (order.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        error: 'Solo se pueden cancelar órdenes pendientes'
-      });
-    }
-
-    order.paymentResult = {
-      status: 'cancelled_by_user',
-      cancelledAt: new Date(),
-      previousAttempt: order.paymentResult
-    };
-
-    await order.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Transacción cancelada. Puedes intentar el pago nuevamente.',
-      data: {
-        orderId: order._id,
-        canRetryPayment: true
-      }
-    });
-
-  } catch (err) {
-    console.error('Error en cancelPendingTransaction:', err);
     next(err);
   }
 };

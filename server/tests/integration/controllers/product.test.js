@@ -484,7 +484,7 @@ describe('Controlador Product - Integración', () => {
       expect(response.body.success).toBe(true);
 
       // Verificar que realmente se eliminó
-      const checkResponse = await request(app)
+      await request(app)
         .get(`/api/products/${testProduct.slug}`)
         .expect(404);
     });

@@ -2,7 +2,7 @@ const transbankService = require('../../../services/transbank.service');
 const User = require('../../../models/User');
 const Order = require('../../../models/Order');
 
-// Mock de transbank-sdk
+// Mock del SDK de Transbank
 jest.mock('transbank-sdk', () => ({
   WebpayPlus: {
     Transaction: jest.fn().mockImplementation(() => ({
@@ -23,7 +23,7 @@ jest.mock('transbank-sdk', () => ({
 }));
 
 describe('Servicio Transbank', () => {
-  let user, order;
+  let user, order, mockTx;
 
   beforeEach(async () => {
     // Crear usuario de prueba
@@ -60,6 +60,14 @@ describe('Servicio Transbank', () => {
 
     // Limpiar mapa global
     global.buyOrderMap = new Map();
+
+    // Configurar mock de transbank
+    const { WebpayPlus } = require('transbank-sdk');
+    mockTx = new WebpayPlus.Transaction();
+    
+    // Reset mocks
+    mockTx.create.mockReset();
+    mockTx.commit.mockReset();
   });
 
   describe('Generación de identificadores', () => {
@@ -90,10 +98,7 @@ describe('Servicio Transbank', () => {
 
   describe('Creación de transacciones', () => {
     test('debe crear transacción exitosamente', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCreate = WebpayPlus.Transaction().create;
-      
-      mockCreate.mockResolvedValue({
+      mockTx.create.mockResolvedValue({
         token: 'test_token_123',
         url: 'https://webpay3gint.transbank.cl/webpayserver/initTransaction'
       });
@@ -108,10 +113,7 @@ describe('Servicio Transbank', () => {
     });
 
     test('debe manejar error en creación de transacción', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCreate = WebpayPlus.Transaction().create;
-      
-      mockCreate.mockRejectedValue(new Error('Error de Transbank'));
+      mockTx.create.mockRejectedValue(new Error('Error de Transbank'));
 
       await expect(
         transbankService.createPaymentTransaction(order)
@@ -136,10 +138,7 @@ describe('Servicio Transbank', () => {
 
   describe('Confirmación de transacciones', () => {
     test('debe confirmar transacción aprobada', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCommit = WebpayPlus.Transaction().commit;
-      
-      mockCommit.mockResolvedValue({
+      mockTx.commit.mockResolvedValue({
         buy_order: 'ORDER_123_456',
         session_id: 'SESSION_123',
         amount: 124000,
@@ -160,10 +159,7 @@ describe('Servicio Transbank', () => {
     });
 
     test('debe confirmar transacción rechazada', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCommit = WebpayPlus.Transaction().commit;
-      
-      mockCommit.mockResolvedValue({
+      mockTx.commit.mockResolvedValue({
         buy_order: 'ORDER_123_456',
         session_id: 'SESSION_123',
         amount: 124000,
@@ -179,10 +175,7 @@ describe('Servicio Transbank', () => {
     });
 
     test('debe manejar error en confirmación', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCommit = WebpayPlus.Transaction().commit;
-      
-      mockCommit.mockRejectedValue(new Error('Error de confirmación'));
+      mockTx.commit.mockRejectedValue(new Error('Error de confirmación'));
 
       await expect(
         transbankService.confirmPaymentTransaction('invalid_token')
@@ -246,10 +239,7 @@ describe('Servicio Transbank', () => {
 
   describe('Estado de transacción', () => {
     test('debe obtener estado de transacción exitosa', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCommit = WebpayPlus.Transaction().commit;
-      
-      mockCommit.mockResolvedValue({
+      mockTx.commit.mockResolvedValue({
         buy_order: 'ORDER_123',
         response_code: 0,
         amount: 124000
@@ -263,10 +253,7 @@ describe('Servicio Transbank', () => {
     });
 
     test('debe manejar error en consulta de estado', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCommit = WebpayPlus.Transaction().commit;
-      
-      mockCommit.mockRejectedValue(new Error('Error de consulta'));
+      mockTx.commit.mockRejectedValue(new Error('Error de consulta'));
 
       const status = await transbankService.getTransactionStatus('invalid_token');
       
@@ -318,15 +305,12 @@ describe('Servicio Transbank', () => {
 
   describe('Manejo de errores de respuesta de Transbank', () => {
     test('debe manejar error con detalles de respuesta', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCreate = WebpayPlus.Transaction().create;
-      
       const errorWithResponse = new Error('Request failed');
       errorWithResponse.response = {
         data: { error: 'Invalid commerce code' }
       };
       
-      mockCreate.mockRejectedValue(errorWithResponse);
+      mockTx.create.mockRejectedValue(errorWithResponse);
 
       await expect(
         transbankService.createPaymentTransaction(order)
@@ -334,10 +318,7 @@ describe('Servicio Transbank', () => {
     });
 
     test('debe manejar error sin detalles de respuesta', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCreate = WebpayPlus.Transaction().create;
-      
-      mockCreate.mockRejectedValue(new Error('Network error'));
+      mockTx.create.mockRejectedValue(new Error('Network error'));
 
       await expect(
         transbankService.createPaymentTransaction(order)
@@ -349,9 +330,7 @@ describe('Servicio Transbank', () => {
     test('debe validar longitud máxima de buyOrder', async () => {
       const longOrderId = 'a'.repeat(50); // ID muy largo
       
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCreate = WebpayPlus.Transaction().create;
-      mockCreate.mockResolvedValue({ token: 'test', url: 'test' });
+      mockTx.create.mockResolvedValue({ token: 'test', url: 'test' });
 
       const longOrder = { ...order.toObject(), _id: longOrderId };
       
@@ -370,10 +349,7 @@ describe('Servicio Transbank', () => {
 
   describe('Actualización de orden en base de datos', () => {
     test('debe actualizar orden con datos de pago', async () => {
-      const { WebpayPlus } = require('transbank-sdk');
-      const mockCreate = WebpayPlus.Transaction().create;
-      
-      mockCreate.mockResolvedValue({
+      mockTx.create.mockResolvedValue({
         token: 'test_token_123',
         url: 'https://test.url'
       });

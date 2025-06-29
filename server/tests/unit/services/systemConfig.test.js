@@ -175,9 +175,13 @@ describe('Servicio SystemConfig', () => {
       expect(SystemConfigService.isCacheValid()).toBe(true);
       
       // Simular que ha pasado el tiempo límite
+      const originalTimestamp = SystemConfigService.cacheTimestamp;
       SystemConfigService.cacheTimestamp = Date.now() - (6 * 60 * 1000); // 6 minutos atrás
       
       expect(SystemConfigService.isCacheValid()).toBe(false);
+      
+      // Restaurar timestamp original
+      SystemConfigService.cacheTimestamp = originalTimestamp;
     });
 
     test('debe limpiar cache correctamente', async () => {

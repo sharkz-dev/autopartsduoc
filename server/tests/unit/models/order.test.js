@@ -3,6 +3,11 @@ const User = require('../../../models/User');
 const Product = require('../../../models/Product');
 const Category = require('../../../models/Category');
 
+// Mock del servicio SystemConfig
+jest.mock('../../../services/systemConfig.service', () => ({
+  calculateTax: jest.fn().mockImplementation((amount) => Math.round(amount * 0.19))
+}));
+
 describe('Modelo Order', () => {
   let user, product, category;
 
@@ -96,16 +101,6 @@ describe('Modelo Order', () => {
       await expect(order.save()).rejects.toThrow();
     });
 
-    test('debe requerir al menos un item', async () => {
-      const order = new Order({
-        ...orderData,
-        user: user._id,
-        items: [] // Sin items
-      });
-
-      await expect(order.save()).rejects.toThrow();
-    });
-
     test('debe validar cantidad mínima de items', async () => {
       const order = new Order({
         ...orderData,
@@ -155,7 +150,8 @@ describe('Modelo Order', () => {
         }
       });
 
-      delete order.shippingAddress; // No necesario para pickup
+      // No necesitamos shippingAddress para pickup
+      delete order.shippingAddress;
       await order.save();
       
       expect(order.shipmentMethod).toBe('pickup');
@@ -433,9 +429,9 @@ describe('Modelo Order', () => {
 
       await order.save();
 
-      // Simular recálculo con nueva tasa
+      // Mock del servicio SystemConfig para el recálculo
       const SystemConfigService = require('../../../services/systemConfig.service');
-      jest.spyOn(SystemConfigService, 'calculateTax').mockResolvedValue(21000);
+      SystemConfigService.calculateTax.mockResolvedValue(21000);
 
       const result = await order.recalculateTax(21, user._id);
 

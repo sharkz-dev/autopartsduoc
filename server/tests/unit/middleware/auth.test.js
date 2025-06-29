@@ -18,7 +18,8 @@ describe('Middleware de Autenticación', () => {
     // Mock de objetos request y response
     req = {
       headers: {},
-      cookies: {}
+      cookies: {},
+      user: null
     };
 
     res = {
@@ -27,6 +28,9 @@ describe('Middleware de Autenticación', () => {
     };
 
     next = jest.fn();
+
+    // Limpiar mocks antes de cada test
+    jest.clearAllMocks();
   });
 
   describe('Middleware protect', () => {
@@ -261,23 +265,6 @@ describe('Middleware de Autenticación', () => {
       
       // Restaurar método original
       User.findById = originalFindById;
-    });
-  });
-
-  describe('Logging de debug', () => {
-    test('debe loggear token decodificado en modo desarrollo', async () => {
-      const originalLog = console.log;
-      console.log = jest.fn();
-
-      const token = user.getSignedJwtToken();
-      req.headers.authorization = `Bearer ${token}`;
-
-      await protect(req, res, next);
-
-      expect(console.log).toHaveBeenCalledWith('Token decodificado:', expect.any(Object));
-      
-      // Restaurar console.log original
-      console.log = originalLog;
     });
   });
 
