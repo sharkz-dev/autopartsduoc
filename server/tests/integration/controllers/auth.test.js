@@ -225,7 +225,7 @@ describe('Controlador Auth - Integración', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('no estás autenticado');
+      expect(response.body.error).toContain('Token no proporcionado');
     });
 
     test('debe manejar token inválido', async () => {

@@ -279,8 +279,9 @@ describe('Middleware de Autenticación', () => {
     });
 
     test('debe rechazar rol no incluido en lista', () => {
+      // Cambiar el rol del usuario de prueba a uno no incluido
+      req.user.role = 'client';
       const authorizeMiddleware = authorize('admin', 'distributor');
-      // req.user.role = 'client'
       
       authorizeMiddleware(req, res, next);
 

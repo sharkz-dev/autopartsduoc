@@ -351,7 +351,7 @@ describe('Controlador Order - Integración', () => {
 
   describe('GET /api/orders/my-orders', () => {
     beforeEach(async () => {
-      // Crear órdenes de prueba para el cliente
+      // Crear órdenes de prueba para el cliente con datos válidos
       await Order.create([
         {
           user: clientUser._id,
@@ -367,6 +367,7 @@ describe('Controlador Order - Integración', () => {
             street: 'Calle 1',
             city: 'Santiago',
             state: 'RM',
+            postalCode: '8320000',
             country: 'Chile'
           },
           paymentMethod: 'webpay',
@@ -453,6 +454,7 @@ describe('Controlador Order - Integración', () => {
           street: 'Calle Test',
           city: 'Santiago',
           state: 'RM',
+          postalCode: '8320000',
           country: 'Chile'
         },
         paymentMethod: 'webpay',
@@ -535,6 +537,7 @@ describe('Controlador Order - Integración', () => {
           street: 'Calle Test',
           city: 'Santiago',
           state: 'RM',
+          postalCode: '8320000',
           country: 'Chile'
         },
         paymentMethod: 'webpay',
@@ -626,6 +629,7 @@ describe('Controlador Order - Integración', () => {
           street: 'Calle Test',
           city: 'Santiago',
           state: 'RM',
+          postalCode: '8320000',
           country: 'Chile'
         },
         paymentMethod: 'webpay',
@@ -715,6 +719,7 @@ describe('Controlador Order - Integración', () => {
             street: 'Calle 1',
             city: 'Santiago',
             state: 'RM',
+            postalCode: '8320000',
             country: 'Chile'
           },
           paymentMethod: 'webpay',
@@ -777,6 +782,7 @@ describe('Controlador Order - Integración', () => {
           street: 'Calle Test',
           city: 'Santiago',
           state: 'RM',
+          postalCode: '8320000',
           country: 'Chile'
         },
         paymentMethod: 'webpay'
@@ -806,6 +812,7 @@ describe('Controlador Order - Integración', () => {
           street: 'Calle Test',
           city: 'Santiago',
           state: 'RM',
+          postalCode: '8320000',
           country: 'Chile'
         },
         paymentMethod: 'webpay'

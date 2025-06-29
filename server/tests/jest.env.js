@@ -26,7 +26,13 @@ process.env.BASE_URL = 'http://localhost:5000';
 
 // Suprimir logs durante las pruebas
 if (process.env.NODE_ENV === 'test') {
-  console.log = jest.fn();
-  console.error = jest.fn();
-  console.warn = jest.fn();
+  // Mantener console.error para debugging pero silenciar otros logs
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  
+  console.log = () => {};
+  console.warn = () => {};
+  
+  // Permitir logs de error para debugging
+  // console.error = () => {};
 }

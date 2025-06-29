@@ -14,6 +14,31 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 
+// Middleware de manejo de errores
+app.use((err, req, res, next) => {
+  console.error('Error en test:', err);
+  
+  if (err.name === 'ValidationError') {
+    const errors = Object.values(err.errors).map(e => e.message);
+    return res.status(400).json({
+      success: false,
+      error: errors.join(', ')
+    });
+  }
+  
+  if (err.code === 11000) {
+    return res.status(400).json({
+      success: false,
+      error: 'Valor duplicado'
+    });
+  }
+  
+  res.status(500).json({
+    success: false,
+    error: err.message || 'Error interno del servidor'
+  });
+});
+
 describe('Controlador Product - Integración', () => {
   let adminUser, clientUser, adminToken, clientToken, category;
 

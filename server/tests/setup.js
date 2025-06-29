@@ -6,6 +6,9 @@ let mongoServer;
 // Configuración global antes de todas las pruebas
 beforeAll(async () => {
   try {
+    // Configurar mongoose para evitar el warning de strictQuery
+    mongoose.set('strictQuery', false);
+    
     // Crear instancia de MongoDB en memoria
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
