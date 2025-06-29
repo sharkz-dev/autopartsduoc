@@ -8,10 +8,8 @@
  * @returns {boolean} - true si es válido, false si no
  */
 exports.isValidEmail = (email) => {
-  if (!email || typeof email !== 'string') return false;
-  // ✅ CORREGIDO: Regex más preciso para emails
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email.trim());
+  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+  return emailRegex.test(email);
 };
 
 /**
@@ -22,8 +20,6 @@ exports.isValidEmail = (email) => {
  */
 exports.hasMinLength = (str, minLength) => {
   if (!str || typeof str !== 'string') return false;
-  // ✅ CORREGIDO: Permitir longitud 0 si minLength es 0
-  if (minLength === 0) return true;
   return str.length >= minLength;
 };
 
@@ -33,9 +29,8 @@ exports.hasMinLength = (str, minLength) => {
  * @returns {boolean} - true si es válido, false si no
  */
 exports.isValidPhone = (phone) => {
-  if (!phone || typeof phone !== 'string') return false;
   const phoneRegex = /^\+?[0-9\s\-()]{8,20}$/;
-  return phoneRegex.test(phone.trim());
+  return phoneRegex.test(phone);
 };
 
 /**
@@ -44,10 +39,9 @@ exports.isValidPhone = (phone) => {
  * @returns {boolean} - true si es válido, false si no
  */
 exports.isValidSKU = (sku) => {
-  if (!sku || typeof sku !== 'string') return false;
-  // ✅ CORREGIDO: Formato más específico para SKUs
-  const skuRegex = /^[A-Za-z0-9][A-Za-z0-9\-_]{2,19}$/;
-  return skuRegex.test(sku.trim());
+  // Formato: letras o números, guiones permitidos, de 3 a 20 caracteres
+  const skuRegex = /^[A-Za-z0-9\-]{3,20}$/;
+  return skuRegex.test(sku);
 };
 
 /**
@@ -59,8 +53,8 @@ exports.isValidPrice = (price) => {
   // Convertir a número si es string
   const numPrice = typeof price === 'string' ? parseFloat(price) : price;
   
-  // ✅ CORREGIDO: Verificar que sea un número válido y finito
-  return typeof numPrice === 'number' && !isNaN(numPrice) && isFinite(numPrice) && numPrice >= 0;
+  // Verificar que sea un número y sea mayor o igual a cero
+  return !isNaN(numPrice) && numPrice >= 0;
 };
 
 /**
@@ -69,10 +63,9 @@ exports.isValidPrice = (price) => {
  * @returns {boolean} - true si es válido, false si no
  */
 exports.isValidChileanPostalCode = (postalCode) => {
-  if (!postalCode || typeof postalCode !== 'string') return false;
   // Códigos postales chilenos son 7 dígitos
   const postalCodeRegex = /^\d{7}$/;
-  return postalCodeRegex.test(postalCode.trim());
+  return postalCodeRegex.test(postalCode);
 };
 
 /**
@@ -81,7 +74,6 @@ exports.isValidChileanPostalCode = (postalCode) => {
  * @returns {boolean} - true si es válida, false si no
  */
 exports.isValidURL = (url) => {
-  if (!url || typeof url !== 'string') return false;
   try {
     const urlObj = new URL(url);
     return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
@@ -112,20 +104,10 @@ exports.sanitizeHTML = (str) => {
  */
 exports.generateSlug = (str) => {
   if (!str || typeof str !== 'string') return '';
-  
-  const slug = str
+  return str
     .toLowerCase()
-    // ✅ CORREGIDO: Manejar acentos correctamente
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
-    // ✅ CORREGIDO: Permitir algunos caracteres especiales y limpiar mejor
-    .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales excepto guiones y guiones bajos
-    .replace(/\s+/g, '-') // Reemplazar espacios con guiones
-    .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
-    .replace(/^-|-$/g, '') // Eliminar guiones al inicio y final
-    .trim();
-    
-  return slug;
+    .replace(/[^\w ]+/g, '')
+    .replace(/ +/g, '-');
 };
 
 /**
@@ -137,8 +119,7 @@ exports.isValidDate = (date) => {
   if (!date) return false;
   
   const d = new Date(date);
-  // ✅ CORREGIDO: Validar fechas más estrictamente
-  return !isNaN(d.getTime()) && d.toString() !== 'Invalid Date';
+  return !isNaN(d.getTime());
 };
 
 /**
@@ -150,14 +131,14 @@ exports.isValidRUT = (rut) => {
   if (!rut || typeof rut !== 'string') return false;
   
   // Eliminar puntos y guiones
-  const cleanRut = rut.replace(/\./g, '').replace(/-/g, '').trim();
+  rut = rut.replace(/\./g, '').replace(/-/g, '');
   
-  // ✅ CORREGIDO: Validar formato básico más estricto
-  if (!/^\d{7,8}[0-9Kk]$/.test(cleanRut)) return false;
+  // Validar formato básico (7-9 dígitos)
+  if (!/^\d{7,9}[0-9K]$/i.test(rut)) return false;
   
   // Separar cuerpo y dígito verificador
-  const rutDigits = cleanRut.slice(0, -1);
-  const dv = cleanRut.slice(-1).toUpperCase();
+  const rutDigits = rut.slice(0, -1);
+  const dv = rut.slice(-1).toUpperCase();
   
   // Calcular dígito verificador
   let sum = 0;
@@ -190,19 +171,20 @@ exports.formatRUT = (rut) => {
   if (!rut || typeof rut !== 'string') return '';
   
   // Eliminar puntos y guiones
-  const cleanRut = rut.replace(/\./g, '').replace(/-/g, '').trim();
+  rut = rut.replace(/\./g, '').replace(/-/g, '');
   
   // Extraer dígito verificador
-  const dv = cleanRut.slice(-1);
-  let rutBody = cleanRut.slice(0, -1);
+  const dv = rut.slice(-1);
+  let rutBody = rut.slice(0, -1);
   
-  // ✅ CORREGIDO: Formatear con puntos desde la derecha
+  // Formatear con puntos
   let formatted = '';
-  for (let i = 0; i < rutBody.length; i++) {
-    if (i > 0 && (rutBody.length - i) % 3 === 0) {
-      formatted += '.';
+  for (let i = rutBody.length - 1, j = 0; i >= 0; i--, j++) {
+    formatted = rutBody[i] + formatted;
+    if (j === 2 && i !== 0) {
+      formatted = '.' + formatted;
+      j = -1;
     }
-    formatted += rutBody[i];
   }
   
   // Unir con dígito verificador
@@ -215,24 +197,24 @@ exports.formatRUT = (rut) => {
  * @returns {boolean} - true si es válido, false si no
  */
 exports.isValidCreditCard = (cardNumber) => {
-  if (!cardNumber || typeof cardNumber !== 'string') return false;
+  if (!cardNumber) return false;
   
   // Eliminar espacios y guiones
-  const cleanNumber = cardNumber.replace(/\s+/g, '').replace(/-/g, '');
+  cardNumber = cardNumber.replace(/\s+/g, '').replace(/-/g, '');
   
   // Verificar que solo contiene dígitos
-  if (!/^\d+$/.test(cleanNumber)) return false;
+  if (!/^\d+$/.test(cardNumber)) return false;
   
-  // ✅ CORREGIDO: Verificar longitud específica para diferentes tipos
-  if (cleanNumber.length < 13 || cleanNumber.length > 19) return false;
+  // Verificar longitud (13-19 dígitos)
+  if (cardNumber.length < 13 || cardNumber.length > 19) return false;
   
   // Algoritmo de Luhn (validación básica de números de tarjeta)
   let sum = 0;
   let double = false;
   
   // Sumar dígitos
-  for (let i = cleanNumber.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleanNumber[i]);
+  for (let i = cardNumber.length - 1; i >= 0; i--) {
+    let digit = parseInt(cardNumber[i]);
     
     if (double) {
       digit *= 2;
@@ -259,12 +241,6 @@ exports.validateObject = (obj, schema) => {
     errors: {}
   };
   
-  if (!obj || typeof obj !== 'object') {
-    result.isValid = false;
-    result.errors.general = 'Objeto requerido para validación';
-    return result;
-  }
-  
   for (const field in schema) {
     const rules = schema[field];
     
@@ -276,7 +252,7 @@ exports.validateObject = (obj, schema) => {
     }
     
     // Si el campo no está presente y no es requerido, continuar
-    if (obj[field] === undefined || obj[field] === null) continue;
+    if (obj[field] === undefined) continue;
     
     // Validar tipo
     if (rules.type && typeof obj[field] !== rules.type) {
