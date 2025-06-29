@@ -48,7 +48,7 @@ describe('Controlador Product - Integración', () => {
 
   describe('GET /api/products', () => {
     beforeEach(async () => {
-      // Crear productos de prueba
+      // Crear productos de prueba con slug
       const products = [
         {
           name: 'Pastillas Brembo',
@@ -57,6 +57,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 25,
           brand: 'Brembo',
           sku: 'BRE-001',
+          slug: 'pastillas-brembo',
           category: category._id,
           featured: true,
           onSale: true,
@@ -69,6 +70,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 50,
           brand: 'Mahle',
           sku: 'MAH-001',
+          slug: 'filtro-mahle',
           category: category._id
         },
         {
@@ -78,6 +80,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 0, // Sin stock
           brand: 'Monroe',
           sku: 'MON-001',
+          slug: 'amortiguador-monroe',
           category: category._id
         }
       ];
@@ -190,6 +193,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 10,
           brand: 'Brembo',
           sku: 'TEST-001',
+          slug: 'producto-brembo',
           category: category._id
         },
         {
@@ -199,6 +203,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 10,
           brand: 'Mahle',
           sku: 'TEST-002',
+          slug: 'producto-mahle',
           category: category._id
         }
       ]);
@@ -226,6 +231,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 10,
           brand: 'Test',
           sku: 'SALE-001',
+          slug: 'producto-en-oferta',
           category: category._id,
           onSale: true,
           discountPercentage: 20
@@ -237,6 +243,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 10,
           brand: 'Test',
           sku: 'NORM-001',
+          slug: 'producto-normal',
           category: category._id
         }
       ]);
@@ -264,6 +271,7 @@ describe('Controlador Product - Integración', () => {
         stockQuantity: 15,
         brand: 'TestBrand',
         sku: 'TEST-SLUG',
+        slug: 'producto-de-prueba',
         category: category._id
       });
     });
@@ -415,6 +423,7 @@ describe('Controlador Product - Integración', () => {
         stockQuantity: 10,
         brand: 'EditBrand',
         sku: 'EDIT-001',
+        slug: 'producto-editable',
         category: category._id
       });
     });
@@ -471,6 +480,7 @@ describe('Controlador Product - Integración', () => {
         stockQuantity: 5,
         brand: 'DeleteBrand',
         sku: 'DEL-001',
+        slug: 'producto-a-eliminar',
         category: category._id
       });
     });
@@ -519,6 +529,7 @@ describe('Controlador Product - Integración', () => {
         stockQuantity: 8,
         brand: 'RatingBrand',
         sku: 'RAT-001',
+        slug: 'producto-para-valorar',
         category: category._id
       });
     });
@@ -605,6 +616,7 @@ describe('Controlador Product - Integración', () => {
         stockQuantity: 12,
         brand: 'RatingsBrand',
         sku: 'RATS-001',
+        slug: 'producto-con-valoraciones',
         category: category._id,
         ratings: [
           {
@@ -640,6 +652,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 15,
           brand: 'Brembo',
           sku: 'BMW-001',
+          slug: 'pastillas-bmw-serie-3',
           category: category._id,
           compatibleModels: [
             { make: 'BMW', model: 'Serie 3', year: 2020 }
@@ -652,6 +665,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 8,
           brand: 'Mahle',
           sku: 'MERC-001',
+          slug: 'filtro-mercedes-clase-c',
           category: category._id,
           compatibleModels: [
             { make: 'Mercedes-Benz', model: 'Clase C', year: 2019 }
@@ -710,6 +724,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 20,
           brand: 'Brembo',
           sku: 'SUGG-001',
+          slug: 'pastillas-de-freno-brembo',
           category: category._id,
           compatibleModels: [
             { make: 'BMW', model: 'X5', year: 2021 }
@@ -752,6 +767,7 @@ describe('Controlador Product - Integración', () => {
           stockQuantity: 10,
           brand: 'Universal',
           sku: 'UNIV-001',
+          slug: 'producto-universal-bmw',
           category: category._id,
           compatibleModels: [
             { make: 'BMW', model: 'Serie 3', year: 2020 },

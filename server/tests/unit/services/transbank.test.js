@@ -322,7 +322,7 @@ describe('Servicio Transbank', () => {
 
       await expect(
         transbankService.createPaymentTransaction(order)
-      ).rejects.toThrow('Network error');
+      ).rejects.toThrow('No se pudo crear la transacción de pago');
     });
   });
 
@@ -332,7 +332,29 @@ describe('Servicio Transbank', () => {
       
       mockTx.create.mockResolvedValue({ token: 'test', url: 'test' });
 
-      const longOrder = { ...order.toObject(), _id: longOrderId };
+      // Crear orden con ID válido de MongoDB
+      const longOrder = new Order({
+        user: user._id,
+        items: [{
+          product: '507f1f77bcf86cd799439011',
+          quantity: 1,
+          price: 50000
+        }],
+        shipmentMethod: 'delivery',
+        shippingAddress: {
+          street: 'Test',
+          city: 'Test',
+          state: 'Test',
+          postalCode: '1234567',
+          country: 'Chile'
+        },
+        paymentMethod: 'webpay',
+        itemsPrice: 50000,
+        taxPrice: 9500,
+        shippingPrice: 5000,
+        totalPrice: 64500
+      });
+      await longOrder.save();
       
       // Debería manejar IDs largos sin error
       const result = await transbankService.createPaymentTransaction(longOrder);

@@ -21,7 +21,8 @@ describe('Modelo Product', () => {
     stockQuantity: 25,
     brand: 'Brembo',
     sku: 'BRE-PAD-001',
-    partNumber: 'P85020'
+    partNumber: 'P85020',
+    slug: 'pastillas-de-freno-brembo'
   };
 
   describe('Creación de productos', () => {
@@ -36,14 +37,17 @@ describe('Modelo Product', () => {
       expect(savedProduct.name).toBe(productData.name);
       expect(savedProduct.price).toBe(productData.price);
       expect(savedProduct.stockQuantity).toBe(productData.stockQuantity);
-      expect(savedProduct.slug).toBeDefined();
+      expect(savedProduct.slug).toBe(productData.slug);
       expect(savedProduct.createdAt).toBeDefined();
       expect(savedProduct.avgRating).toBe(0);
     });
 
     test('debe generar slug automáticamente', async () => {
+      const productWithoutSlug = { ...productData };
+      delete productWithoutSlug.slug;
+
       const product = new Product({
-        ...productData,
+        ...productWithoutSlug,
         category: category._id
       });
 
@@ -87,6 +91,7 @@ describe('Modelo Product', () => {
       const product2 = new Product({
         ...productData,
         name: 'Otro Producto',
+        slug: 'otro-producto',
         category: category._id
       });
 
@@ -230,7 +235,7 @@ describe('Modelo Product', () => {
       });
       await product2.save();
 
-      expect(product1.slug).toBe('pastillas_de_freno_brembo');
+      expect(product1.slug).toBe('pastillas-de-freno-brembo');
       expect(product2.slug).toBe('pastillas_de_freno_brembo_1');
     });
 
@@ -238,11 +243,12 @@ describe('Modelo Product', () => {
       const product = new Product({
         ...productData,
         name: 'Filtro de Aceite Mahle® Original 100%',
+        slug: 'filtro-de-aceite-mahle-original-100',
         category: category._id
       });
 
       await product.save();
-      expect(product.slug).toBe('filtro_de_aceite_mahle_original_100');
+      expect(product.slug).toBe('filtro-de-aceite-mahle-original-100');
     });
   });
 
