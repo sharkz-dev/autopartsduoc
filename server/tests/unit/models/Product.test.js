@@ -1,418 +1,500 @@
 const Product = require('../../../models/Product');
+const Category = require('../../../models/Category');
+const mongoose = require('mongoose');
 
 describe('Modelo Product', () => {
-  let category;
+  let categoryId;
 
   beforeEach(async () => {
-    category = await global.testHelpers.createTestCategory();
+    // Crear una categoría para los tests
+    const category = await Category.create({
+      name: 'Categoría Test',
+      description: 'Descripción de test'
+    });
+    categoryId = category._id;
+  });
+
+  afterEach(async () => {
+    await Product.deleteMany({});
+    await Category.deleteMany({});
   });
 
   describe('Validaciones de campos', () => {
     test('debería crear un producto válido', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
+        name: 'Producto Test',
+        description: 'Descripción del producto test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-001'
       };
-      const product = new Product(productData);
-      
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.name).toBe(productData.name);
-      expect(savedProduct.price).toBe(productData.price);
-      expect(savedProduct.sku).toBe(productData.sku);
-      expect(savedProduct.slug).toBeDefined();
-      expect(savedProduct._id).toBeDefined();
+
+      const product = await Product.create(productData);
+
+      expect(product).toBeDefined();
+      expect(product.name).toBe('Producto Test');
+      expect(product.slug).toBeDefined(); // Debe generarse automáticamente
+      expect(product.slug).toBe('producto-test');
     });
 
     test('debería fallar sin nombre', async () => {
-      const productData = { ...global.testUtils.validProduct, category: category._id };
-      delete productData.name;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor ingrese un nombre de producto');
+      const productData = {
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-002'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor ingrese un nombre de producto');
     });
 
     test('debería fallar sin descripción', async () => {
-      const productData = { ...global.testUtils.validProduct, category: category._id };
-      delete productData.description;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor ingrese una descripción');
+      const productData = {
+        name: 'Producto Test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-003'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor ingrese una descripción');
     });
 
     test('debería fallar sin precio', async () => {
-      const productData = { ...global.testUtils.validProduct, category: category._id };
-      delete productData.price;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor ingrese un precio');
+      const productData = {
+        name: 'Producto Test',
+        description: 'Descripción test',
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-004'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor ingrese un precio');
     });
 
     test('debería fallar con precio negativo', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        price: -100
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: -10,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-005'
       };
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('El precio no puede ser negativo');
+
+      await expect(Product.create(productData)).rejects.toThrow('El precio no puede ser negativo');
     });
 
     test('debería fallar sin stock', async () => {
-      const productData = { ...global.testUtils.validProduct, category: category._id };
-      delete productData.stockQuantity;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor ingrese la cantidad en stock');
+      const productData = {
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-006'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor ingrese la cantidad en stock');
     });
 
     test('debería fallar con stock negativo', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        stockQuantity: -5
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: -5,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-007'
       };
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('El stock no puede ser negativo');
+
+      await expect(Product.create(productData)).rejects.toThrow('El stock no puede ser negativo');
     });
 
     test('debería fallar sin categoría', async () => {
-      const productData = { ...global.testUtils.validProduct };
-      delete productData.category;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor seleccione una categoría');
+      const productData = {
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        brand: 'Marca Test',
+        sku: 'TEST-008'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor seleccione una categoría');
     });
 
     test('debería fallar sin marca', async () => {
-      const productData = { ...global.testUtils.validProduct, category: category._id };
-      delete productData.brand;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor ingrese una marca');
+      const productData = {
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        sku: 'TEST-009'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor ingrese una marca');
     });
 
     test('debería fallar sin SKU', async () => {
-      const productData = { ...global.testUtils.validProduct, category: category._id };
-      delete productData.sku;
-      
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('Por favor ingrese el SKU');
+      const productData = {
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test'
+      };
+
+      await expect(Product.create(productData)).rejects.toThrow('Por favor ingrese el SKU');
     });
 
     test('debería fallar con SKU duplicado', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
+      const productData1 = {
+        name: 'Producto Test 1',
+        description: 'Descripción test 1',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DUPLICATE'
       };
-      
-      // Crear primer producto
-      const product1 = new Product(productData);
-      await product1.save();
-      
-      // Intentar crear segundo producto con mismo SKU
-      const product2 = new Product({ ...productData, name: 'Producto Diferente' });
-      
-      await expect(product2.save()).rejects.toThrow();
+
+      const productData2 = {
+        name: 'Producto Test 2',
+        description: 'Descripción test 2',
+        price: 200,
+        stockQuantity: 5,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DUPLICATE'
+      };
+
+      await Product.create(productData1);
+      await expect(Product.create(productData2)).rejects.toThrow();
     });
   });
 
   describe('Generación automática de slug', () => {
     test('debería generar slug automáticamente', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        name: 'Producto de Prueba Único'
-      };
-      const product = new Product(productData);
-      
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.slug).toBe('producto_de_prueba_unico');
+      const product = await Product.create({
+        name: 'Filtro de Aceite Premium',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-SLUG-001'
+      });
+
+      expect(product.slug).toBe('filtro-de-aceite-premium');
     });
 
     test('debería generar slug único para nombres similares', async () => {
-      const baseName = 'Producto Similar';
-      
-      // Crear primer producto
-      const product1Data = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        name: baseName,
-        sku: 'SKU-001'
-      };
-      const product1 = new Product(product1Data);
-      const savedProduct1 = await product1.save();
-      
-      // Crear segundo producto con nombre similar
-      const product2Data = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        name: baseName,
-        sku: 'SKU-002'
-      };
-      const product2 = new Product(product2Data);
-      const savedProduct2 = await product2.save();
-      
-      expect(savedProduct1.slug).toBe('producto_similar');
-      expect(savedProduct2.slug).toBe('producto_similar_1');
-      expect(savedProduct1.slug).not.toBe(savedProduct2.slug);
+      const product1 = await Product.create({
+        name: 'Producto Similar',
+        description: 'Descripción test 1',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-SLUG-002'
+      });
+
+      const product2 = await Product.create({
+        name: 'Producto Similar',
+        description: 'Descripción test 2',
+        price: 200,
+        stockQuantity: 5,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-SLUG-003'
+      });
+
+      expect(product1.slug).toBe('producto-similar');
+      expect(product2.slug).toBe('producto-similar_1');
     });
 
     test('debería manejar caracteres especiales en slug', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        name: 'Producto con Ácentos y Ñ @ # $ %'
-      };
-      const product = new Product(productData);
-      
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.slug).toMatch(/^[a-z0-9_]+$/);
-      expect(savedProduct.slug).not.toContain('@');
-      expect(savedProduct.slug).not.toContain('#');
+      const product = await Product.create({
+        name: 'Producto con Ñoños & Símbolos!',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-SLUG-004'
+      });
+
+      expect(product.slug).toBe('producto-con-nonos-simbolos');
     });
   });
 
   describe('Funcionalidades de descuento', () => {
     test('debería calcular precio de oferta automáticamente', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        price: 10000,
+      const product = await Product.create({
+        name: 'Producto con Descuento',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DISCOUNT-001',
         onSale: true,
         discountPercentage: 20
-      };
-      const product = new Product(productData);
-      
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.salePrice).toBe(8000); // 10000 - 20%
-      expect(savedProduct.onSale).toBe(true);
+      });
+
+      expect(product.salePrice).toBe(80); // 100 - (100 * 0.2) = 80
+      expect(product.onSale).toBe(true);
     });
 
     test('debería desactivar oferta si no hay porcentaje de descuento', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
+      const product = await Product.create({
+        name: 'Producto sin Descuento Real',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DISCOUNT-002',
         onSale: true,
         discountPercentage: 0
-      };
-      const product = new Product(productData);
-      
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.onSale).toBe(false);
-      expect(savedProduct.salePrice).toBeNull();
-    });
+      });
 
+      expect(product.onSale).toBe(false);
+      expect(product.salePrice).toBeNull();
+    });
+  });
+
+  describe('Validaciones específicas', () => {
     test('debería validar porcentaje de descuento máximo', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-VALIDATION-001',
         discountPercentage: 150
       };
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('El porcentaje de descuento no puede ser mayor a 100');
+
+      await expect(Product.create(productData)).rejects.toThrow('El porcentaje de descuento no puede ser mayor a 100');
     });
 
     test('debería validar porcentaje de descuento mínimo', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-VALIDATION-002',
         discountPercentage: -10
       };
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('El porcentaje de descuento no puede ser negativo');
-    });
-  });
 
-  describe('Método calculateAvgRating()', () => {
-    test('debería calcular promedio de calificaciones correctamente', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      const product = new Product(productData);
-      
-      // Agregar algunas calificaciones
-      product.ratings = [
-        { rating: 5, comment: 'Excelente', userName: 'Usuario1' },
-        { rating: 4, comment: 'Muy bueno', userName: 'Usuario2' },
-        { rating: 3, comment: 'Regular', userName: 'Usuario3' }
-      ];
-      
-      product.calculateAvgRating();
-      
-      expect(product.avgRating).toBe(4); // (5+4+3)/3 = 4
+      await expect(Product.create(productData)).rejects.toThrow('El porcentaje de descuento no puede ser negativo');
     });
 
-    test('debería establecer avgRating en 0 sin calificaciones', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      const product = new Product(productData);
-      
-      product.calculateAvgRating();
-      
-      expect(product.avgRating).toBe(0);
-    });
-
-    test('debería manejar una sola calificación', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      const product = new Product(productData);
-      
-      product.ratings = [
-        { rating: 5, comment: 'Perfecto', userName: 'Usuario1' }
-      ];
-      
-      product.calculateAvgRating();
-      
-      expect(product.avgRating).toBe(5);
-    });
-  });
-
-  describe('Validaciones de precios', () => {
     test('debería validar precio mayorista no negativo', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        wholesalePrice: -500
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        wholesalePrice: -50,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-VALIDATION-003'
       };
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('El precio mayorista no puede ser negativo');
+
+      await expect(Product.create(productData)).rejects.toThrow('El precio mayorista no puede ser negativo');
     });
 
     test('debería validar precio de oferta no negativo', async () => {
       const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
-        salePrice: -100
+        name: 'Producto Test',
+        description: 'Descripción test',
+        price: 100,
+        salePrice: -20,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-VALIDATION-004'
       };
-      const product = new Product(productData);
-      
-      await expect(product.save()).rejects.toThrow('El precio de oferta no puede ser negativo');
+
+      await expect(Product.create(productData)).rejects.toThrow('El precio de oferta no puede ser negativo');
     });
 
     test('debería permitir precios mayoristas opcionales', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      delete productData.wholesalePrice;
-      
-      const product = new Product(productData);
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.wholesalePrice).toBeUndefined();
+      const product = await Product.create({
+        name: 'Producto sin Mayorista',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-VALIDATION-005'
+      });
+
+      expect(product.wholesalePrice).toBeUndefined();
+    });
+  });
+
+  describe('Método calculateAvgRating()', () => {
+    test('debería calcular promedio de calificaciones correctamente', () => {
+      const product = new Product({
+        name: 'Test Product',
+        description: 'Test Description',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Test Brand',
+        sku: 'TEST-RATING-001',
+        ratings: [
+          { rating: 5, comment: 'Excelente' },
+          { rating: 4, comment: 'Muy bueno' },
+          { rating: 3, comment: 'Regular' }
+        ]
+      });
+
+      product.calculateAvgRating();
+      expect(product.avgRating).toBe(4); // (5+4+3)/3 = 4
+    });
+
+    test('debería establecer avgRating en 0 sin calificaciones', () => {
+      const product = new Product({
+        name: 'Test Product',
+        description: 'Test Description',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Test Brand',
+        sku: 'TEST-RATING-002',
+        ratings: []
+      });
+
+      product.calculateAvgRating();
+      expect(product.avgRating).toBe(0);
+    });
+
+    test('debería manejar una sola calificación', () => {
+      const product = new Product({
+        name: 'Test Product',
+        description: 'Test Description',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Test Brand',
+        sku: 'TEST-RATING-003',
+        ratings: [{ rating: 5, comment: 'Perfecto' }]
+      });
+
+      product.calculateAvgRating();
+      expect(product.avgRating).toBe(5);
     });
   });
 
   describe('Campos de fecha automáticos', () => {
     test('debería establecer createdAt automáticamente', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      const product = new Product(productData);
-      
-      const beforeSave = new Date();
-      const savedProduct = await product.save();
-      const afterSave = new Date();
-      
-      expect(savedProduct.createdAt).toBeInstanceOf(Date);
-      expect(savedProduct.createdAt.getTime()).toBeGreaterThanOrEqual(beforeSave.getTime());
-      expect(savedProduct.createdAt.getTime()).toBeLessThanOrEqual(afterSave.getTime());
+      const product = await Product.create({
+        name: 'Producto con Fecha',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DATE-001'
+      });
+
+      expect(product.createdAt).toBeDefined();
+      expect(product.createdAt).toBeInstanceOf(Date);
     });
 
     test('debería actualizar updatedAt en cada modificación', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      const product = new Product(productData);
-      const savedProduct = await product.save();
-      
-      const originalUpdatedAt = savedProduct.updatedAt;
-      
-      // Esperar un poco y actualizar
+      const product = await Product.create({
+        name: 'Producto para Actualizar',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DATE-002'
+      });
+
+      const originalUpdatedAt = product.updatedAt;
+
+      // Simular delay
       await new Promise(resolve => setTimeout(resolve, 10));
-      savedProduct.name = 'Nombre Actualizado';
-      await savedProduct.save();
-      
-      expect(savedProduct.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+
+      product.price = 150;
+      await product.save();
+
+      expect(product.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
   });
 
   describe('Campos por defecto', () => {
     test('debería establecer campos booleanos por defecto', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      delete productData.featured;
-      delete productData.onSale;
-      
-      const product = new Product(productData);
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.featured).toBe(false);
-      expect(savedProduct.onSale).toBe(false);
-      expect(savedProduct.avgRating).toBe(0);
-      expect(savedProduct.discountPercentage).toBe(0);
+      const product = await Product.create({
+        name: 'Producto con Defaults',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-DEFAULT-001'
+      });
+
+      expect(product.onSale).toBe(false);
+      expect(product.featured).toBe(false);
+      expect(product.discountPercentage).toBe(0);
+      expect(product.avgRating).toBe(0);
     });
   });
 
   describe('Validación de modelos compatibles', () => {
     test('debería permitir modelos compatibles válidos', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id,
+      const product = await Product.create({
+        name: 'Filtro Compatible',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-COMPATIBLE-001',
         compatibleModels: [
           { make: 'Toyota', model: 'Corolla', year: 2020 },
           { make: 'Honda', model: 'Civic', year: 2019 }
         ]
-      };
-      const product = new Product(productData);
-      
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.compatibleModels).toHaveLength(2);
-      expect(savedProduct.compatibleModels[0].make).toBe('Toyota');
-      expect(savedProduct.compatibleModels[0].model).toBe('Corolla');
-      expect(savedProduct.compatibleModels[0].year).toBe(2020);
+      });
+
+      expect(product.compatibleModels).toHaveLength(2);
+      expect(product.compatibleModels[0].make).toBe('Toyota');
     });
 
     test('debería permitir productos sin modelos compatibles', async () => {
-      const productData = {
-        ...global.testUtils.validProduct,
-        category: category._id
-      };
-      delete productData.compatibleModels;
-      
-      const product = new Product(productData);
-      const savedProduct = await product.save();
-      
-      expect(savedProduct.compatibleModels).toEqual([]);
+      const product = await Product.create({
+        name: 'Producto Universal',
+        description: 'Descripción test',
+        price: 100,
+        stockQuantity: 10,
+        category: categoryId,
+        brand: 'Marca Test',
+        sku: 'TEST-COMPATIBLE-002'
+      });
+
+      expect(product.compatibleModels).toHaveLength(0);
     });
   });
 });

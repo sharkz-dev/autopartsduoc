@@ -9,7 +9,8 @@ const ProductSchema = new mongoose.Schema({
   slug: {
     type: String,
     unique: true,
-    required: true
+    // ✅ CORREGIDO: No requerido directamente, se genera automáticamente
+    sparse: true // Permite valores únicos pero no requiere que esté presente inicialmente
   },
   description: {
     type: String,
@@ -115,13 +116,23 @@ const ProductSchema = new mongoose.Schema({
 
 // Método estático para generar slug único
 ProductSchema.statics.generateUniqueSlug = async function(name, excludeId = null) {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Nombre requerido para generar slug');
+  }
+
   const baseSlug = name
     .toLowerCase()
+    .normalize('NFD') // Normalizar caracteres especiales
+    .replace(/[\u0300-\u036f]/g, '') // Remover acentos
     .replace(/[^\w\s-]/g, '') // Eliminar caracteres especiales excepto guiones
     .replace(/\s+/g, '_')     // Reemplazar espacios con guiones bajos
     .replace(/_+/g, '_')      // Reemplazar múltiples guiones bajos con uno solo
     .replace(/^_|_$/g, '')    // Eliminar guiones bajos al inicio y final
     .trim();
+
+  if (!baseSlug) {
+    throw new Error('No se pudo generar slug válido');
+  }
 
   let slug = baseSlug;
   let counter = 1;
@@ -142,26 +153,47 @@ ProductSchema.statics.generateUniqueSlug = async function(name, excludeId = null
   return slug;
 };
 
-// Middleware pre-save actualizado
+// ✅ CORREGIDO: Middleware pre-save mejorado
 ProductSchema.pre('save', async function(next) {
-  // Solo generar slug si es un documento nuevo o si el nombre cambió
-  if (this.isNew || this.isModified('name')) {
-    this.slug = await this.constructor.generateUniqueSlug(this.name, this._id);
+  try {
+    // Generar slug si es nuevo documento o si cambió el nombre
+    if (this.isNew || this.isModified('name')) {
+      if (!this.name) {
+        return next(new Error('Nombre requerido para generar slug'));
+      }
+      this.slug = await this.constructor.generateUniqueSlug(this.name, this._id);
+    }
+    
+    // Validar que el slug exista antes de guardar
+    if (!this.slug) {
+      return next(new Error('Slug es requerido'));
+    }
+    
+    // Actualizar fecha de modificación
+    this.updatedAt = Date.now();
+    
+    // Calcular precio de oferta si está en descuento
+    if (this.onSale && this.discountPercentage > 0) {
+      this.salePrice = Math.round(this.price - (this.price * (this.discountPercentage / 100)));
+    } else {
+      this.onSale = false;
+      this.discountPercentage = 0;
+      this.salePrice = null;
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
   }
-  
-  // Actualizar fecha de modificación
-  this.updatedAt = Date.now();
-  
-  // Calcular precio de oferta si está en descuento
-  if (this.onSale && this.discountPercentage > 0) {
-    this.salePrice = this.price - (this.price * (this.discountPercentage / 100));
+});
+
+// Validación post-save para asegurar slug
+ProductSchema.post('save', function(error, doc, next) {
+  if (error.name === 'ValidationError' && error.errors.slug) {
+    next(new Error('Error generando slug único'));
   } else {
-    this.onSale = false;
-    this.discountPercentage = 0;
-    this.salePrice = null;
+    next(error);
   }
-  
-  next();
 });
 
 // Calcular rating promedio
@@ -172,7 +204,14 @@ ProductSchema.methods.calculateAvgRating = function() {
   }
   
   const sum = this.ratings.reduce((acc, item) => acc + item.rating, 0);
-  this.avgRating = sum / this.ratings.length;
+  this.avgRating = Math.round((sum / this.ratings.length) * 10) / 10; // Redondear a 1 decimal
 };
+
+// Índices para optimización
+ProductSchema.index({ slug: 1 }, { unique: true, sparse: true });
+ProductSchema.index({ sku: 1 }, { unique: true });
+ProductSchema.index({ name: 'text', description: 'text', brand: 'text' });
+ProductSchema.index({ category: 1, featured: 1 });
+ProductSchema.index({ onSale: 1, discountPercentage: 1 });
 
 module.exports = mongoose.model('Product', ProductSchema);
