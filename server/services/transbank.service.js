@@ -1,74 +1,76 @@
-// Mock de transbank-sdk para pruebas
-let mockTransbank = null;
-
-try {
-  mockTransbank = require('transbank-sdk');
-} catch (error) {
-  // Si no está disponible, crear mock básico
-  mockTransbank = {
-    WebpayPlus: {
-      Transaction: function() {
-        return {
-          create: async () => ({
-            token: 'mock_token_123',
-            url: 'https://mock.transbank.cl'
-          }),
-          commit: async () => ({
-            buy_order: 'MOCK_ORDER_123',
-            session_id: 'MOCK_SESSION_123',
-            amount: 100000,
-            authorization_code: '123456',
-            response_code: 0,
-            transaction_date: new Date().toISOString(),
-            payment_type_code: 'VN',
-            card_detail: { card_number: '****1234' },
-            installments_number: 0
-          })
-        };
-      }
-    },
-    Environment: {
-      Integration: 'integration',
-      Production: 'production'
-    },
-    IntegrationCommerceCodes: {
-      WEBPAY_PLUS: 'test_commerce_code'
-    },
-    IntegrationApiKeys: {
-      WEBPAY: 'test_api_key'
-    }
-  };
-}
-
 const dotenv = require('dotenv');
 dotenv.config();
 
-// Configuración de Transbank según el entorno
+const isProduction = process.env.TRANSBANK_ENVIRONMENT === 'production';
+
+let transbank = null;
+
+if (isProduction) {
+  transbank = require('transbank-sdk'); // SDK real en producción
+} else {
+  try {
+    transbank = require('transbank-sdk'); // SDK real en integración si está instalado
+  } catch (error) {
+    // Mock para desarrollo
+    transbank = {
+      WebpayPlus: {
+        Transaction: function () {
+          return {
+            create: async () => ({
+              token: 'mock_token_123',
+              url: 'https://mock.transbank.cl'
+            }),
+            commit: async () => ({
+              buy_order: 'MOCK_ORDER_123',
+              session_id: 'MOCK_SESSION_123',
+              amount: 100000,
+              authorization_code: '123456',
+              response_code: 0,
+              transaction_date: new Date().toISOString(),
+              payment_type_code: 'VN',
+              card_detail: { card_number: '****1234' },
+              installments_number: 0
+            })
+          };
+        }
+      },
+      Environment: {
+        Integration: 'integration',
+        Production: 'production'
+      },
+      IntegrationCommerceCodes: {
+        WEBPAY_PLUS: 'test_commerce_code'
+      },
+      IntegrationApiKeys: {
+        WEBPAY: 'test_api_key'
+      }
+    };
+  }
+}
+
+// Configuración de Transbank
 const getTransbankConfig = () => {
-  const environment = process.env.TRANSBANK_ENVIRONMENT || 'integration';
-  
-  if (environment === 'production') {
+  if (isProduction) {
     return {
       commerceCode: process.env.TRANSBANK_COMMERCE_CODE,
       apiKey: process.env.TRANSBANK_API_KEY,
-      environment: mockTransbank.Environment.Production
+      environment: transbank.Environment.Production
     };
   } else {
     return {
-      commerceCode: mockTransbank.IntegrationCommerceCodes.WEBPAY_PLUS,
-      apiKey: mockTransbank.IntegrationApiKeys.WEBPAY,
-      environment: mockTransbank.Environment.Integration
+      commerceCode: transbank.IntegrationCommerceCodes.WEBPAY_PLUS,
+      apiKey: transbank.IntegrationApiKeys.WEBPAY,
+      environment: transbank.Environment.Integration
     };
   }
 };
 
-// Configurar cliente de Webpay
 let tx = null;
 
 function initializeTransaction() {
   if (!tx) {
     const config = getTransbankConfig();
-    tx = new mockTransbank.WebpayPlus.Transaction({
+    tx = new transbank.WebpayPlus.Transaction({
       commerceCode: config.commerceCode,
       apiKey: config.apiKey,
       environment: config.environment
@@ -77,36 +79,30 @@ function initializeTransaction() {
   return tx;
 }
 
-// Genera un buyOrder válido para Transbank
 const generateBuyOrder = (orderId) => {
   const cleanOrderId = orderId.toString().trim();
   let shortOrderId = cleanOrderId;
   if (cleanOrderId.length > 20) {
     shortOrderId = cleanOrderId.slice(-20);
   }
-  
+
   const timestamp = Date.now().toString().slice(-6);
   const buyOrder = `${shortOrderId}_${timestamp}`;
-  
+
   if (buyOrder.length > 26) {
     const hash = require('crypto').createHash('md5').update(cleanOrderId).digest('hex').slice(0, 16);
-    const finalBuyOrder = `${hash}_${timestamp}`;
-    return finalBuyOrder;
+    return `${hash}_${timestamp}`;
   }
-  
+
   return buyOrder;
 };
 
-// Genera un sessionId válido para Transbank
 const generateSessionId = (userId) => {
   const shortUserId = userId.toString().slice(-12);
   const shortTimestamp = Date.now().toString().slice(-10);
-  const sessionId = `S${shortUserId}T${shortTimestamp}`;
-  
-  return sessionId;
+  return `S${shortUserId}T${shortTimestamp}`;
 };
 
-// Crea una transacción de pago en Webpay
 exports.createPaymentTransaction = async (orderData) => {
   try {
     if (!orderData || !orderData._id || !orderData.totalPrice) {
@@ -117,10 +113,9 @@ exports.createPaymentTransaction = async (orderData) => {
     const buyOrder = generateBuyOrder(orderData._id);
     const sessionId = generateSessionId(orderData.user._id || orderData.user);
     const amount = Math.round(orderData.totalPrice);
-    
+
     const returnUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/api/payment/webpay/return`;
 
-    // Validar longitudes
     if (buyOrder.length > 26) {
       throw new Error(`buyOrder muy largo: ${buyOrder.length} caracteres (máximo 26)`);
     }
@@ -129,13 +124,11 @@ exports.createPaymentTransaction = async (orderData) => {
       throw new Error(`sessionId muy largo: ${sessionId.length} caracteres (máximo 61)`);
     }
 
-    // Guardar mapeo en memoria global
     if (!global.buyOrderMap) {
       global.buyOrderMap = new Map();
     }
     global.buyOrderMap.set(buyOrder, orderData._id.toString());
 
-    // Guardar en base de datos para mayor seguridad
     const Order = require('../models/Order');
     await Order.findByIdAndUpdate(orderData._id, {
       'paymentResult.buyOrder': buyOrder,
@@ -143,7 +136,6 @@ exports.createPaymentTransaction = async (orderData) => {
       'paymentResult.status': 'pending'
     });
 
-    // Crear transacción en Transbank
     const response = await transaction.create(buyOrder, sessionId, amount, returnUrl);
 
     if (!response || !response.token) {
@@ -159,16 +151,13 @@ exports.createPaymentTransaction = async (orderData) => {
     };
   } catch (error) {
     console.error('Error al crear transacción Webpay:', error);
-    
     if (error.response) {
       console.error('Detalles del error de Transbank:', error.response.data || error.response);
     }
-    
     throw new Error(`No se pudo crear la transacción de pago: ${error.message}`);
   }
 };
 
-// Confirma una transacción de pago en Webpay
 exports.confirmPaymentTransaction = async (token) => {
   try {
     if (!token) {
@@ -201,68 +190,52 @@ exports.confirmPaymentTransaction = async (token) => {
     };
   } catch (error) {
     console.error('Error al confirmar transacción Webpay:', error);
-    
     if (error.response) {
       console.error('Detalles del error de confirmación:', error.response.data || error.response);
     }
-    
     throw new Error(`No se pudo confirmar la transacción: ${error.message}`);
   }
 };
 
-// Extraer orderId de buyOrder
 exports.extractOrderIdFromBuyOrder = (buyOrder) => {
   try {
-    // Método 1: Usar el mapa global
     if (global.buyOrderMap && global.buyOrderMap.has(buyOrder)) {
       const orderId = global.buyOrderMap.get(buyOrder);
       global.buyOrderMap.delete(buyOrder);
       return orderId;
     }
-    
-    // Método 2: Parsing del formato {orderId}_{timestamp}
+
     if (buyOrder && buyOrder.includes('_')) {
       const parts = buyOrder.split('_');
       if (parts.length >= 2) {
-        const extractedOrderId = parts.slice(0, -1).join('_');
-        return extractedOrderId;
+        return parts.slice(0, -1).join('_');
       }
     }
-    
+
     return null;
-    
   } catch (error) {
     console.error('Error extrayendo orderId de buyOrder:', error);
     return null;
   }
 };
 
-// Buscar orderId por buyOrder en la base de datos
 exports.findOrderIdByBuyOrder = async (buyOrder) => {
   try {
     const Order = require('../models/Order');
-    
     const order = await Order.findOne({
       'paymentResult.buyOrder': buyOrder
     }).select('_id');
-    
-    if (order) {
-      return order._id.toString();
-    }
-    
-    return null;
-    
+
+    return order ? order._id.toString() : null;
   } catch (error) {
     console.error('Error buscando orderId en base de datos:', error);
     return null;
   }
 };
 
-// Obtiene el estado de una transacción
 exports.getTransactionStatus = async (token) => {
   try {
     const transactionInfo = await exports.confirmPaymentTransaction(token);
-    
     return {
       token,
       status: transactionInfo.status,
@@ -272,7 +245,6 @@ exports.getTransactionStatus = async (token) => {
     };
   } catch (error) {
     console.error('Error al obtener estado de transacción:', error);
-    
     return {
       token,
       status: 'error',
@@ -283,10 +255,8 @@ exports.getTransactionStatus = async (token) => {
   }
 };
 
-// Procesa anulación/reembolso
 exports.refundTransaction = async (token, amount) => {
   try {
-    // Anulación simulada - En producción implementar WebpayPlus.Refund
     return {
       success: true,
       token,
@@ -298,7 +268,6 @@ exports.refundTransaction = async (token, amount) => {
     };
   } catch (error) {
     console.error('Error en anulación Webpay:', error);
-    
     return {
       success: false,
       token,
@@ -309,20 +278,17 @@ exports.refundTransaction = async (token, amount) => {
   }
 };
 
-// Valida configuración de Transbank
 exports.validateConfiguration = () => {
   const config = getTransbankConfig();
-  
   return {
     environment: process.env.TRANSBANK_ENVIRONMENT || 'integration',
     commerceCode: config.commerceCode,
     hasApiKey: !!config.apiKey,
-    isProduction: process.env.TRANSBANK_ENVIRONMENT === 'production',
+    isProduction: isProduction,
     timestamp: new Date()
   };
 };
 
-// Exportar funciones helper para tests
 exports.generateBuyOrder = generateBuyOrder;
 exports.generateSessionId = generateSessionId;
 

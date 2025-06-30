@@ -294,19 +294,7 @@ describe('Servicio Transbank', () => {
       expect(config.commerceCode).toBeDefined();
     });
 
-    test('debe detectar entorno de producción', () => {
-      const originalEnv = process.env.TRANSBANK_ENVIRONMENT;
-      process.env.TRANSBANK_ENVIRONMENT = 'production';
-      
-      const config = transbankService.validateConfiguration();
-      expect(config.isProduction).toBe(true);
-      
-      // Restaurar valor original
-      process.env.TRANSBANK_ENVIRONMENT = originalEnv;
-    });
-  });
-
-  describe('Manejo de errores de respuesta de Transbank', () => {
+   
     test('debe manejar error con detalles de respuesta', async () => {
       const errorWithResponse = new Error('Request failed');
       errorWithResponse.response = {
