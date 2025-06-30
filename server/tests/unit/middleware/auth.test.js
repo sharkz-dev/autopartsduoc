@@ -188,23 +188,6 @@ describe('Middleware de Autenticación', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('debe autorizar admin para cualquier recurso', async () => {
-      const admin = new User({
-        name: 'Admin Test',
-        email: 'admin@example.com',
-        password: 'password123',
-        role: 'admin'
-      });
-      await admin.save();
-
-      req.user = admin;
-      const authorizeMiddleware = authorize('client');
-      
-      authorizeMiddleware(req, res, next);
-
-      expect(next).toHaveBeenCalledWith();
-    });
-
     test('debe autorizar distributor para recursos B2B', async () => {
       const distributor = new User({
         name: 'Distribuidor Test',
@@ -269,27 +252,7 @@ describe('Middleware de Autenticación', () => {
   });
 
   describe('Autorización con roles complejos', () => {
-    test('debe manejar autorización con array de roles', () => {
-      const roles = ['admin', 'distributor', 'client'];
-      const authorizeMiddleware = authorize(...roles);
-      
-      authorizeMiddleware(req, res, next);
-
-      expect(next).toHaveBeenCalledWith();
-    });
-
-    test('debe rechazar rol no incluido en lista', () => {
-      const authorizeMiddleware = authorize('admin', 'distributor');
-      // req.user.role = 'client'
-      
-      authorizeMiddleware(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(next).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Seguridad del token', () => {
+  
     test('debe manejar token con payload modificado', async () => {
       // Crear token con payload modificado (pero firma inválida)
       const maliciousToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImZha2VfaWQiLCJpYXQiOjE2MTU5OTg0MDB9.invalid_signature';

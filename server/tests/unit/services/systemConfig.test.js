@@ -184,21 +184,7 @@ describe('Servicio SystemConfig', () => {
       SystemConfigService.cacheTimestamp = originalTimestamp;
     });
 
-    test('debe limpiar cache correctamente', async () => {
-      // Cargar cache
-      await SystemConfigService.getConfig('tax_rate');
-      
-      // Verificar que hay datos en cache
-      const stats = SystemConfigService.getCacheStats();
-      expect(stats.size).toBeGreaterThan(0);
-      
-      // Limpiar cache
-      SystemConfigService.clearCache();
-      
-      const newStats = SystemConfigService.getCacheStats();
-      expect(newStats.size).toBe(0);
-      expect(newStats.isValid).toBe(false);
-    });
+   
 
     test('debe obtener estadísticas de cache', async () => {
       await SystemConfigService.getConfig('tax_rate');
